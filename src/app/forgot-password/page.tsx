@@ -12,6 +12,7 @@ export default function ForgotPasswordPage() {
       <SimpleActionForm
         action={requestPasswordReset}
         submitLabel="재설정 메일 받기"
+        validationMode="password-reset"
         fields={[
           { name: "nickname", placeholder: "아이디" },
           { name: "email", type: "email", placeholder: "이메일" },

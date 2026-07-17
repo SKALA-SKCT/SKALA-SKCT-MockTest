@@ -90,6 +90,27 @@ export async function checkEmail(email: string): Promise<{
   return { exists: Boolean(existing), valid: true };
 }
 
+export async function checkPasswordResetIdentity({
+  nickname,
+  email,
+}: {
+  nickname: string;
+  email: string;
+}): Promise<{ exists: boolean; valid: boolean }> {
+  const trimmedNickname = nickname.trim();
+  const trimmedEmail = email.trim().toLowerCase();
+  if (!trimmedNickname || !validateEmail(trimmedEmail)) {
+    return { exists: false, valid: false };
+  }
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      and(eq(users.nickname, trimmedNickname), eq(users.email, trimmedEmail))
+    );
+  return { exists: Boolean(existing), valid: true };
+}
+
 export async function register(
   _prev: AuthFormState,
   formData: FormData
@@ -257,6 +278,9 @@ export async function requestFindId(
   if (isLimited("find-id", email))
     return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." };
   const matched = await db.select().from(users).where(eq(users.email, email));
+  if (matched.length === 0) {
+    return { error: "가입되어 있지 않은 이메일입니다." };
+  }
   if (matched.length > 0) {
     const token = await createAuthToken({
       email,
@@ -291,23 +315,24 @@ export async function requestPasswordReset(
     .select()
     .from(users)
     .where(and(eq(users.nickname, nickname), eq(users.email, email)));
-  if (user) {
-    const token = await createAuthToken({
-      userId: user.id,
-      email,
-      purpose: "password_reset",
-      minutes: 30,
+  if (!user) {
+    return { error: "아이디와 이메일이 일치하는 계정을 찾을 수 없습니다." };
+  }
+  const token = await createAuthToken({
+    userId: user.id,
+    email,
+    purpose: "password_reset",
+    minutes: 30,
+  });
+  const url = appUrl(`/reset-password?token=${token}`);
+  try {
+    await sendMail({
+      to: email,
+      subject: "[SKCT 스터디] 비밀번호 재설정",
+      text: `아래 링크에서 비밀번호를 재설정할 수 있습니다.\n\n${url}\n\n이 링크는 30분 동안 유효합니다.`,
     });
-    const url = appUrl(`/reset-password?token=${token}`);
-    try {
-      await sendMail({
-        to: email,
-        subject: "[SKCT 스터디] 비밀번호 재설정",
-        text: `아래 링크에서 비밀번호를 재설정할 수 있습니다.\n\n${url}\n\n이 링크는 30분 동안 유효합니다.`,
-      });
-    } catch {
-      return { error: "메일 발송 설정을 확인해주세요." };
-    }
+  } catch {
+    return { error: "메일 발송 설정을 확인해주세요." };
   }
   return { message: "인증 메일을 보냈습니다. 받은메일함을 확인해주세요." };
 }

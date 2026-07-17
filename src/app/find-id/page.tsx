@@ -12,6 +12,7 @@ export default function FindIdPage() {
       <SimpleActionForm
         action={requestFindId}
         submitLabel="아이디 확인 메일 받기"
+        validationMode="find-id"
         fields={[{ name: "email", type: "email", placeholder: "이메일" }]}
       />
       <Link href="/login" className="mt-4 block text-center text-sm text-red-600">
