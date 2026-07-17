@@ -21,13 +21,6 @@ function maskName(value: string | null) {
   return value[0] + "*".repeat(Math.max(1, value.length - 1));
 }
 
-function maskEmail(email: string | null) {
-  if (!email) return "-";
-  const [local, domain] = email.split("@");
-  if (!domain) return maskName(email);
-  return `${local.slice(0, 2)}${"*".repeat(Math.max(2, local.length - 2))}@${domain}`;
-}
-
 export default async function ResultPage({
   params,
 }: {
@@ -72,8 +65,8 @@ export default async function ResultPage({
     .select({
       attemptId: attempts.id,
       userId: attempts.userId,
+      nickname: users.nickname,
       name: users.name,
-      email: users.email,
     })
     .from(attempts)
     .innerJoin(users, eq(users.id, attempts.userId))
@@ -202,7 +195,7 @@ export default async function ResultPage({
   const ranking = [...finishedAttempts]
     .map((a) => ({
       name: a.name,
-      email: a.email,
+      nickname: a.nickname,
       isMe: a.userId === user.id,
       total: scoreByAttempt.get(a.attemptId)!.total,
     }))
@@ -361,7 +354,7 @@ export default async function ResultPage({
                   className="flex justify-between rounded-lg px-3 py-1.5 text-zinc-600"
                 >
                   <span>
-                    {i + 1}위 · {maskName(r.name)} · {maskEmail(r.email)}
+                    {i + 1}위 · {maskName(r.name)} · {maskName(r.nickname)}
                   </span>
                   <span>
                     {r.total}/{totalQuestions}
