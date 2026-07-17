@@ -197,6 +197,31 @@ export async function deleteAccountOnly() {
   await destroySession();
 }
 
+export async function deleteAccountWithNickname(confirmNickname: string) {
+  const { getSessionUserId } = await import("@/lib/session");
+  const userId = await getSessionUserId();
+  if (userId == null) {
+    await destroySession();
+    return { ok: false, error: "로그인이 필요합니다." };
+  }
+
+  const [user] = await db
+    .select({ id: users.id, nickname: users.nickname })
+    .from(users)
+    .where(eq(users.id, userId));
+  if (!user) {
+    await destroySession();
+    return { ok: false, error: "계정을 찾을 수 없습니다." };
+  }
+  if (confirmNickname.trim() !== user.nickname) {
+    return { ok: false, error: "아이디가 일치하지 않습니다." };
+  }
+
+  await db.delete(users).where(eq(users.id, user.id));
+  await destroySession();
+  return { ok: true };
+}
+
 export async function verifyEmailToken(token: string) {
   const tokenHash = hashToken(token);
   const [row] = await db
