@@ -12,6 +12,12 @@ import { createSession, destroySession } from "@/lib/session";
 
 export type AuthFormState = { error?: string; message?: string };
 
+function validateName(name: string): string | null {
+  if (!name || name.length < 1 || name.length > 20)
+    return "이름은 1~20자로 입력해주세요.";
+  return null;
+}
+
 function validate(nickname: string, pin: string): string | null {
   if (!nickname || nickname.length < 1 || nickname.length > 12)
     return "아이디는 1~12자로 입력해주세요.";
@@ -116,6 +122,7 @@ export async function register(
   formData: FormData
 ): Promise<AuthFormState> {
   const nickname = String(formData.get("nickname") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const pin = String(formData.get("pin") ?? "");
   const pinConfirm = String(formData.get("pinConfirm") ?? "");
@@ -123,6 +130,8 @@ export async function register(
     return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." };
   const err = validate(nickname, pin);
   if (err) return { error: err };
+  const nameErr = validateName(name);
+  if (nameErr) return { error: nameErr };
   if (!validateEmail(email)) return { error: "이메일을 올바르게 입력해주세요." };
   if (pin !== pinConfirm) return { error: "비밀번호가 서로 일치하지 않습니다." };
 
@@ -144,7 +153,7 @@ export async function register(
   const pinHash = await bcrypt.hash(pin, 12);
   const [user] = await db
     .insert(users)
-    .values({ nickname, email, pinHash, isAdmin: count === 0 })
+    .values({ nickname, name, email, pinHash, isAdmin: count === 0 })
     .returning();
 
   const token = await createAuthToken({
@@ -222,6 +231,97 @@ export async function deleteAccountWithNickname(confirmNickname: string) {
   await db.delete(users).where(eq(users.id, user.id));
   await destroySession();
   return { ok: true };
+}
+
+export async function requestMyPasswordChangeCode() {
+  const { getSessionUserId } = await import("@/lib/session");
+  const userId = await getSessionUserId();
+  if (userId == null) return { ok: false, error: "로그인이 필요합니다." };
+
+  const [user] = await db
+    .select({ id: users.id, email: users.email, emailVerifiedAt: users.emailVerifiedAt })
+    .from(users)
+    .where(eq(users.id, userId));
+  if (!user?.email || !user.emailVerifiedAt) {
+    return { ok: false, error: "인증된 이메일이 필요합니다." };
+  }
+  if (isLimited("my-password-change", String(user.id))) {
+    return { ok: false, error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." };
+  }
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  await db.insert(authTokens).values({
+    userId: user.id,
+    email: user.email,
+    purpose: "password_reset",
+    tokenHash: hashToken(code),
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+  });
+
+  try {
+    await sendMail({
+      to: user.email,
+      subject: "[SKCT 스터디] 비밀번호 변경 인증번호",
+      text: `비밀번호 변경 인증번호는 ${code} 입니다.\n\n이 인증번호는 10분 동안 유효합니다.`,
+    });
+  } catch {
+    return { ok: false, error: "메일 발송 설정을 확인해주세요." };
+  }
+
+  return { ok: true, message: "인증번호를 보냈습니다." };
+}
+
+export async function changeMyPasswordWithCode({
+  code,
+  pin,
+  pinConfirm,
+}: {
+  code: string;
+  pin: string;
+  pinConfirm: string;
+}) {
+  const { getSessionUserId } = await import("@/lib/session");
+  const userId = await getSessionUserId();
+  if (userId == null) return { ok: false, error: "로그인이 필요합니다." };
+  if (pin !== pinConfirm) return { ok: false, error: "비밀번호가 서로 일치하지 않습니다." };
+  const err = validatePassword(pin);
+  if (err) return { ok: false, error: err };
+
+  const [user] = await db
+    .select({ id: users.id, email: users.email })
+    .from(users)
+    .where(eq(users.id, userId));
+  if (!user?.email) return { ok: false, error: "계정을 찾을 수 없습니다." };
+
+  const [row] = await db
+    .select()
+    .from(authTokens)
+    .where(
+      and(
+        eq(authTokens.userId, user.id),
+        eq(authTokens.email, user.email),
+        eq(authTokens.purpose, "password_reset"),
+        eq(authTokens.tokenHash, hashToken(code.trim())),
+        isNull(authTokens.usedAt)
+      )
+    )
+    .orderBy(sql`${authTokens.createdAt} desc`)
+    .limit(1);
+
+  if (!row || row.expiresAt.getTime() < Date.now()) {
+    return { ok: false, error: "인증번호가 올바르지 않거나 만료되었습니다." };
+  }
+
+  await db
+    .update(users)
+    .set({ pinHash: await bcrypt.hash(pin, 12) })
+    .where(eq(users.id, user.id));
+  await db
+    .update(authTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(authTokens.id, row.id));
+
+  return { ok: true, message: "비밀번호가 변경되었습니다." };
 }
 
 export async function verifyEmailToken(token: string) {

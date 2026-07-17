@@ -16,9 +16,16 @@ import ResultReview, { type ReviewQuestion } from "@/components/ResultReview";
 
 export const dynamic = "force-dynamic";
 
-/** 하나 → 하*, 박건민 → 박** */
-function maskName(name: string) {
-  return name[0] + "*".repeat(Math.max(1, name.length - 1));
+function maskName(value: string | null) {
+  if (!value) return "-";
+  return value[0] + "*".repeat(Math.max(1, value.length - 1));
+}
+
+function maskEmail(email: string | null) {
+  if (!email) return "-";
+  const [local, domain] = email.split("@");
+  if (!domain) return maskName(email);
+  return `${local.slice(0, 2)}${"*".repeat(Math.max(2, local.length - 2))}@${domain}`;
 }
 
 export default async function ResultPage({
@@ -65,7 +72,8 @@ export default async function ResultPage({
     .select({
       attemptId: attempts.id,
       userId: attempts.userId,
-      nickname: users.nickname,
+      name: users.name,
+      email: users.email,
     })
     .from(attempts)
     .innerJoin(users, eq(users.id, attempts.userId))
@@ -193,7 +201,8 @@ export default async function ResultPage({
   // 랭킹 테이블
   const ranking = [...finishedAttempts]
     .map((a) => ({
-      nickname: a.nickname,
+      name: a.name,
+      email: a.email,
       isMe: a.userId === user.id,
       total: scoreByAttempt.get(a.attemptId)!.total,
     }))
@@ -352,7 +361,7 @@ export default async function ResultPage({
                   className="flex justify-between rounded-lg px-3 py-1.5 text-zinc-600"
                 >
                   <span>
-                    {i + 1}위 · {maskName(r.nickname)}
+                    {i + 1}위 · {maskName(r.name)} · {maskEmail(r.email)}
                   </span>
                   <span>
                     {r.total}/{totalQuestions}

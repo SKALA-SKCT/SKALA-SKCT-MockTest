@@ -31,7 +31,11 @@ export default async function RootLayout({
                 <span className="text-sm font-semibold text-ink-2">스터디</span>
               </Link>
               <div className="ml-auto flex items-center gap-2">
-                <AccountMenu nickname={user.nickname} />
+                <AccountMenu
+                  nickname={user.nickname}
+                  name={user.name}
+                  email={user.email}
+                />
               </div>
             </nav>
           </header>

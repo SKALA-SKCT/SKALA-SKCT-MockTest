@@ -87,6 +87,16 @@ export default function AuthForm({
       </h1>
       <p className="mb-6 text-center text-sm text-zinc-500">{title}</p>
       <form action={formAction} className="flex flex-col gap-3">
+        {isRegister && (
+          <input
+            name="name"
+            placeholder="이름"
+            maxLength={20}
+            autoComplete="name"
+            required
+            className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:border-red-500"
+          />
+        )}
         <div>
           <input
             name="nickname"

@@ -34,6 +34,7 @@ export type SectionState = Partial<
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   nickname: text("nickname").notNull().unique(),
+  name: text("name").notNull(),
   email: text("email").unique(),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   pinHash: text("pin_hash").notNull(),
