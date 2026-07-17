@@ -200,10 +200,6 @@ export default async function Dashboard() {
     <div className="flex flex-col gap-6 md:flex-row md:items-start">
       {/* ── 좌측: 분석 대시보드 */}
       <div className="flex min-w-0 flex-1 flex-col gap-6">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {user.nickname}님의 대시보드
-        </h1>
-
         {/* 스탯 타일 */}
         {tiles.length > 0 && (
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
