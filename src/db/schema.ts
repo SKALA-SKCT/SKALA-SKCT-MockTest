@@ -60,7 +60,10 @@ export const questions = pgTable(
     answer: integer("answer").notNull(), // 1-based index into choices
     explanation: text("explanation"),
   },
-  (t) => [uniqueIndex("uq_question").on(t.examId, t.subject, t.number)]
+  (t) => [
+    uniqueIndex("uq_question").on(t.examId, t.subject, t.number),
+    index("idx_question_exam").on(t.examId),
+  ]
 );
 
 export const attempts = pgTable(
@@ -80,7 +83,10 @@ export const attempts = pgTable(
     finishedAt: timestamp("finished_at", { withTimezone: true }),
   },
   // 유저·시험별 응시 기록
-  (t) => [index("idx_attempt_user_exam").on(t.userId, t.examId)]
+  (t) => [
+    index("idx_attempt_user_exam").on(t.userId, t.examId),
+    index("idx_attempt_exam_finished").on(t.examId, t.finishedAt),
+  ]
 );
 
 export const responses = pgTable(
@@ -96,5 +102,8 @@ export const responses = pgTable(
     choice: integer("choice"), // 1-based, null = 무응답
     isCorrect: boolean("is_correct").notNull().default(false),
   },
-  (t) => [uniqueIndex("uq_response").on(t.attemptId, t.questionId)]
+  (t) => [
+    uniqueIndex("uq_response").on(t.attemptId, t.questionId),
+    index("idx_response_question").on(t.questionId),
+  ]
 );

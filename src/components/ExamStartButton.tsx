@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 type SubjectInfo = {
   subject: string;
@@ -23,22 +23,26 @@ export default function ExamStartButton({
   sectionMinutes: number;
   compact?: boolean;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const totalMinutes = subjects.length * sectionMinutes;
 
-  const start = () => {
-    router.push(`/exam/${examId}/take`);
-  };
+  if (compact) {
+    return (
+      <Link
+        href={`/exam/${examId}/take`}
+        className="rounded-lg bg-brand px-3 py-1.5 text-[11px] font-semibold text-white transition hover:opacity-85"
+      >
+        {label}
+      </Link>
+    );
+  }
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`rounded-lg bg-brand font-semibold text-white transition hover:opacity-85 disabled:opacity-50 ${
-          compact ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-sm"
-        }`}
+        className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85 disabled:opacity-50"
       >
         {label}
       </button>
@@ -95,13 +99,12 @@ export default function ExamStartButton({
               >
                 취소
               </button>
-              <button
-                type="button"
-                onClick={start}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-85 disabled:opacity-50"
+              <Link
+                href={`/exam/${examId}/take`}
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-85"
               >
                 시작하기
-              </button>
+              </Link>
             </div>
           </div>
         </div>

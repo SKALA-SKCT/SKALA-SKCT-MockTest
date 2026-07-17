@@ -81,6 +81,8 @@ export default async function ResultPage({
     .filter((a) => a.userId !== user.id)
     .map((a) => a.attemptId);
   const peerCount = peerAttemptIds.length;
+  const analysisAttemptIds = peerAttemptIds.length ? peerAttemptIds : [myAttempt.id];
+  const analysisCount = analysisAttemptIds.length;
 
   // 응시별 · 과목별 정답 수
   const subjectCorrect = await db
@@ -132,21 +134,21 @@ export default async function ResultPage({
     qAccuracyRows.map((r) => [r.questionId, r.correct])
   );
 
-  const peerAccuracyRows = peerAttemptIds.length
+  const analysisAccuracyRows = analysisAttemptIds.length
     ? await db
         .select({
           questionId: responses.questionId,
           correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
         })
         .from(responses)
-        .where(inArray(responses.attemptId, peerAttemptIds))
+        .where(inArray(responses.attemptId, analysisAttemptIds))
         .groupBy(responses.questionId)
     : [];
-  const peerCorrectCountByQ = new Map(
-    peerAccuracyRows.map((r) => [r.questionId, r.correct])
+  const analysisCorrectCountByQ = new Map(
+    analysisAccuracyRows.map((r) => [r.questionId, r.correct])
   );
 
-  const peerChoiceRows = peerAttemptIds.length
+  const analysisChoiceRows = analysisAttemptIds.length
     ? await db
         .select({
           questionId: responses.questionId,
@@ -154,15 +156,15 @@ export default async function ResultPage({
           count: sql<number>`count(*)::int`,
         })
         .from(responses)
-        .where(and(inArray(responses.attemptId, peerAttemptIds), isNotNull(responses.choice)))
+        .where(and(inArray(responses.attemptId, analysisAttemptIds), isNotNull(responses.choice)))
         .groupBy(responses.questionId, responses.choice)
     : [];
-  const peerChoiceCountsByQ = new Map<number, number[]>();
-  for (const row of peerChoiceRows) {
+  const analysisChoiceCountsByQ = new Map<number, number[]>();
+  for (const row of analysisChoiceRows) {
     if (row.choice == null) continue;
-    const counts = peerChoiceCountsByQ.get(row.questionId) ?? [0, 0, 0, 0, 0];
+    const counts = analysisChoiceCountsByQ.get(row.questionId) ?? [0, 0, 0, 0, 0];
     counts[row.choice - 1] = row.count;
-    peerChoiceCountsByQ.set(row.questionId, counts);
+    analysisChoiceCountsByQ.set(row.questionId, counts);
   }
 
   // 내 응답
@@ -202,10 +204,11 @@ export default async function ResultPage({
     const groupAccuracy = n
       ? Math.round(((correctCountByQ.get(q.id) ?? 0) / n) * 100)
       : 0;
-    const peerWrongRate = peerCount
-      ? 100 - Math.round(((peerCorrectCountByQ.get(q.id) ?? 0) / peerCount) * 100)
+    const peerWrongRate = analysisCount
+      ? 100 -
+        Math.round(((analysisCorrectCountByQ.get(q.id) ?? 0) / analysisCount) * 100)
       : null;
-    const peerChoiceCounts = peerChoiceCountsByQ.get(q.id);
+    const analysisChoiceCounts = analysisChoiceCountsByQ.get(q.id) ?? [0, 0, 0, 0, 0];
     return {
       id: q.id,
       subject: q.subject,
@@ -220,8 +223,8 @@ export default async function ResultPage({
       groupAccuracy,
       peerWrongRate,
       choiceRates:
-        peerCount && peerChoiceCounts
-          ? peerChoiceCounts.map((count) => Math.round((count / peerCount) * 100))
+        analysisCount
+          ? analysisChoiceCounts.map((count) => Math.round((count / analysisCount) * 100))
           : null,
     };
   });
@@ -233,11 +236,9 @@ export default async function ResultPage({
       mine: myScore.bySubject.get(subject) ?? 0,
       total: totalBySubject.get(subject) ?? 0,
       hardQuestions:
-        peerCount > 0
-          ? [...subjectQuestions]
-              .filter((q) => q.peerWrongRate != null)
-              .sort((a, b) => (b.peerWrongRate ?? 0) - (a.peerWrongRate ?? 0))
-          : [],
+        [...subjectQuestions]
+          .filter((q) => q.peerWrongRate != null)
+          .sort((a, b) => (b.peerWrongRate ?? 0) - (a.peerWrongRate ?? 0)),
     };
   });
 

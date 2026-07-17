@@ -36,45 +36,6 @@ type HardQuestionPreview = {
   isSample: boolean;
 };
 
-const SAMPLE_WRONG_RATES: Record<string, number[]> = {
-  언어이해: [76, 68, 61],
-  자료해석: [83, 77, 69],
-  창의수리: [79, 72, 66],
-  언어추리: [81, 74, 63],
-  수열추리: [88, 80, 71],
-};
-
-const SAMPLE_NOTES: Record<string, string[]> = {
-  언어이해: ["핵심 주장과 사례를 혼동", "부정 표현 조건 누락", "선지 범위 과대 해석"],
-  자료해석: ["증감률과 증감량 혼동", "단위 변환 실수", "전년 대비 기준 착오"],
-  창의수리: ["조건 조합 누락", "경우의 수 중복 계산", "비율식 설정 오류"],
-  언어추리: ["충분조건·필요조건 혼동", "반례 조건 누락", "명제 방향 반대로 해석"],
-  수열추리: ["두 규칙 교차 적용 실패", "분자·분모 규칙 혼동", "도형 위치 규칙 누락"],
-};
-
-const SAMPLE_CHOICE_RATES = [
-  [12, 18, 44, 16, 10],
-  [8, 52, 15, 17, 8],
-  [21, 11, 14, 46, 8],
-  [9, 13, 19, 12, 47],
-  [38, 15, 12, 21, 14],
-];
-
-function sampleHardQuestions(subject: SubjectSummary, questions: ReviewQuestion[]) {
-  const subjectQuestions = questions.filter((q) => q.subject === subject.subject);
-  const rates = SAMPLE_WRONG_RATES[subject.subject] ?? [75, 68, 61];
-  const notes = SAMPLE_NOTES[subject.subject] ?? ["조건 확인 필요", "계산 기준 착오", "선지 비교 실수"];
-
-  return subjectQuestions.map((question, index) => ({
-    id: question.id,
-    number: question.number,
-    subject: question.subject,
-    wrongRate: rates[index] ?? Math.max(35, rates[0] - index * 3),
-    note: notes[index % notes.length] ?? notes[0],
-    isSample: true,
-  }));
-}
-
 function ResultPill({ question }: { question: ReviewQuestion }) {
   return (
     <span
@@ -92,22 +53,17 @@ function ResultPill({ question }: { question: ReviewQuestion }) {
 function WrongRate({ value }: { value: number | null }) {
   return (
     <span className={value != null && value >= 50 ? "text-red-500" : "text-zinc-400"}>
-      다른 사람 오답률 {value == null ? "-" : `${value}%`}
+      기준 오답률 {value == null ? "-" : `${value}%`}
     </span>
   );
 }
 
 function QuestionCard({
   question,
-  isSampleMode,
 }: {
   question: ReviewQuestion;
-  isSampleMode: boolean;
 }) {
-  const choiceRates =
-    question.choiceRates ??
-    (isSampleMode ? SAMPLE_CHOICE_RATES[(question.number - 1) % SAMPLE_CHOICE_RATES.length] : null);
-  const choiceRateLabel = question.choiceRates ? "선택" : "예시";
+  const choiceRates = question.choiceRates;
 
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
@@ -157,7 +113,7 @@ function QuestionCard({
               <span className="ml-auto flex shrink-0 items-center gap-2 text-xs">
                 {choiceRates && (
                   <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-semibold text-zinc-500">
-                    {choiceRateLabel} {choiceRates[index] ?? 0}%
+                    선택 {choiceRates[index] ?? 0}%
                   </span>
                 )}
                 {isAnswer && (
@@ -217,19 +173,15 @@ export default function ResultReview({
         number: question.number,
         subject: question.subject,
         wrongRate: question.peerWrongRate ?? 0,
-        note: "다른 응시자 기준 고오답률",
+        note: question.isCorrect ? "정답 문항" : question.myChoice == null ? "무응답 문항" : "오답 문항",
         isSample: false,
       }));
-      map.set(
-        subject.subject,
-        actual.length > 0 ? actual : sampleHardQuestions(subject, questions)
-      );
+      map.set(subject.subject, actual);
     }
     return map;
-  }, [questions, subjects]);
+  }, [subjects]);
 
   const wrongCount = questions.filter((q) => !q.isCorrect).length;
-  const isSampleMode = peerCount === 0;
 
   const jumpToQuestion = (question: HardQuestionPreview) => {
     setWrongOnly(false);
@@ -252,14 +204,12 @@ export default function ResultReview({
             <p className="mt-1 text-xs text-zinc-400">
               {peerCount > 0
                 ? `내 응시를 제외한 ${peerCount}명의 오답률 기준`
-                : "아직 다른 응시자 데이터가 없어 샘플 오답률로 화면을 미리 보여줍니다."}
+                : "아직 다른 응시자 데이터가 없어 내 완료 기록을 기준으로 표시합니다."}
             </p>
           </div>
-          {isSampleMode && (
-            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-              예시 데이터
-            </span>
-          )}
+          <span className="rounded-full bg-zinc-50 px-3 py-1 text-xs font-bold text-zinc-500">
+            {peerCount > 0 ? "그룹 기준" : "내 기록 기준"}
+          </span>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           {subjects.map((subject) => {
@@ -274,11 +224,6 @@ export default function ResultReview({
                   <p className="text-sm font-bold text-zinc-800">
                     {subject.subject}
                   </p>
-                  {hardQuestions[0]?.isSample && (
-                    <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-amber-600">
-                      샘플
-                    </span>
-                  )}
                 </div>
                 {hardQuestions.length > 0 ? (
                   <ol className="max-h-72 space-y-2 overflow-y-auto pr-1">
@@ -313,12 +258,6 @@ export default function ResultReview({
             );
           })}
         </div>
-        {isSampleMode && (
-          <p className="mt-4 rounded-xl bg-zinc-50 px-4 py-3 text-xs leading-5 text-zinc-500">
-            실제 다른 응시자 기록이 생기면 샘플 문항은 사라지고, 같은 영역에
-            실제 유형별 고오답률 상위 문항이 자동으로 표시됩니다.
-          </p>
-        )}
       </section>
 
       <section>
@@ -378,7 +317,6 @@ export default function ResultReview({
                     <QuestionCard
                       key={question.id}
                       question={question}
-                      isSampleMode={isSampleMode}
                     />
                   ))
                 ) : (

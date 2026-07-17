@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "스터디원끼리 모의고사 풀고 비교 분석하는 사이트",
 };
 
+export const preferredRegion = "sin1";
+
 export default async function RootLayout({
   children,
 }: Readonly<{

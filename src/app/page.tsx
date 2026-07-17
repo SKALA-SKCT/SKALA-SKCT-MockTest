@@ -81,6 +81,15 @@ export default async function Dashboard() {
       total: totalOfSubject(examId, subject),
     })).filter((s) => s.total > 0);
 
+  const rankOfAttempt = (target: (typeof finished)[number]) => {
+    const peers = finished.filter((a) => a.examId === target.examId);
+    const myScoreForExam = scoreOf(target.id);
+    return {
+      rank: 1 + peers.filter((p) => scoreOf(p.id) > myScoreForExam).length,
+      peers: peers.length,
+    };
+  };
+
   // ── 스탯 타일: 가장 최근 완료 회차 기준
   const latest = [...myFinished].sort(
     (a, b) => (b.finishedAt?.getTime() ?? 0) - (a.finishedAt?.getTime() ?? 0)
@@ -97,7 +106,10 @@ export default async function Dashboard() {
     const total = totalOfExam(latest.examId);
     const groupAvg =
       peers.reduce((acc, p) => acc + scoreOf(p.id), 0) / (peers.length || 1);
-    const rank = 1 + peers.filter((p) => scoreOf(p.id) > myScore).length;
+    const rank = rankOfAttempt(latest).rank;
+    const averageRank =
+      myFinished.reduce((acc, attempt) => acc + rankOfAttempt(attempt).rank, 0) /
+      (myFinished.length || 1);
     const diff = Math.round(myScore - groupAvg);
     tiles = [
       {
@@ -106,9 +118,9 @@ export default async function Dashboard() {
         sub: `/${total}문항`,
       },
       {
-        label: "그룹 평균 대비",
+        label: "그룹 평균과 차이",
         value: `${diff > 0 ? "+" : ""}${diff}`,
-        sub: "문항",
+        sub: "문항 (내 점수-평균)",
         accent: diff >= 0 ? "up" : "down",
       },
       {
@@ -117,9 +129,9 @@ export default async function Dashboard() {
         sub: `/${peers.length}명`,
       },
       {
-        label: "완료 회차",
-        value: `${myFinished.length}회`,
-        sub: `/${examList.length}회`,
+        label: "내 평균 등수",
+        value: `${averageRank.toFixed(1)}위`,
+        sub: `${myFinished.length}회 평균`,
       },
     ];
   }
@@ -162,7 +174,7 @@ export default async function Dashboard() {
       나: myT ? Math.round((myC / myT) * 100) : 0,
       그룹평균: gT ? Math.round((gC / gT) * 100) : 0,
     };
-  }).filter((r) => r.그룹평균 > 0 || r.나 > 0);
+  });
 
   // 회차 목록: 1~12회차. 제목("N회차 모의고사")으로 매핑
   const ROUNDS = 12;
@@ -277,7 +289,7 @@ export default async function Dashboard() {
                             : "text-ink-3"
                       }`}
                     >
-                      평균 대비 {diff > 0 ? "+" : ""}
+                      그룹 평균과 차이 {diff > 0 ? "+" : ""}
                       {diff}%p
                     </p>
                   </div>
