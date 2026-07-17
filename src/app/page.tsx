@@ -301,6 +301,9 @@ export default async function Dashboard() {
         <div className="card flex max-h-[calc(100vh-8rem)] flex-col">
           <div className="border-b border-hairline px-5 py-4">
             <h2 className="text-sm font-semibold text-ink">모의고사</h2>
+            <p className="mt-1 text-xs text-ink-3">
+              모의고사는 재응시할 수 없습니다.
+            </p>
           </div>
           <ul className="flex-1 divide-y divide-[var(--grid)] overflow-y-auto px-5">
             {rounds.map((r) => (

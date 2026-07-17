@@ -129,9 +129,9 @@ function QuestionCard({
         })}
       </div>
 
-      <p className="mt-3 text-xs text-zinc-500">
+      <p className="mt-3 text-sm font-medium text-zinc-600">
         내 답: {question.myChoice ? CIRCLED[question.myChoice - 1] : "-"} · 정답:{" "}
-        <b className="text-zinc-700">{CIRCLED[question.answer - 1]}</b>
+        <b className="text-base text-zinc-800">{CIRCLED[question.answer - 1]}</b>
       </p>
 
       {question.explanation && (
