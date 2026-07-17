@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import {
   checkEmail,
   checkPasswordResetIdentity,
@@ -28,6 +28,7 @@ export default function SimpleActionForm({
   validationMode?: "none" | "find-id" | "password-reset";
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const skipNextBlurValidationRef = useRef(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const [validationStatus, setValidationStatus] = useState<
     "idle" | "checking" | "valid" | "invalid"
@@ -92,6 +93,10 @@ export default function SimpleActionForm({
   };
 
   const handleFieldBlur = (name: string, value: string) => {
+    if (skipNextBlurValidationRef.current) {
+      skipNextBlurValidationRef.current = false;
+      return;
+    }
     const nextValues = { ...values, [name]: value };
     setValues(nextValues);
     void runValidation(nextValues);
@@ -144,6 +149,9 @@ export default function SimpleActionForm({
       )}
       <button
         type="submit"
+        onPointerDown={() => {
+          skipNextBlurValidationRef.current = true;
+        }}
         disabled={submitDisabled}
         className="rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
       >
