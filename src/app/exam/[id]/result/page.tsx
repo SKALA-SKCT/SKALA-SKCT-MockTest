@@ -1,0 +1,379 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { db } from "@/db";
+import {
+  attempts,
+  exams,
+  questions,
+  responses,
+  users,
+  SUBJECTS,
+} from "@/db/schema";
+import { requireUser } from "@/lib/session";
+import SubjectRadar from "@/components/SubjectRadar";
+import ResultReview, { type ReviewQuestion } from "@/components/ResultReview";
+
+export const dynamic = "force-dynamic";
+
+/** 하나 → 하*, 박건민 → 박** */
+function maskName(name: string) {
+  return name[0] + "*".repeat(Math.max(1, name.length - 1));
+}
+
+export default async function ResultPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const examId = Number(id);
+  if (!Number.isInteger(examId)) notFound();
+
+  const user = await requireUser();
+  const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
+  if (!exam) notFound();
+
+  // 가장 최근 완료 응시 기준
+  const [myAttempt] = await db
+    .select()
+    .from(attempts)
+    .where(
+      and(
+        eq(attempts.userId, user.id),
+        eq(attempts.examId, examId),
+        isNotNull(attempts.finishedAt)
+      )
+    )
+    .orderBy(desc(attempts.id))
+    .limit(1);
+  if (!myAttempt) redirect(`/exam/${examId}/take`);
+
+  const qs = await db
+    .select()
+    .from(questions)
+    .where(eq(questions.examId, examId))
+    .orderBy(asc(questions.subject), asc(questions.number));
+
+  const examSubjects = SUBJECTS.filter((s) => qs.some((q) => q.subject === s));
+  const totalBySubject = new Map<string, number>();
+  for (const q of qs) {
+    totalBySubject.set(q.subject, (totalBySubject.get(q.subject) ?? 0) + 1);
+  }
+  // 완료된 응시 — 유저별 가장 최근 완료 기록 1개만 사용
+  const finishedRows = await db
+    .select({
+      attemptId: attempts.id,
+      userId: attempts.userId,
+      nickname: users.nickname,
+    })
+    .from(attempts)
+    .innerJoin(users, eq(users.id, attempts.userId))
+    .where(and(eq(attempts.examId, examId), isNotNull(attempts.finishedAt)))
+    .orderBy(desc(attempts.id));
+  const latestByUser = new Map<number, (typeof finishedRows)[number]>();
+  for (const row of finishedRows)
+    if (!latestByUser.has(row.userId)) latestByUser.set(row.userId, row);
+  const finishedAttempts = [...latestByUser.values()];
+  const n = finishedAttempts.length;
+  const attemptIds = finishedAttempts.map((a) => a.attemptId);
+  const peerAttemptIds = finishedAttempts
+    .filter((a) => a.userId !== user.id)
+    .map((a) => a.attemptId);
+  const peerCount = peerAttemptIds.length;
+
+  // 응시별 · 과목별 정답 수
+  const subjectCorrect = await db
+    .select({
+      attemptId: responses.attemptId,
+      subject: questions.subject,
+      correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
+    })
+    .from(responses)
+    .innerJoin(questions, eq(questions.id, responses.questionId))
+    .where(inArray(responses.attemptId, attemptIds))
+    .groupBy(responses.attemptId, questions.subject);
+
+  const scoreByAttempt = new Map<number, { total: number; bySubject: Map<string, number> }>();
+  for (const a of finishedAttempts)
+    scoreByAttempt.set(a.attemptId, { total: 0, bySubject: new Map() });
+  for (const row of subjectCorrect) {
+    const s = scoreByAttempt.get(row.attemptId)!;
+    s.total += row.correct;
+    s.bySubject.set(row.subject, row.correct);
+  }
+
+  const myScore = scoreByAttempt.get(myAttempt.id)!;
+  const totalQuestions = qs.length;
+  const rank =
+    1 +
+    finishedAttempts.filter(
+      (a) => scoreByAttempt.get(a.attemptId)!.total > myScore.total
+    ).length;
+  const topPercent = Math.round((rank / n) * 100);
+  const averageTotal =
+    n > 0
+      ? finishedAttempts.reduce(
+          (acc, a) => acc + scoreByAttempt.get(a.attemptId)!.total,
+          0
+        ) / n
+      : 0;
+
+  // 문항별 그룹 정답률 (무응답/미기록은 오답 처리: 분모 = 완료 인원)
+  const qAccuracyRows = await db
+    .select({
+      questionId: responses.questionId,
+      correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
+    })
+    .from(responses)
+    .where(inArray(responses.attemptId, attemptIds))
+    .groupBy(responses.questionId);
+  const correctCountByQ = new Map(
+    qAccuracyRows.map((r) => [r.questionId, r.correct])
+  );
+
+  const peerAccuracyRows = peerAttemptIds.length
+    ? await db
+        .select({
+          questionId: responses.questionId,
+          correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
+        })
+        .from(responses)
+        .where(inArray(responses.attemptId, peerAttemptIds))
+        .groupBy(responses.questionId)
+    : [];
+  const peerCorrectCountByQ = new Map(
+    peerAccuracyRows.map((r) => [r.questionId, r.correct])
+  );
+
+  const peerChoiceRows = peerAttemptIds.length
+    ? await db
+        .select({
+          questionId: responses.questionId,
+          choice: responses.choice,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(responses)
+        .where(and(inArray(responses.attemptId, peerAttemptIds), isNotNull(responses.choice)))
+        .groupBy(responses.questionId, responses.choice)
+    : [];
+  const peerChoiceCountsByQ = new Map<number, number[]>();
+  for (const row of peerChoiceRows) {
+    if (row.choice == null) continue;
+    const counts = peerChoiceCountsByQ.get(row.questionId) ?? [0, 0, 0, 0, 0];
+    counts[row.choice - 1] = row.count;
+    peerChoiceCountsByQ.set(row.questionId, counts);
+  }
+
+  // 내 응답
+  const myResponses = await db
+    .select()
+    .from(responses)
+    .where(eq(responses.attemptId, myAttempt.id));
+  const myChoiceByQ = new Map(myResponses.map((r) => [r.questionId, r.choice]));
+
+  // 레이더 데이터: 과목별 정답률(%) 나 vs 그룹평균
+  const radarData = examSubjects.map((s) => {
+    const total = totalBySubject.get(s) ?? 0;
+    const mine = myScore.bySubject.get(s) ?? 0;
+    const groupSum = finishedAttempts.reduce(
+      (acc, a) => acc + (scoreByAttempt.get(a.attemptId)!.bySubject.get(s) ?? 0),
+      0
+    );
+    return {
+      subject: s,
+      나: total ? Math.round((mine / total) * 100) : 0,
+      그룹평균: total && n ? Math.round((groupSum / n / total) * 100) : 0,
+      avgScore: n ? groupSum / n : 0, // 그룹 평균 정답 수 (문항)
+    };
+  });
+
+  // 랭킹 테이블
+  const ranking = [...finishedAttempts]
+    .map((a) => ({
+      nickname: a.nickname,
+      isMe: a.userId === user.id,
+      total: scoreByAttempt.get(a.attemptId)!.total,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const reviewQuestions: ReviewQuestion[] = qs.map((q) => {
+    const myChoice = myChoiceByQ.get(q.id) ?? null;
+    const groupAccuracy = n
+      ? Math.round(((correctCountByQ.get(q.id) ?? 0) / n) * 100)
+      : 0;
+    const peerWrongRate = peerCount
+      ? 100 - Math.round(((peerCorrectCountByQ.get(q.id) ?? 0) / peerCount) * 100)
+      : null;
+    const peerChoiceCounts = peerChoiceCountsByQ.get(q.id);
+    return {
+      id: q.id,
+      subject: q.subject,
+      number: q.number,
+      body: q.body,
+      imageUrl: q.imageUrl,
+      choices: q.choices,
+      answer: q.answer,
+      explanation: q.explanation,
+      myChoice,
+      isCorrect: myChoice === q.answer,
+      groupAccuracy,
+      peerWrongRate,
+      choiceRates:
+        peerCount && peerChoiceCounts
+          ? peerChoiceCounts.map((count) => Math.round((count / peerCount) * 100))
+          : null,
+    };
+  });
+
+  const reviewSubjects = examSubjects.map((subject) => {
+    const subjectQuestions = reviewQuestions.filter((q) => q.subject === subject);
+    return {
+      subject,
+      mine: myScore.bySubject.get(subject) ?? 0,
+      total: totalBySubject.get(subject) ?? 0,
+      hardQuestions:
+        peerCount > 0
+          ? [...subjectQuestions]
+              .filter((q) => q.peerWrongRate != null)
+              .sort((a, b) => (b.peerWrongRate ?? 0) - (a.peerWrongRate ?? 0))
+          : [],
+    };
+  });
+
+  return (
+    <div>
+      <div className="mb-6">
+        <Link
+          href="/"
+          className="mb-2 inline-block text-sm text-zinc-500 hover:underline"
+        >
+          ← 목록으로
+        </Link>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold">{exam.title} — 결과</h1>
+        </div>
+      </div>
+
+      {/* 요약 카드 */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-sm">
+          <p className="text-xs text-zinc-400">총점</p>
+          <p className="mt-1 text-3xl font-extrabold text-zinc-900">
+            {myScore.total}
+            <span className="text-base font-medium text-zinc-400">
+              /{totalQuestions}
+            </span>
+          </p>
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-sm">
+          <p className="text-xs text-zinc-400">평균 점수</p>
+          <p className="mt-1 text-3xl font-extrabold text-zinc-900">
+            {averageTotal.toFixed(1)}
+            <span className="text-base font-medium text-zinc-400">
+              /{totalQuestions}
+            </span>
+          </p>
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-sm">
+          <p className="text-xs text-zinc-400">등수</p>
+          <p className="mt-1 text-3xl font-extrabold text-red-600">
+            {rank}
+            <span className="text-base font-medium text-zinc-400">/{n}등</span>
+          </p>
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-sm">
+          <p className="text-xs text-zinc-400">위치</p>
+          <p className="mt-1 text-3xl font-extrabold text-zinc-900">
+            상위 {topPercent}%
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-6 grid gap-4 md:grid-cols-2">
+        {/* 과목별 레이더 */}
+        <div className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-2 font-semibold">과목별 정답률 비교</h2>
+          <SubjectRadar data={radarData} className="min-h-80 flex-1" />
+        </div>
+
+        {/* 과목별 표 + 랭킹 */}
+        <div className="flex flex-col gap-4">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h2 className="mb-3 font-semibold">과목별 점수</h2>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-100 text-xs text-zinc-400">
+                  <th className="pb-2 text-left font-medium">과목</th>
+                  <th className="pb-2 text-right font-medium">내 점수</th>
+                  <th className="pb-2 text-right font-medium">평균 점수</th>
+                  <th className="pb-2 text-right font-medium">차이</th>
+                </tr>
+              </thead>
+              <tbody>
+                {radarData.map((r) => {
+                  const diff = r.나 - r.그룹평균;
+                  return (
+                    <tr key={r.subject} className="border-b border-zinc-100 last:border-0">
+                      <td className="py-1.5 text-zinc-600">{r.subject}</td>
+                      <td className="py-1.5 text-right font-semibold">
+                        {myScore.bySubject.get(r.subject) ?? 0}/
+                        {totalBySubject.get(r.subject)}
+                      </td>
+                      <td className="py-1.5 pl-4 text-right text-xs text-zinc-500">
+                        평균 {r.avgScore.toFixed(1)}/
+                        {totalBySubject.get(r.subject)}
+                      </td>
+                      <td
+                        className={`py-1.5 pl-4 text-right text-xs font-medium ${
+                          diff > 0
+                            ? "text-emerald-600"
+                            : diff < 0
+                              ? "text-red-500"
+                              : "text-zinc-400"
+                        }`}
+                      >
+                        {diff > 0 ? "+" : ""}
+                        {diff}%p
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h2 className="mb-3 font-semibold">랭킹</h2>
+            <ol className="space-y-1.5 text-sm">
+              {ranking.slice(0, 5).map((r, i) => (
+                <li
+                  key={i}
+                  className="flex justify-between rounded-lg px-3 py-1.5 text-zinc-600"
+                >
+                  <span>
+                    {i + 1}위 · {maskName(r.nickname)}
+                  </span>
+                  <span>
+                    {r.total}/{totalQuestions}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-3 flex justify-between rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+              <span>내 등수 · {rank}위</span>
+              <span>
+                {myScore.total}/{totalQuestions}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ResultReview
+        questions={reviewQuestions}
+        subjects={reviewSubjects}
+        peerCount={peerCount}
+      />
+    </div>
+  );
+}

@@ -1,26 +1,60 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 페이지/서피스 */
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --border: rgba(11, 11, 11, 0.08);
+
+  /* 잉크 */
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #898781;
+
+  /* 브랜드 & 시리즈 (검증된 팔레트) */
+  --brand: #e34948; /* 나 / CTA */
+  --series-me: #e34948;
+  --series-group: #2a78d6;
+
+  --grid: #e1e0d9;
+
+  --background: var(--page);
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-brand: var(--brand);
+  --color-series-me: var(--series-me);
+  --color-series-group: var(--series-group);
+  --color-hairline: var(--border);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    system-ui,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 공통 카드 */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.03);
 }
