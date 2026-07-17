@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+import LoadingLink from "@/components/LoadingLink";
 
 type SubjectInfo = {
   subject: string;
@@ -28,12 +28,13 @@ export default function ExamStartButton({
 
   if (compact) {
     return (
-      <Link
+      <LoadingLink
         href={`/exam/${examId}/take`}
+        loadingText="이동 중"
         className="rounded-lg bg-brand px-3 py-1.5 text-[11px] font-semibold text-white transition hover:opacity-85"
       >
         {label}
-      </Link>
+      </LoadingLink>
     );
   }
 
@@ -99,12 +100,13 @@ export default function ExamStartButton({
               >
                 취소
               </button>
-              <Link
+              <LoadingLink
                 href={`/exam/${examId}/take`}
+                loadingText="이동 중"
                 className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-85"
               >
                 시작하기
-              </Link>
+              </LoadingLink>
             </div>
           </div>
         </div>

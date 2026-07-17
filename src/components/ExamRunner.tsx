@@ -95,10 +95,14 @@ export default function ExamRunner({
       <div className="mx-auto mt-24 max-w-md text-center">
         <p className="text-lg font-semibold">모든 과목을 완료했습니다!</p>
         <button
-          onClick={() => router.replace(`/exam/${examId}/result`)}
-          className="mt-4 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-semibold text-white"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            router.replace(`/exam/${examId}/result`);
+          }}
+          className="mt-4 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
         >
-          결과 보기
+          {busy ? "로딩 중..." : "결과 보기"}
         </button>
       </div>
     );

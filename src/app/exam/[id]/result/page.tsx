@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -13,6 +12,7 @@ import {
 import { requireUser } from "@/lib/session";
 import SubjectRadar from "@/components/SubjectRadar";
 import ResultReview, { type ReviewQuestion } from "@/components/ResultReview";
+import LoadingLink from "@/components/LoadingLink";
 
 export const dynamic = "force-dynamic";
 
@@ -245,12 +245,13 @@ export default async function ResultPage({
   return (
     <div>
       <div className="mb-6">
-        <Link
+        <LoadingLink
           href="/"
+          loadingText="이동 중"
           className="mb-2 inline-block text-sm text-zinc-500 hover:underline"
         >
           ← 목록으로
-        </Link>
+        </LoadingLink>
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{exam.title} — 결과</h1>
         </div>
