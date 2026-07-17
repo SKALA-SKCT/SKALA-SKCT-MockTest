@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -12,7 +13,6 @@ import { requireUser } from "@/lib/session";
 import SubjectRadar from "@/components/SubjectRadar";
 import TrendChart from "@/components/TrendChart";
 import ExamStartButton from "@/components/ExamStartButton";
-import LoadingLink from "@/components/LoadingLink";
 
 export const dynamic = "force-dynamic";
 
@@ -333,13 +333,12 @@ export default async function Dashboard() {
                 </div>
                 {r.exam ? (
                   r.done ? (
-                    <LoadingLink
+                    <Link
                       href={`/exam/${r.exam.id}/result`}
-                      loadingText="로딩 중"
                       className="rounded-lg border border-hairline px-3 py-1.5 text-[11px] font-semibold text-ink-2 transition hover:bg-page"
                     >
                       결과
-                    </LoadingLink>
+                    </Link>
                   ) : (
                     <ExamStartButton
                       examId={r.exam.id}

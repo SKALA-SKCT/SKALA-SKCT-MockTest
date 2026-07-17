@@ -1,12 +1,54 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import LoadingLink from "@/components/LoadingLink";
 
 type SubjectInfo = {
   subject: string;
   total: number;
 };
+
+function TakeTransitionSkeleton() {
+  return (
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-page px-6 py-10">
+      <div className="mx-auto flex max-w-5xl animate-pulse flex-col gap-4 md:flex-row md:items-start">
+        <div className="min-w-0 flex-1">
+          <div className="mb-3 flex flex-wrap gap-1">
+            {Array.from({ length: 20 }).map((_, index) => (
+              <div key={index} className="h-7 w-7 rounded bg-zinc-200" />
+            ))}
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <div className="mb-5 flex items-center justify-between">
+              <div className="h-4 w-24 rounded bg-zinc-200" />
+              <div className="h-8 w-24 rounded-lg bg-zinc-100" />
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-full rounded bg-zinc-100" />
+              <div className="h-4 w-11/12 rounded bg-zinc-100" />
+              <div className="h-4 w-10/12 rounded bg-zinc-100" />
+              <div className="h-4 w-4/5 rounded bg-zinc-100" />
+            </div>
+            <div className="mt-6 space-y-2">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="h-12 rounded-lg bg-zinc-100" />
+              ))}
+            </div>
+          </div>
+        </div>
+        <aside className="w-full rounded-xl border border-zinc-200 bg-white p-4 shadow-sm md:w-64">
+          <div className="h-4 w-40 rounded bg-zinc-200" />
+          <div className="mt-4 h-10 rounded-lg bg-zinc-100" />
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="h-10 rounded bg-zinc-100" />
+            ))}
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
 
 export default function ExamStartButton({
   examId,
@@ -23,20 +65,32 @@ export default function ExamStartButton({
   sectionMinutes: number;
   compact?: boolean;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const totalMinutes = subjects.length * sectionMinutes;
+  const startExam = () => {
+    const href = `/exam/${examId}/take`;
+    setOpen(false);
+    setNavigating(true);
+    router.push(href);
+    window.history.pushState(null, "", href);
+  };
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
+        disabled={navigating}
         className={`rounded-lg bg-brand font-semibold text-white transition hover:opacity-85 disabled:opacity-50 ${
           compact ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-sm"
         }`}
       >
         {label}
       </button>
+
+      {navigating && <TakeTransitionSkeleton />}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
@@ -90,13 +144,13 @@ export default function ExamStartButton({
               >
                 취소
               </button>
-              <LoadingLink
-                href={`/exam/${examId}/take`}
-                loadingText="이동 중"
+              <button
+                type="button"
+                onClick={startExam}
                 className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-85"
               >
                 시작하기
-              </LoadingLink>
+              </button>
             </div>
           </div>
         </div>
