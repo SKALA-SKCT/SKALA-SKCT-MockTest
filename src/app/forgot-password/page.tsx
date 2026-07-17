@@ -7,7 +7,7 @@ export default function ForgotPasswordPage() {
     <div className="mx-auto mt-24 max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
       <h1 className="text-center text-2xl font-bold">비밀번호 찾기</h1>
       <p className="mt-2 text-center text-sm text-zinc-500">
-        아이디와 이메일이 일치하면 재설정 링크를 보냅니다.
+        아이디와 인증 이메일이 일치하면 재설정 링크를 보냅니다.
       </p>
       <SimpleActionForm
         action={requestPasswordReset}

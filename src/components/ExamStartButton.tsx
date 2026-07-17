@@ -7,18 +7,6 @@ type SubjectInfo = {
   total: number;
 };
 
-function TakeTransitionOverlay() {
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-6">
-      <div className="w-full max-w-xs rounded-2xl border border-zinc-200 bg-white px-6 py-7 text-center shadow-xl">
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-brand" />
-        <p className="mt-4 text-base font-bold text-ink">시험을 준비중입니다.</p>
-        <p className="mt-1 text-sm text-ink-3">잠시만 기다려주세요.</p>
-      </div>
-    </div>
-  );
-}
-
 export default function ExamStartButton({
   examId,
   title,
@@ -35,18 +23,9 @@ export default function ExamStartButton({
   compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [navigating, setNavigating] = useState(false);
   const totalMinutes = subjects.length * sectionMinutes;
   const startExam = () => {
-    const href = `/exam/${examId}/take`;
-    setOpen(false);
-    setNavigating(true);
-    window.requestAnimationFrame(() => {
-      window.history.pushState(null, "", href);
-      window.setTimeout(() => {
-        window.location.replace(href);
-      }, 350);
-    });
+    window.location.assign(`/exam/${examId}/take`);
   };
 
   return (
@@ -54,15 +33,12 @@ export default function ExamStartButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        disabled={navigating}
         className={`rounded-lg bg-brand font-semibold text-white transition hover:opacity-85 disabled:opacity-50 ${
           compact ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-sm"
         }`}
       >
         {label}
       </button>
-
-      {navigating && <TakeTransitionOverlay />}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
