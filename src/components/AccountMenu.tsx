@@ -1,9 +1,29 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { deleteAccount, logout } from "@/lib/actions/auth";
+import { useState } from "react";
+import { deleteAccountOnly, logoutOnly } from "@/lib/actions/auth";
 
 export default function AccountMenu({ nickname }: { nickname: string }) {
+  const [busy, setBusy] = useState(false);
+
+  const handleLogout = async () => {
+    if (busy) return;
+    setBusy(true);
+    await logoutOnly();
+    window.location.href = "/login";
+  };
+
+  const handleDeleteAccount = async () => {
+    if (busy) return;
+    if (!window.confirm("회원탈퇴하면 모든 응시 기록이 삭제됩니다. 계속할까요?")) {
+      return;
+    }
+    setBusy(true);
+    await deleteAccountOnly();
+    window.location.href = "/login";
+  };
+
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
@@ -17,20 +37,24 @@ export default function AccountMenu({ nickname }: { nickname: string }) {
           sideOffset={8}
           className="z-50 min-w-36 rounded-xl border border-hairline bg-white p-1 text-sm shadow-lg outline-none"
         >
-          <DropdownMenu.Item asChild className="outline-none focus:outline-none focus-visible:outline-none">
-            <form action={logout}>
-              <button className="w-full rounded-lg px-3 py-2 text-left text-ink-2 outline-none ring-0 hover:bg-zinc-50 focus:outline-none focus-visible:outline-none focus-visible:ring-0">
-                로그아웃
-              </button>
-            </form>
+          <DropdownMenu.Item
+            onSelect={(event) => {
+              event.preventDefault();
+              void handleLogout();
+            }}
+            className="cursor-pointer rounded-lg px-3 py-2 text-ink-2 outline-none ring-0 hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+          >
+            로그아웃
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 h-px bg-zinc-100" />
-          <DropdownMenu.Item asChild className="outline-none focus:outline-none focus-visible:outline-none">
-            <form action={deleteAccount}>
-              <button className="w-full rounded-lg px-3 py-2 text-left text-red-600 outline-none ring-0 hover:bg-red-50 focus:outline-none focus-visible:outline-none focus-visible:ring-0">
-                회원탈퇴
-              </button>
-            </form>
+          <DropdownMenu.Item
+            onSelect={(event) => {
+              event.preventDefault();
+              void handleDeleteAccount();
+            }}
+            className="cursor-pointer rounded-lg px-3 py-2 text-red-600 outline-none ring-0 hover:bg-red-50 focus:bg-red-50 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+          >
+            회원탈퇴
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

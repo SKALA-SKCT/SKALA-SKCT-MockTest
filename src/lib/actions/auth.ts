@@ -143,6 +143,10 @@ export async function logout() {
   redirect("/login");
 }
 
+export async function logoutOnly() {
+  await destroySession();
+}
+
 export async function deleteAccount() {
   const { getSessionUserId } = await import("@/lib/session");
   const userId = await getSessionUserId();
@@ -151,6 +155,15 @@ export async function deleteAccount() {
   }
   await destroySession();
   redirect("/login");
+}
+
+export async function deleteAccountOnly() {
+  const { getSessionUserId } = await import("@/lib/session");
+  const userId = await getSessionUserId();
+  if (userId != null) {
+    await db.delete(users).where(eq(users.id, userId));
+  }
+  await destroySession();
 }
 
 export async function verifyEmailToken(token: string) {
