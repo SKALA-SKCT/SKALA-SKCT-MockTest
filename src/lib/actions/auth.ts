@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { authTokens, users } from "@/db/schema";
 import { appUrl, sendMail } from "@/lib/mail";
+import { hitRateLimit } from "@/lib/rate-limit";
 import { createSession, destroySession } from "@/lib/session";
 
 export type AuthFormState = { error?: string; message?: string };
@@ -14,6 +15,10 @@ export type AuthFormState = { error?: string; message?: string };
 function validate(nickname: string, pin: string): string | null {
   if (!nickname || nickname.length < 1 || nickname.length > 12)
     return "아이디는 1~12자로 입력해주세요.";
+  return validatePassword(pin);
+}
+
+function validatePassword(pin: string): string | null {
   if (pin.length < 6 || pin.length > 32)
     return "비밀번호는 6~32자로 입력해주세요.";
   if (!/^[A-Za-z0-9!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?`~]+$/.test(pin))
@@ -51,6 +56,14 @@ async function createAuthToken({
   return token;
 }
 
+function isLimited(action: string, identifier: string) {
+  return hitRateLimit(
+    `${action}:${identifier.toLowerCase()}`,
+    5,
+    15 * 60 * 1000
+  );
+}
+
 /** 닉네임 중복 실시간 확인용 */
 export async function checkNickname(nickname: string): Promise<{
   available: boolean;
@@ -72,6 +85,8 @@ export async function register(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const pin = String(formData.get("pin") ?? "");
   const pinConfirm = String(formData.get("pinConfirm") ?? "");
+  if (isLimited("register", email || nickname))
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." };
   const err = validate(nickname, pin);
   if (err) return { error: err };
   if (!validateEmail(email)) return { error: "이메일을 올바르게 입력해주세요." };
@@ -92,7 +107,7 @@ export async function register(
     .select({ count: sql<number>`count(*)::int` })
     .from(users);
 
-  const pinHash = await bcrypt.hash(pin, 10);
+  const pinHash = await bcrypt.hash(pin, 12);
   const [user] = await db
     .insert(users)
     .values({ nickname, email, pinHash, isAdmin: count === 0 })
@@ -112,6 +127,7 @@ export async function register(
       text: `아래 링크를 눌러 회원가입을 완료해주세요.\n\n${url}\n\n이 링크는 60분 동안 유효합니다.`,
     });
   } catch {
+    await db.delete(users).where(eq(users.id, user.id));
     return { error: "메일 발송 설정을 확인해주세요." };
   }
 
@@ -124,6 +140,8 @@ export async function login(
 ): Promise<AuthFormState> {
   const nickname = String(formData.get("nickname") ?? "").trim();
   const pin = String(formData.get("pin") ?? "");
+  if (isLimited("login", nickname))
+    return { error: "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요." };
 
   const [user] = await db
     .select()
@@ -198,6 +216,8 @@ export async function requestFindId(
 ): Promise<AuthFormState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!validateEmail(email)) return { error: "이메일을 올바르게 입력해주세요." };
+  if (isLimited("find-id", email))
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." };
   const matched = await db.select().from(users).where(eq(users.email, email));
   if (matched.length > 0) {
     const token = await createAuthToken({
@@ -227,6 +247,8 @@ export async function requestPasswordReset(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!nickname) return { error: "아이디를 입력해주세요." };
   if (!validateEmail(email)) return { error: "이메일을 올바르게 입력해주세요." };
+  if (isLimited("password-reset", `${nickname}:${email}`))
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." };
   const [user] = await db
     .select()
     .from(users)
@@ -260,8 +282,8 @@ export async function resetPassword(
   const pin = String(formData.get("pin") ?? "");
   const pinConfirm = String(formData.get("pinConfirm") ?? "");
   if (pin !== pinConfirm) return { error: "비밀번호가 서로 일치하지 않습니다." };
-  if (pin.length < 6 || pin.length > 32)
-    return { error: "비밀번호는 6~32자로 입력해주세요." };
+  const err = validatePassword(pin);
+  if (err) return { error: err };
 
   const [row] = await db
     .select()
@@ -278,7 +300,7 @@ export async function resetPassword(
   }
   await db
     .update(users)
-    .set({ pinHash: await bcrypt.hash(pin, 10) })
+    .set({ pinHash: await bcrypt.hash(pin, 12) })
     .where(eq(users.id, row.userId));
   await db
     .update(authTokens)
