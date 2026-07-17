@@ -26,24 +26,14 @@ export default function ExamStartButton({
   const [open, setOpen] = useState(false);
   const totalMinutes = subjects.length * sectionMinutes;
 
-  if (compact) {
-    return (
-      <LoadingLink
-        href={`/exam/${examId}/take`}
-        loadingText="이동 중"
-        className="rounded-lg bg-brand px-3 py-1.5 text-[11px] font-semibold text-white transition hover:opacity-85"
-      >
-        {label}
-      </LoadingLink>
-    );
-  }
-
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85 disabled:opacity-50"
+        className={`rounded-lg bg-brand font-semibold text-white transition hover:opacity-85 disabled:opacity-50 ${
+          compact ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-sm"
+        }`}
       >
         {label}
       </button>
