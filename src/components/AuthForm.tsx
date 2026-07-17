@@ -87,10 +87,20 @@ export default function AuthForm({
             </p>
           )}
         </div>
+        {isRegister && (
+          <input
+            name="email"
+            type="email"
+            placeholder="이메일"
+            autoComplete="email"
+            required
+            className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:border-red-500"
+          />
+        )}
         <input
           name="pin"
           type="password"
-          placeholder="비밀번호 (영문·숫자·특수기호 6~32자)"
+          placeholder="비밀번호"
           minLength={6}
           maxLength={32}
           autoComplete={isRegister ? "new-password" : "current-password"}
@@ -123,6 +133,9 @@ export default function AuthForm({
           </div>
         )}
         {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+        {state.message && (
+          <p className="text-sm text-emerald-700">{state.message}</p>
+        )}
         <button
           type="submit"
           disabled={pending || pinMismatch || nickStatus === "taken"}
@@ -131,11 +144,20 @@ export default function AuthForm({
           {pending ? "처리 중..." : submitLabel}
         </button>
       </form>
-      <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">
-        아이디·비밀번호 찾기 기능을 제공하지 않습니다.
-        <br />
-        분실 시 복구가 불가능합니다.
-      </p>
+      {!isRegister && (
+        <div className="mt-3 flex items-center justify-center gap-3 text-xs text-zinc-500">
+          <Link href="/find-id" className="hover:text-red-600 hover:underline">
+            아이디 찾기
+          </Link>
+          <span className="text-zinc-300">|</span>
+          <Link
+            href="/forgot-password"
+            className="hover:text-red-600 hover:underline"
+          >
+            비밀번호 찾기
+          </Link>
+        </div>
+      )}
       <p className="mt-3 text-center text-sm text-zinc-500">
         <Link href={altHref} className="text-red-600 hover:underline">
           {altLabel}

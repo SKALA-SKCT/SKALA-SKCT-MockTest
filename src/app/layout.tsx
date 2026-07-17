@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/session";
-import { logout } from "@/lib/actions/auth";
+import AccountMenu from "@/components/AccountMenu";
 
 export const metadata: Metadata = {
   title: "SKCT 스터디",
@@ -31,14 +31,7 @@ export default async function RootLayout({
                 <span className="text-sm font-semibold text-ink-2">스터디</span>
               </Link>
               <div className="ml-auto flex items-center gap-2">
-                <span className="mr-1 hidden text-sm text-ink-3 sm:inline">
-                  <b className="font-semibold text-ink">{user.nickname}</b>님
-                </span>
-                <form action={logout}>
-                  <button className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-medium text-ink-2 transition hover:bg-page">
-                    로그아웃
-                  </button>
-                </form>
+                <AccountMenu nickname={user.nickname} />
               </div>
             </nav>
           </header>

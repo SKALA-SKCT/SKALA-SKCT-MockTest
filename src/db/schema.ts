@@ -8,6 +8,7 @@ import {
   jsonb,
   uniqueIndex,
   index,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 
 export const SUBJECTS = [
@@ -20,6 +21,11 @@ export const SUBJECTS = [
 export type Subject = (typeof SUBJECTS)[number];
 
 export const SECTION_MINUTES = 15;
+export const tokenPurpose = pgEnum("token_purpose", [
+  "email_verify",
+  "find_id",
+  "password_reset",
+]);
 
 export type SectionState = Partial<
   Record<Subject, { startedAt: string; finishedAt?: string }>
@@ -28,12 +34,35 @@ export type SectionState = Partial<
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   nickname: text("nickname").notNull().unique(),
+  email: text("email").unique(),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   pinHash: text("pin_hash").notNull(),
   isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
+
+export const authTokens = pgTable(
+  "auth_tokens",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    purpose: tokenPurpose("purpose").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_auth_tokens_hash").on(t.tokenHash),
+    index("idx_auth_tokens_user_purpose").on(t.userId, t.purpose),
+    index("idx_auth_tokens_email_purpose").on(t.email, t.purpose),
+  ]
+);
 
 export const exams = pgTable("exams", {
   id: serial("id").primaryKey(),
