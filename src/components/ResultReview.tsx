@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 const CIRCLED = ["①", "②", "③", "④", "⑤"];
+type ReviewFilter = "all" | "wrong" | "correct";
 
 export type ReviewQuestion = {
   id: number;
@@ -151,7 +152,7 @@ export default function ResultReview({
   subjects: SubjectSummary[];
   peerCount: number;
 }) {
-  const [wrongOnly, setWrongOnly] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
 
   const visibleBySubject = useMemo(
@@ -159,10 +160,14 @@ export default function ResultReview({
       subjects.map((subject) => ({
         ...subject,
         questions: questions.filter(
-          (q) => q.subject === subject.subject && (!wrongOnly || !q.isCorrect)
+          (q) =>
+            q.subject === subject.subject &&
+            (reviewFilter === "all" ||
+              (reviewFilter === "wrong" && !q.isCorrect) ||
+              (reviewFilter === "correct" && q.isCorrect))
         ),
       })),
-    [questions, subjects, wrongOnly]
+    [questions, subjects, reviewFilter]
   );
 
   const hardQuestionPreviewBySubject = useMemo(() => {
@@ -182,9 +187,10 @@ export default function ResultReview({
   }, [subjects]);
 
   const wrongCount = questions.filter((q) => !q.isCorrect).length;
+  const correctCount = questions.length - wrongCount;
 
   const jumpToQuestion = (question: HardQuestionPreview) => {
-    setWrongOnly(false);
+    setReviewFilter("all");
     setOpenSubjects((prev) => ({ ...prev, [question.subject]: true }));
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
@@ -271,21 +277,30 @@ export default function ResultReview({
           <div className="rounded-xl border border-zinc-200 bg-white p-1 text-xs font-semibold shadow-sm">
             <button
               type="button"
-              onClick={() => setWrongOnly(false)}
+              onClick={() => setReviewFilter("all")}
               className={`rounded-lg px-3 py-1.5 ${
-                !wrongOnly ? "bg-zinc-900 text-white" : "text-zinc-500"
+                reviewFilter === "all" ? "bg-zinc-900 text-white" : "text-zinc-500"
               }`}
             >
               전체 {questions.length}
             </button>
             <button
               type="button"
-              onClick={() => setWrongOnly(true)}
+              onClick={() => setReviewFilter("wrong")}
               className={`rounded-lg px-3 py-1.5 ${
-                wrongOnly ? "bg-red-600 text-white" : "text-zinc-500"
+                reviewFilter === "wrong" ? "bg-red-600 text-white" : "text-zinc-500"
               }`}
             >
               틀린 문제 {wrongCount}
+            </button>
+            <button
+              type="button"
+              onClick={() => setReviewFilter("correct")}
+              className={`rounded-lg px-3 py-1.5 ${
+                reviewFilter === "correct" ? "bg-emerald-600 text-white" : "text-zinc-500"
+              }`}
+            >
+              맞춘 문제 {correctCount}
             </button>
           </div>
         </div>
@@ -294,7 +309,11 @@ export default function ResultReview({
           {visibleBySubject.map((subject) => (
             <details
               key={subject.subject}
-              open={wrongOnly ? subject.questions.length > 0 : openSubjects[subject.subject]}
+              open={
+                reviewFilter === "all"
+                  ? openSubjects[subject.subject]
+                  : subject.questions.length > 0
+              }
               onToggle={(event) => {
                 const isOpen = event.currentTarget.open;
                 setOpenSubjects((prev) => ({
@@ -308,7 +327,7 @@ export default function ResultReview({
                 {subject.subject}{" "}
                 <span className="ml-1 text-sm font-normal text-zinc-400">
                   {subject.mine}/{subject.total}
-                  {wrongOnly && ` · 표시 ${subject.questions.length}문항`}
+                  {reviewFilter !== "all" && ` · 표시 ${subject.questions.length}문항`}
                 </span>
               </summary>
               <div className="divide-y divide-zinc-100 border-t border-zinc-100">
