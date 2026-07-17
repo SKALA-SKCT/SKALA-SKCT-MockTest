@@ -77,6 +77,19 @@ export async function checkNickname(nickname: string): Promise<{
   return { available: !existing };
 }
 
+export async function checkEmail(email: string): Promise<{
+  exists: boolean;
+  valid: boolean;
+}> {
+  const trimmed = email.trim().toLowerCase();
+  if (!validateEmail(trimmed)) return { exists: false, valid: false };
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, trimmed));
+  return { exists: Boolean(existing), valid: true };
+}
+
 export async function register(
   _prev: AuthFormState,
   formData: FormData

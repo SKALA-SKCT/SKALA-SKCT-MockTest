@@ -3,7 +3,11 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { checkNickname, type AuthFormState } from "@/lib/actions/auth";
+import {
+  checkEmail,
+  checkNickname,
+  type AuthFormState,
+} from "@/lib/actions/auth";
 
 export default function AuthForm({
   action,
@@ -25,6 +29,9 @@ export default function AuthForm({
   const [nickStatus, setNickStatus] = useState<
     "idle" | "checking" | "available" | "taken"
   >("idle");
+  const [emailStatus, setEmailStatus] = useState<
+    "idle" | "checking" | "available" | "taken" | "invalid"
+  >("idle");
   const [pin, setPin] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
 
@@ -42,6 +49,25 @@ export default function AuthForm({
       setNickStatus(available ? "available" : "taken");
     } catch {
       setNickStatus("idle");
+    }
+  };
+
+  const onEmailBlur = async (value: string) => {
+    const email = value.trim();
+    if (!isRegister || !email) {
+      setEmailStatus("idle");
+      return;
+    }
+    setEmailStatus("checking");
+    try {
+      const { exists, valid } = await checkEmail(email);
+      if (!valid) {
+        setEmailStatus("invalid");
+        return;
+      }
+      setEmailStatus(exists ? "taken" : "available");
+    } catch {
+      setEmailStatus("idle");
     }
   };
 
@@ -88,14 +114,40 @@ export default function AuthForm({
           )}
         </div>
         {isRegister && (
-          <input
-            name="email"
-            type="email"
-            placeholder="이메일"
-            autoComplete="email"
-            required
-            className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:border-red-500"
-          />
+          <div>
+            <input
+              name="email"
+              type="email"
+              placeholder="이메일"
+              autoComplete="email"
+              required
+              onBlur={(e) => onEmailBlur(e.target.value)}
+              onChange={() => setEmailStatus("idle")}
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-red-500 ${
+                emailStatus === "taken" || emailStatus === "invalid"
+                  ? "border-red-400"
+                  : "border-zinc-300"
+              }`}
+            />
+            {emailStatus === "checking" && (
+              <p className="mt-1 text-xs text-zinc-400">이메일 확인 중...</p>
+            )}
+            {emailStatus === "available" && (
+              <p className="mt-1 text-xs text-emerald-600">
+                가입 가능한 이메일입니다.
+              </p>
+            )}
+            {emailStatus === "taken" && (
+              <p className="mt-1 text-xs text-red-600">
+                이미 가입된 이메일입니다.
+              </p>
+            )}
+            {emailStatus === "invalid" && (
+              <p className="mt-1 text-xs text-red-600">
+                이메일을 올바르게 입력해주세요.
+              </p>
+            )}
+          </div>
         )}
         <input
           name="pin"
@@ -138,7 +190,13 @@ export default function AuthForm({
         )}
         <button
           type="submit"
-          disabled={pending || pinMismatch || nickStatus === "taken"}
+          disabled={
+            pending ||
+            pinMismatch ||
+            nickStatus === "taken" ||
+            emailStatus === "taken" ||
+            emailStatus === "invalid"
+          }
           className="mt-1 rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
         >
           {pending ? "처리 중..." : submitLabel}
