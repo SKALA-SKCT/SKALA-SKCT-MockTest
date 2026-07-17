@@ -118,12 +118,6 @@ export default async function Dashboard() {
         sub: `/${total}문항`,
       },
       {
-        label: "그룹 평균과 차이",
-        value: `${diff > 0 ? "+" : ""}${diff}`,
-        sub: "문항 (내 점수-평균)",
-        accent: diff >= 0 ? "up" : "down",
-      },
-      {
         label: "최근 회차 등수",
         value: `${rank}위`,
         sub: `/${peers.length}명`,
@@ -132,6 +126,12 @@ export default async function Dashboard() {
         label: "내 평균 등수",
         value: `${averageRank.toFixed(1)}위`,
         sub: `${myFinished.length}회 평균`,
+      },
+      {
+        label: "그룹 평균과 차이",
+        value: `${diff > 0 ? "+" : ""}${diff}`,
+        sub: "문항 (내 점수-평균)",
+        accent: diff >= 0 ? "up" : "down",
       },
     ];
   }
