@@ -15,6 +15,8 @@ export type TrendDatum = {
   name: string;
   나: number;
   그룹평균: number;
+  캠퍼스평균?: number;
+  분반평균?: number;
 };
 
 export default function TrendChart({ data }: { data: TrendDatum[] }) {
@@ -59,6 +61,22 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
             stroke="#2a78d6"
             strokeWidth={2}
             dot={{ r: 4, fill: "#2a78d6", strokeWidth: 0 }}
+            activeDot={{ r: 5 }}
+          />
+          <Line
+            name="캠퍼스 평균"
+            dataKey="캠퍼스평균"
+            stroke="#16a34a"
+            strokeWidth={2}
+            dot={{ r: 4, fill: "#16a34a", strokeWidth: 0 }}
+            activeDot={{ r: 5 }}
+          />
+          <Line
+            name="분반 평균"
+            dataKey="분반평균"
+            stroke="#8b5cf6"
+            strokeWidth={2}
+            dot={{ r: 4, fill: "#8b5cf6", strokeWidth: 0 }}
             activeDot={{ r: 5 }}
           />
         </LineChart>

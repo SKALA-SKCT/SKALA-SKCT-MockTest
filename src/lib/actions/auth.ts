@@ -5,7 +5,7 @@ import { createHash, randomBytes } from "crypto";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { authTokens, users } from "@/db/schema";
+import { authTokens, CAMPUSES, maxClassForCampus, users, type Campus } from "@/db/schema";
 import { appUrl, sendMail } from "@/lib/mail";
 import { hitRateLimit } from "@/lib/rate-limit";
 import { createSession, destroySession } from "@/lib/session";
@@ -15,6 +15,15 @@ export type AuthFormState = { error?: string; message?: string };
 function validateName(name: string): string | null {
   if (!name || name.length < 1 || name.length > 20)
     return "이름은 1~20자로 입력해주세요.";
+  return null;
+}
+
+function validateCampusClass(campus: string, classNumber: number): string | null {
+  if (!CAMPUSES.includes(campus as Campus))
+    return "캠퍼스를 선택해주세요.";
+  const maxClass = maxClassForCampus(campus as Campus);
+  if (!Number.isInteger(classNumber) || classNumber < 1 || classNumber > maxClass)
+    return `${campus} 캠퍼스는 1~${maxClass}반까지 선택할 수 있습니다.`;
   return null;
 }
 
@@ -123,6 +132,8 @@ export async function register(
 ): Promise<AuthFormState> {
   const nickname = String(formData.get("nickname") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
+  const campus = String(formData.get("campus") ?? "").trim();
+  const classNumber = Number(formData.get("classNumber") ?? "");
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const pin = String(formData.get("pin") ?? "");
   const pinConfirm = String(formData.get("pinConfirm") ?? "");
@@ -132,6 +143,8 @@ export async function register(
   if (err) return { error: err };
   const nameErr = validateName(name);
   if (nameErr) return { error: nameErr };
+  const campusErr = validateCampusClass(campus, classNumber);
+  if (campusErr) return { error: campusErr };
   if (!validateEmail(email)) return { error: "이메일을 올바르게 입력해주세요." };
   if (pin !== pinConfirm) return { error: "비밀번호가 서로 일치하지 않습니다." };
 
@@ -153,7 +166,15 @@ export async function register(
   const pinHash = await bcrypt.hash(pin, 12);
   const [user] = await db
     .insert(users)
-    .values({ nickname, name, email, pinHash, isAdmin: count === 0 })
+    .values({
+      nickname,
+      name,
+      campus: campus as Campus,
+      classNumber,
+      email,
+      pinHash,
+      isAdmin: count === 0,
+    })
     .returning();
 
   const token = await createAuthToken({

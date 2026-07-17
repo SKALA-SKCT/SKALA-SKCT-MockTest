@@ -8,6 +8,7 @@ import {
   responses,
   SECTION_MINUTES,
   SUBJECTS,
+  users,
 } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import SubjectRadar from "@/components/SubjectRadar";
@@ -26,6 +27,8 @@ export default async function Dashboard() {
     .orderBy(asc(exams.createdAt));
 
   const allAttempts = await db.select().from(attempts);
+  const allUsers = await db.select().from(users);
+  const userById = new Map(allUsers.map((row) => [row.id, row]));
 
   // 통계는 유저·시험별 가장 최근 '완료' 응시 1개만 사용
   const latestFinished = new Map<string, (typeof allAttempts)[number]>();
@@ -58,6 +61,19 @@ export default async function Dashboard() {
     correctOf.set(`${r.attemptId}:${r.subject}`, r.correct);
   const scoreOf = (attemptId: number) =>
     SUBJECTS.reduce((acc, s) => acc + (correctOf.get(`${attemptId}:${s}`) ?? 0), 0);
+  const isSameCampus = (attempt: (typeof finished)[number]) =>
+    userById.get(attempt.userId)?.campus === user.campus;
+  const isSameClass = (attempt: (typeof finished)[number]) => {
+    const attemptUser = userById.get(attempt.userId);
+    return (
+      attemptUser?.campus === user.campus &&
+      attemptUser.classNumber === user.classNumber
+    );
+  };
+  const avgScore = (items: (typeof finished)[number][]) =>
+    items.length
+      ? items.reduce((acc, item) => acc + scoreOf(item.id), 0) / items.length
+      : 0;
 
   // 시험별·과목별 문항 수
   const examSubjectTotals = await db
@@ -102,15 +118,20 @@ export default async function Dashboard() {
   }[] = [];
   if (latest) {
     const peers = finished.filter((a) => a.examId === latest.examId);
+    const campusPeers = peers.filter(isSameCampus);
+    const classPeers = peers.filter(isSameClass);
     const myScore = scoreOf(latest.id);
     const total = totalOfExam(latest.examId);
-    const groupAvg =
-      peers.reduce((acc, p) => acc + scoreOf(p.id), 0) / (peers.length || 1);
+    const groupAvg = avgScore(peers);
+    const campusAvg = avgScore(campusPeers);
+    const classAvg = avgScore(classPeers);
     const rank = rankOfAttempt(latest).rank;
     const averageRank =
       myFinished.reduce((acc, attempt) => acc + rankOfAttempt(attempt).rank, 0) /
       (myFinished.length || 1);
     const diff = Math.round(myScore - groupAvg);
+    const campusDiff = Math.round(myScore - campusAvg);
+    const classDiff = Math.round(myScore - classAvg);
     tiles = [
       {
         label: "최근 회차 점수",
@@ -133,6 +154,18 @@ export default async function Dashboard() {
         sub: "문항 (내 점수-평균)",
         accent: diff >= 0 ? "up" : "down",
       },
+      {
+        label: "내 캠퍼스 평균과 차이",
+        value: `${campusDiff > 0 ? "+" : ""}${campusDiff}`,
+        sub: `${user.campus} 평균 기준`,
+        accent: campusDiff >= 0 ? "up" : "down",
+      },
+      {
+        label: "내 분반 평균과 차이",
+        value: `${classDiff > 0 ? "+" : ""}${classDiff}`,
+        sub: `${user.campus} ${user.classNumber}반 평균 기준`,
+        accent: classDiff >= 0 ? "up" : "down",
+      },
     ];
   }
 
@@ -142,13 +175,18 @@ export default async function Dashboard() {
     .map((e) => {
       const mine = myFinished.find((a) => a.examId === e.id)!;
       const peers = finished.filter((a) => a.examId === e.id);
+      const campusPeers = peers.filter(isSameCampus);
+      const classPeers = peers.filter(isSameClass);
       const total = totalOfExam(e.id) || 1;
-      const groupAvg =
-        peers.reduce((acc, p) => acc + scoreOf(p.id), 0) / (peers.length || 1);
+      const groupAvg = avgScore(peers);
+      const campusAvg = avgScore(campusPeers);
+      const classAvg = avgScore(classPeers);
       return {
         name: e.title.length > 10 ? e.title.slice(0, 10) + "…" : e.title,
         나: Math.round((scoreOf(mine.id) / total) * 100),
         그룹평균: Math.round((groupAvg / total) * 100),
+        캠퍼스평균: Math.round((campusAvg / total) * 100),
+        분반평균: Math.round((classAvg / total) * 100),
       };
     });
 
@@ -157,13 +195,25 @@ export default async function Dashboard() {
     let myC = 0,
       myT = 0,
       gC = 0,
-      gT = 0;
+      gT = 0,
+      campusC = 0,
+      campusT = 0,
+      classC = 0,
+      classT = 0;
     for (const a of finished) {
       const t = totalOfSubject(a.examId, s);
       if (t === 0) continue;
       const c = correctOf.get(`${a.id}:${s}`) ?? 0;
       gC += c;
       gT += t;
+      if (isSameCampus(a)) {
+        campusC += c;
+        campusT += t;
+      }
+      if (isSameClass(a)) {
+        classC += c;
+        classT += t;
+      }
       if (a.userId === user.id) {
         myC += c;
         myT += t;
@@ -173,6 +223,8 @@ export default async function Dashboard() {
       subject: s,
       나: myT ? Math.round((myC / myT) * 100) : 0,
       그룹평균: gT ? Math.round((gC / gT) * 100) : 0,
+      캠퍼스평균: campusT ? Math.round((campusC / campusT) * 100) : 0,
+      분반평균: classT ? Math.round((classC / classT) * 100) : 0,
     };
   });
 
@@ -202,7 +254,7 @@ export default async function Dashboard() {
       <div className="flex min-w-0 flex-1 flex-col gap-6">
         {/* 스탯 타일 */}
         {tiles.length > 0 && (
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
             {tiles.map((t) => (
               <div key={t.label} className="card px-5 py-4">
                 <p className="text-xs font-medium text-ink-3">{t.label}</p>
@@ -269,6 +321,8 @@ export default async function Dashboard() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
               {radarData.map((r) => {
                 const diff = r.나 - r.그룹평균;
+                const campusDiff = r.나 - (r.캠퍼스평균 ?? 0);
+                const classDiff = r.나 - (r.분반평균 ?? 0);
                 return (
                   <div
                     key={r.subject}
@@ -287,6 +341,14 @@ export default async function Dashboard() {
                     >
                       그룹 평균과 차이 {diff > 0 ? "+" : ""}
                       {diff}%p
+                    </p>
+                    <p className="mt-0.5 text-xs font-medium text-ink-3">
+                      캠퍼스 평균과 차이 {campusDiff > 0 ? "+" : ""}
+                      {campusDiff}%p
+                    </p>
+                    <p className="mt-0.5 text-xs font-medium text-ink-3">
+                      분반 평균과 차이 {classDiff > 0 ? "+" : ""}
+                      {classDiff}%p
                     </p>
                   </div>
                 );

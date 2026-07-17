@@ -20,6 +20,13 @@ export const SUBJECTS = [
 ] as const;
 export type Subject = (typeof SUBJECTS)[number];
 
+export const CAMPUSES = ["판교", "울산", "광주"] as const;
+export type Campus = (typeof CAMPUSES)[number];
+
+export function maxClassForCampus(campus: Campus) {
+  return campus === "판교" ? 10 : 4;
+}
+
 export const SECTION_MINUTES = 15;
 export const tokenPurpose = pgEnum("token_purpose", [
   "email_verify",
@@ -35,6 +42,8 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   nickname: text("nickname").notNull().unique(),
   name: text("name").notNull(),
+  campus: text("campus").$type<Campus>().notNull(),
+  classNumber: integer("class_number").notNull(),
   email: text("email").unique(),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   pinHash: text("pin_hash").notNull(),

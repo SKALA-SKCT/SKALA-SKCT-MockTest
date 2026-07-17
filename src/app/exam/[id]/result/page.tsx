@@ -67,6 +67,8 @@ export default async function ResultPage({
       userId: attempts.userId,
       nickname: users.nickname,
       name: users.name,
+      campus: users.campus,
+      classNumber: users.classNumber,
     })
     .from(attempts)
     .innerJoin(users, eq(users.id, attempts.userId))
@@ -76,6 +78,12 @@ export default async function ResultPage({
   for (const row of finishedRows)
     if (!latestByUser.has(row.userId)) latestByUser.set(row.userId, row);
   const finishedAttempts = [...latestByUser.values()];
+  const campusAttempts = finishedAttempts.filter(
+    (a) => a.campus === user.campus
+  );
+  const classAttempts = finishedAttempts.filter(
+    (a) => a.campus === user.campus && a.classNumber === user.classNumber
+  );
   const n = finishedAttempts.length;
   const attemptIds = finishedAttempts.map((a) => a.attemptId);
   const peerAttemptIds = finishedAttempts
@@ -121,6 +129,15 @@ export default async function ResultPage({
           0
         ) / n
       : 0;
+  const averageOf = (items: typeof finishedAttempts) =>
+    items.length
+      ? items.reduce(
+          (acc, a) => acc + scoreByAttempt.get(a.attemptId)!.total,
+          0
+        ) / items.length
+      : 0;
+  const campusAverageTotal = averageOf(campusAttempts);
+  const classAverageTotal = averageOf(classAttempts);
 
   // 문항별 그룹 정답률 (무응답/미기록은 오답 처리: 분모 = 완료 인원)
   const qAccuracyRows = await db
@@ -183,11 +200,31 @@ export default async function ResultPage({
       (acc, a) => acc + (scoreByAttempt.get(a.attemptId)!.bySubject.get(s) ?? 0),
       0
     );
+    const campusSum = campusAttempts.reduce(
+      (acc, a) => acc + (scoreByAttempt.get(a.attemptId)!.bySubject.get(s) ?? 0),
+      0
+    );
+    const classSum = classAttempts.reduce(
+      (acc, a) => acc + (scoreByAttempt.get(a.attemptId)!.bySubject.get(s) ?? 0),
+      0
+    );
     return {
       subject: s,
       나: total ? Math.round((mine / total) * 100) : 0,
       그룹평균: total && n ? Math.round((groupSum / n / total) * 100) : 0,
+      캠퍼스평균:
+        total && campusAttempts.length
+          ? Math.round((campusSum / campusAttempts.length / total) * 100)
+          : 0,
+      분반평균:
+        total && classAttempts.length
+          ? Math.round((classSum / classAttempts.length / total) * 100)
+          : 0,
       avgScore: n ? groupSum / n : 0, // 그룹 평균 정답 수 (문항)
+      campusAvgScore: campusAttempts.length
+        ? campusSum / campusAttempts.length
+        : 0,
+      classAvgScore: classAttempts.length ? classSum / classAttempts.length : 0,
     };
   });
 
@@ -259,7 +296,7 @@ export default async function ResultPage({
       </div>
 
       {/* 요약 카드 */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-sm">
           <p className="text-xs text-zinc-400">총점</p>
           <p className="mt-1 text-3xl font-extrabold text-zinc-900">
@@ -270,9 +307,27 @@ export default async function ResultPage({
           </p>
         </div>
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-sm">
-          <p className="text-xs text-zinc-400">평균 점수</p>
+          <p className="text-xs text-zinc-400">전체 평균 점수</p>
           <p className="mt-1 text-3xl font-extrabold text-zinc-900">
             {averageTotal.toFixed(1)}
+            <span className="text-base font-medium text-zinc-400">
+              /{totalQuestions}
+            </span>
+          </p>
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-sm">
+          <p className="text-xs text-zinc-400">내 캠퍼스 평균</p>
+          <p className="mt-1 text-3xl font-extrabold text-zinc-900">
+            {campusAverageTotal.toFixed(1)}
+            <span className="text-base font-medium text-zinc-400">
+              /{totalQuestions}
+            </span>
+          </p>
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-sm">
+          <p className="text-xs text-zinc-400">내 분반 평균</p>
+          <p className="mt-1 text-3xl font-extrabold text-zinc-900">
+            {classAverageTotal.toFixed(1)}
             <span className="text-base font-medium text-zinc-400">
               /{totalQuestions}
             </span>
@@ -309,7 +364,9 @@ export default async function ResultPage({
                 <tr className="border-b border-zinc-100 text-xs text-zinc-400">
                   <th className="pb-2 text-left font-medium">과목</th>
                   <th className="pb-2 text-right font-medium">내 점수</th>
-                  <th className="pb-2 text-right font-medium">평균 점수</th>
+                  <th className="pb-2 text-right font-medium">전체 평균</th>
+                  <th className="pb-2 text-right font-medium">캠퍼스 평균</th>
+                  <th className="pb-2 text-right font-medium">분반 평균</th>
                   <th className="pb-2 text-right font-medium">차이</th>
                 </tr>
               </thead>
@@ -325,6 +382,14 @@ export default async function ResultPage({
                       </td>
                       <td className="py-1.5 pl-4 text-right text-xs text-zinc-500">
                         평균 {r.avgScore.toFixed(1)}/
+                        {totalBySubject.get(r.subject)}
+                      </td>
+                      <td className="py-1.5 pl-4 text-right text-xs text-zinc-500">
+                        {r.campusAvgScore.toFixed(1)}/
+                        {totalBySubject.get(r.subject)}
+                      </td>
+                      <td className="py-1.5 pl-4 text-right text-xs text-zinc-500">
+                        {r.classAvgScore.toFixed(1)}/
                         {totalBySubject.get(r.subject)}
                       </td>
                       <td
