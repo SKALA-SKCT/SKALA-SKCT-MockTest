@@ -438,6 +438,7 @@ export default async function ResultPage({
       </div>
 
       <ResultReview
+        examId={examId}
         questions={reviewQuestions}
         subjects={reviewSubjects}
         peerCount={peerCount}

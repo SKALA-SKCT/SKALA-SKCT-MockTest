@@ -10,6 +10,7 @@ import {
 import { finishSection, saveAnswer, startSection } from "@/lib/actions/exam";
 import Calculator from "@/components/exam/Calculator";
 import MemoPad from "@/components/exam/MemoPad";
+import { applyQuestionContentOverride } from "@/lib/question-overrides";
 import { repairQuestionBody } from "@/lib/question-text";
 
 export type ClientQuestion = {
@@ -18,6 +19,7 @@ export type ClientQuestion = {
   number: number;
   body: string;
   imageUrl: string | null;
+  supplementImageUrl?: string;
   choices: string[];
 };
 
@@ -166,7 +168,7 @@ export default function ExamRunner({
     );
   }
 
-  const q = sectionQuestions[idx];
+  const q = applyQuestionContentOverride(examId, sectionQuestions[idx]);
   const questionBody = repairQuestionBody(q.body);
   const isLast = idx === sectionQuestions.length - 1;
   const mm = remaining != null ? Math.floor(remaining / 60) : SECTION_MINUTES;
@@ -236,6 +238,14 @@ export default function ExamRunner({
               src={q.imageUrl}
               alt="문제 이미지"
               className="mt-3 max-w-full rounded-lg border"
+            />
+          )}
+          {q.supplementImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={q.supplementImageUrl}
+              alt="문제 조건"
+              className="mt-3 max-w-full rounded-lg border border-zinc-200 bg-white"
             />
           )}
           <div className="mt-5 flex flex-col gap-2">

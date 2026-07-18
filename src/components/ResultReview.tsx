@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { applyQuestionContentOverride } from "@/lib/question-overrides";
 import { normalizeQuestionText, repairQuestionBody } from "@/lib/question-text";
 
 const CIRCLED = ["①", "②", "③", "④", "⑤"];
@@ -12,6 +13,7 @@ export type ReviewQuestion = {
   number: number;
   body: string;
   imageUrl: string | null;
+  supplementImageUrl?: string;
   choices: string[];
   answer: number;
   explanation: string | null;
@@ -136,12 +138,15 @@ function splitQuestionBody(body: string) {
 
 function QuestionCard({
   question,
+  examId,
 }: {
   question: ReviewQuestion;
+  examId: number;
 }) {
   const choiceRates = question.choiceRates;
-  const { prompt, passage } = splitQuestionBody(question.body);
-  const explanation = formatExplanation(question.explanation, question.answer);
+  const displayQuestion = applyQuestionContentOverride(examId, question);
+  const { prompt, passage } = splitQuestionBody(displayQuestion.body);
+  const explanation = formatExplanation(displayQuestion.explanation, displayQuestion.answer);
 
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
@@ -167,18 +172,26 @@ function QuestionCard({
             </p>
           </div>
         )}
-        {question.imageUrl && (
+        {displayQuestion.imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={question.imageUrl}
-            alt={`${question.number}번 자료`}
+            src={displayQuestion.imageUrl}
+            alt={`${displayQuestion.number}번 자료`}
             className="mt-4 h-auto w-full rounded-lg border border-zinc-200 bg-white object-contain"
+          />
+        )}
+        {displayQuestion.supplementImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={displayQuestion.supplementImageUrl}
+            alt={`${displayQuestion.number}번 조건`}
+            className="mt-4 h-auto max-w-full rounded-lg border border-zinc-200 bg-white object-contain"
           />
         )}
       </div>
 
       <div className="mt-3 grid gap-2">
-        {question.choices.map((choice, index) => {
+        {displayQuestion.choices.map((choice, index) => {
           const value = index + 1;
           const isAnswer = value === question.answer;
           const isMine = value === question.myChoice;
@@ -233,10 +246,12 @@ function QuestionCard({
 }
 
 export default function ResultReview({
+  examId,
   questions,
   subjects,
   peerCount,
 }: {
+  examId: number;
   questions: ReviewQuestion[];
   subjects: SubjectSummary[];
   peerCount: number;
@@ -425,6 +440,7 @@ export default function ResultReview({
                     <QuestionCard
                       key={question.id}
                       question={question}
+                      examId={examId}
                     />
                   ))
                 ) : (
