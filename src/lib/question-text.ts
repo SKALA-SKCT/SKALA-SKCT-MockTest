@@ -2,6 +2,7 @@ export function normalizeQuestionText(value: string | null | undefined) {
   if (!value) return "";
   return value
     .replace(/에서(?=모두)/g, "에서 ")
+    .replace(/([?.])\s*※/g, "$1\n※")
     .replace(/\s+(?=<보기>|<조건>|※)/g, "\n")
     .replace(/(<보기>|<조건>)/g, "\n\n$1\n")
     .replace(/\n+\s*(<보기>|<조건>)\n(?=(?:에서|의|을|를|은|는|이|가|과|와))/g, " $1")
@@ -141,6 +142,9 @@ export function normalizeReviewText(value: string | null | undefined) {
 function normalizeKoreanSpacing(value: string) {
   return value
     .replace(/\s+/g, " ")
+    .replace(/=\s+/g, "=")
+    .replace(/%\s+이다/g, "%이다")
+    .replace(/것은\?\s*※/g, "것은?\n※")
     .replace(/\s*[⋅·]\s*/g, "·")
     .replace(/분석·구한/g, "분석·연구한")
     .replace(/대상이다른/g, "대상이 다른")
