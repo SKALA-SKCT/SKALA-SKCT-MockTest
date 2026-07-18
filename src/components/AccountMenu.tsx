@@ -1,6 +1,7 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import Link from "next/link";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -28,12 +29,14 @@ export default function AccountMenu({
   email,
   campus,
   classNumber,
+  isAdmin = false,
 }: {
   nickname: string;
   name: string;
   email: string | null;
   campus: Campus;
   classNumber: number;
+  isAdmin?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -505,6 +508,14 @@ export default function AccountMenu({
             sideOffset={8}
             className="z-50 min-w-36 rounded-xl border border-hairline bg-white p-1 text-sm shadow-lg outline-none"
           >
+            {isAdmin && (
+              <DropdownMenu.Item
+                asChild
+                className="cursor-pointer rounded-lg px-3 py-2 text-ink-2 outline-none ring-0 hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+              >
+                <Link href="/admin">관리자</Link>
+              </DropdownMenu.Item>
+            )}
             <DropdownMenu.Item
               onSelect={(event) => {
                 event.preventDefault();

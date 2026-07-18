@@ -34,12 +34,21 @@ export default async function RootLayout({
                   </span>
                 </Link>
                 <div className="ml-auto flex items-center gap-2">
+                  {user.isAdmin && (
+                    <Link
+                      href="/admin"
+                      className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-sm font-semibold text-ink-2 transition hover:bg-page"
+                    >
+                      관리자
+                    </Link>
+                  )}
                   <AccountMenu
                     nickname={user.nickname}
                     name={user.name}
                     email={user.email}
                     campus={user.campus}
                     classNumber={user.classNumber}
+                    isAdmin={user.isAdmin}
                   />
                 </div>
               </nav>
