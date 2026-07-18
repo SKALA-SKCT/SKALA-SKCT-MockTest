@@ -5,15 +5,24 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 
-const secret = new TextEncoder().encode(process.env.SESSION_SECRET);
 const COOKIE = "skct_session";
+let cachedSecret: Uint8Array | null = null;
+
+function getSessionSecret() {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("SESSION_SECRET must be set to at least 32 characters.");
+  }
+  cachedSecret ??= new TextEncoder().encode(secret);
+  return cachedSecret;
+}
 
 export async function createSession(userId: number) {
   const token = await new SignJWT({ uid: userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
-    .sign(secret);
+    .sign(getSessionSecret());
   const store = await cookies();
   store.set(COOKIE, token, {
     httpOnly: true,
@@ -34,7 +43,7 @@ export async function getSessionUserId(): Promise<number | null> {
   const token = store.get(COOKIE)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, getSessionSecret());
     return typeof payload.uid === "number" ? payload.uid : null;
   } catch {
     return null;
