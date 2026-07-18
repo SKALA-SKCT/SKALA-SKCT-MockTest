@@ -21,28 +21,50 @@ export default async function RootLayout({
   return (
     <html lang="ko" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
-        {user && (
-          <header className="sticky top-0 z-10 border-b border-hairline bg-surface/90 backdrop-blur">
-            <nav className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-6">
-              <Link href="/" className="flex items-baseline gap-1.5">
-                <span className="text-xl font-black tracking-tight text-brand">
-                  SKCT
-                </span>
-                <span className="text-sm font-semibold text-ink-2">스터디</span>
-              </Link>
-              <div className="ml-auto flex items-center gap-2">
-                <AccountMenu
-                  nickname={user.nickname}
-                  name={user.name}
-                  email={user.email}
-                />
-              </div>
-            </nav>
-          </header>
-        )}
-        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-          {children}
-        </main>
+        <div className="desktop-app-shell flex min-h-full flex-col">
+          {user && (
+            <header className="sticky top-0 z-10 border-b border-hairline bg-surface/90 backdrop-blur">
+              <nav className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-6">
+                <Link href="/" className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-black tracking-tight text-brand">
+                    SKCT
+                  </span>
+                  <span className="text-sm font-semibold text-ink-2">
+                    스터디
+                  </span>
+                </Link>
+                <div className="ml-auto flex items-center gap-2">
+                  <AccountMenu
+                    nickname={user.nickname}
+                    name={user.name}
+                    email={user.email}
+                  />
+                </div>
+              </nav>
+            </header>
+          )}
+          <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
+            {children}
+          </main>
+        </div>
+        <div className="mobile-viewport-guard">
+          <section className="w-full max-w-sm rounded-2xl border border-hairline bg-surface p-7 text-center shadow-sm">
+            <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-xl font-black text-brand">
+              SK
+            </div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">
+              Desktop Only
+            </p>
+            <h1 className="mt-3 text-2xl font-black text-ink">
+              데스크탑에서 이용해주세요.
+            </h1>
+            <p className="mt-4 text-sm leading-6 text-ink-2">
+              SKCT 스터디는 문제 풀이와 결과 분석을 정확하게 보여주기 위해
+              데스크탑 화면에 맞춰 제공됩니다. 노트북 또는 데스크탑 브라우저로
+              접속해주세요.
+            </p>
+          </section>
+        </div>
       </body>
     </html>
   );

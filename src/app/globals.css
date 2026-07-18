@@ -58,3 +58,22 @@ body {
   border-radius: 16px;
   box-shadow: 0 1px 2px rgba(11, 11, 11, 0.03);
 }
+
+.mobile-viewport-guard {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .desktop-app-shell {
+    display: none !important;
+  }
+
+  .mobile-viewport-guard {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+}
