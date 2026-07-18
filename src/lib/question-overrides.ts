@@ -1,6 +1,7 @@
 export type QuestionContentOverride = {
   body?: string;
   choices?: string[];
+  explanation?: string;
   supplementImageUrl?: string;
 };
 
@@ -894,6 +895,28 @@ export const questionContentOverrides: Record<string, QuestionContentOverride> =
   },
   "12:80": {
     "supplementImageUrl": "/exam-assets/overrides/round-12/q-80.png"
+  },
+  "4:41": {
+    "body": "A~F 6명이 순서대로 영화관에 입장하려고 한다. B가 첫 번째로 입장하지 않고 F도 마지막으로 입장하지 않을 확률은 얼마인가?",
+    "choices": [
+      "1/2",
+      "2/3",
+      "7/10",
+      "3/4",
+      "9/10"
+    ],
+    "explanation": "6명이 순서대로 영화관에 입장하는 전체 경우의 수는 6! = 6 × 5 × 4 × 3 × 2 × 1 = 720가지이다. F가 첫 번째로 입장하는 경우 나머지 5명이 입장하는 경우의 수는 5! = 120가지이고, F가 두 번째~다섯 번째로 입장하는 각 경우에 B가 첫 번째로 입장하지 않는 경우의 수는 4가지, 나머지 4명이 입장하는 경우의 수는 각각 4! = 24가지이다. 그러므로 B가 첫 번째로 입장하지 않고 F도 마지막으로 입장하지 않는 경우의 수는 120 + (4 × 24) × 4 = 504가지이다. 따라서 B가 첫 번째로 입장하지 않고 F도 마지막으로 입장하지 않을 확률은 504/720 = 7/10이므로 정답은 ③이다."
+  },
+  "5:41": {
+    "body": "A~F 6명이 발표를 진행하기 위해 발표 순서를 정하고 있다. B가 첫 번째로 발표하지 않고, F가 마지막으로 발표하지 않을 확률은?",
+    "choices": [
+      "1/5",
+      "2/5",
+      "1/2",
+      "7/10",
+      "9/10"
+    ],
+    "explanation": "6명의 발표 순서를 정하는 전체 경우의 수는 6! = 6 × 5 × 4 × 3 × 2 × 1 = 720가지이다. B가 첫 번째로 발표하지 않고, F가 마지막으로 발표하지 않는 경우의 수는 전체 경우의 수에서 B가 첫 번째로 발표하는 경우의 수와 F가 마지막으로 발표하는 경우의 수를 제외하고, B가 첫 번째로 발표하고 F가 마지막으로 발표하는 경우의 수를 추가하면 구할 수 있다. B가 첫 번째로 발표하는 경우의 수는 5! = 120가지, F가 마지막으로 발표하는 경우의 수는 5! = 120가지, B가 첫 번째로 발표하고 F가 마지막으로 발표하는 경우의 수는 4! = 24가지이다. 따라서 B가 첫 번째로 발표하지 않고 F가 마지막으로 발표하지 않는 경우의 수는 720 - (120 + 120) + 24 = 504가지이고, 확률은 504/720 = 7/10이다. 따라서 정답은 ④이다."
   }
 }
 ;
@@ -903,7 +926,7 @@ export function getQuestionContentOverride(examRound: number, questionNumber: nu
 }
 
 export function applyQuestionContentOverride<
-  T extends { number: number; body: string; choices: string[] },
+  T extends { number: number; body: string; choices: string[]; explanation?: string | null },
 >(examRound: number, question: T): T & { supplementImageUrl?: string } {
   const override = getQuestionContentOverride(examRound, question.number);
   if (!override) return question;
@@ -914,6 +937,7 @@ export function applyQuestionContentOverride<
     choices: override.choices
       ? [...override.choices, ...question.choices.slice(override.choices.length)]
       : question.choices,
+    explanation: override.explanation ?? question.explanation,
     supplementImageUrl: override.supplementImageUrl,
   };
 }

@@ -25,3 +25,50 @@ export function repairQuestionBody(value: string) {
 
   return text.replace(/소밀/g, "소멸");
 }
+
+const COMPACT_FRACTION_DENOMINATORS = [
+  "10",
+  "13",
+  "15",
+  "19",
+  "25",
+  "27",
+  "28",
+  "45",
+  "56",
+  "74",
+  "126",
+  "143",
+];
+
+function expandCompactFraction(value: string) {
+  const compact = value.replace(/\s+/g, "");
+  for (const denominator of COMPACT_FRACTION_DENOMINATORS) {
+    if (!compact.endsWith(denominator)) continue;
+    const numerator = compact.slice(0, -denominator.length);
+    if (/^[1-9]\d?$/.test(numerator)) return `${numerator}/${denominator}`;
+  }
+  return value;
+}
+
+export function normalizeChoiceTexts(choices: string[]) {
+  const hasFractionLikeChoice = choices.some((choice) => {
+    const compact = choice.trim().replace(/\s+/g, "");
+    return (
+      /^\d+$/.test(compact) &&
+      COMPACT_FRACTION_DENOMINATORS.some(
+        (denominator) =>
+          compact.endsWith(denominator) &&
+          compact.length > denominator.length
+      )
+    );
+  });
+
+  if (!hasFractionLikeChoice) return choices;
+
+  return choices.map((choice) => {
+    const trimmed = normalizeQuestionText(choice);
+    if (!/^\d[\d\s]*$/.test(trimmed)) return trimmed;
+    return expandCompactFraction(trimmed);
+  });
+}

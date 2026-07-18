@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
-import { normalizeQuestionText, repairQuestionBody } from "@/lib/question-text";
+import {
+  normalizeChoiceTexts,
+  normalizeQuestionText,
+  repairQuestionBody,
+} from "@/lib/question-text";
 
 const CIRCLED = ["①", "②", "③", "④", "⑤"];
 type ReviewFilter = "all" | "wrong" | "correct";
@@ -147,6 +151,7 @@ function QuestionCard({
   const displayQuestion = applyQuestionContentOverride(examId, question);
   const { prompt, passage } = splitQuestionBody(displayQuestion.body);
   const explanation = formatExplanation(displayQuestion.explanation, displayQuestion.answer);
+  const displayChoices = normalizeChoiceTexts(displayQuestion.choices);
 
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
@@ -191,7 +196,7 @@ function QuestionCard({
       </div>
 
       <div className="mt-3 grid gap-2">
-        {displayQuestion.choices.map((choice, index) => {
+        {displayChoices.map((choice, index) => {
           const value = index + 1;
           const isAnswer = value === question.answer;
           const isMine = value === question.myChoice;

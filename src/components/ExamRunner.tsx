@@ -16,7 +16,7 @@ import {
 import Calculator from "@/components/exam/Calculator";
 import MemoPad from "@/components/exam/MemoPad";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
-import { repairQuestionBody } from "@/lib/question-text";
+import { normalizeChoiceTexts, repairQuestionBody } from "@/lib/question-text";
 
 export type ClientQuestion = {
   id: number;
@@ -231,6 +231,7 @@ export default function ExamRunner({
 
   const q = applyQuestionContentOverride(examId, sectionQuestions[idx]);
   const questionBody = repairQuestionBody(q.body);
+  const displayChoices = normalizeChoiceTexts(q.choices);
   const isLast = idx === sectionQuestions.length - 1;
   const mm = remaining != null ? Math.floor(remaining / 60) : SECTION_MINUTES;
   const ss = remaining != null ? remaining % 60 : 0;
@@ -314,7 +315,7 @@ export default function ExamRunner({
             />
           )}
           <div className="mt-5 flex flex-col gap-2">
-            {q.choices.map((c, i) => {
+            {displayChoices.map((c, i) => {
               const num = i + 1;
               const selected = answers[q.id] === num;
               return (
