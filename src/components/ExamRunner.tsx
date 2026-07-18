@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   SECTION_MINUTES,
@@ -78,9 +78,19 @@ export default function ExamRunner({
 
   const [remaining, setRemaining] = useState<number | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!sectionStartedAt) return;
-    window.scrollTo({ top: 0, behavior: "auto" });
+    const previousRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    const resetScroll = () => window.scrollTo({ top: 0, behavior: "auto" });
+    resetScroll();
+    const frame = window.requestAnimationFrame(resetScroll);
+    const timeout = window.setTimeout(resetScroll, 80);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+      window.history.scrollRestoration = previousRestoration;
+    };
   }, [idx, sectionStartedAt]);
 
   const handleFinishSection = useCallback(
