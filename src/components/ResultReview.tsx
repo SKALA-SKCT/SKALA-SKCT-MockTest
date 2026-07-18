@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { normalizeQuestionText, repairQuestionBody } from "@/lib/question-text";
 
 const CIRCLED = ["①", "②", "③", "④", "⑤"];
 type ReviewFilter = "all" | "wrong" | "correct";
@@ -61,9 +62,7 @@ function WrongRate({ value }: { value: number | null }) {
 
 function normalizeReviewText(value: string | null | undefined) {
   if (!value) return "";
-  return value
-    .replace(/\s+(?=<보기>|<조건>|※)/g, "\n")
-    .replace(/(<보기>|<조건>)/g, "\n$1\n")
+  return normalizeQuestionText(value)
     .replace(/(오답분석)/g, "\n$1\n")
     .replace(/([①②③④⑤㉠㉡㉢㉣㉤㉥])\s*/g, "\n$1 ")
     .replace(/\n{3,}/g, "\n\n")
@@ -123,7 +122,7 @@ function formatExplanation(value: string | null | undefined, answer: number) {
 }
 
 function splitQuestionBody(body: string) {
-  const normalized = normalizeReviewText(body);
+  const normalized = repairQuestionBody(body);
   const questionEnd = normalized.indexOf("?");
   if (questionEnd < 0 || questionEnd > 180) {
     return { prompt: normalized, passage: "" };

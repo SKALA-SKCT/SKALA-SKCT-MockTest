@@ -10,6 +10,7 @@ import {
 import { finishSection, saveAnswer, startSection } from "@/lib/actions/exam";
 import Calculator from "@/components/exam/Calculator";
 import MemoPad from "@/components/exam/MemoPad";
+import { repairQuestionBody } from "@/lib/question-text";
 
 export type ClientQuestion = {
   id: number;
@@ -166,6 +167,7 @@ export default function ExamRunner({
   }
 
   const q = sectionQuestions[idx];
+  const questionBody = repairQuestionBody(q.body);
   const isLast = idx === sectionQuestions.length - 1;
   const mm = remaining != null ? Math.floor(remaining / 60) : SECTION_MINUTES;
   const ss = remaining != null ? remaining % 60 : 0;
@@ -226,7 +228,7 @@ export default function ExamRunner({
             </button>
           </div>
           <p className="whitespace-pre-line text-[15px] leading-relaxed text-zinc-800">
-            {q.body}
+            {questionBody}
           </p>
           {q.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element

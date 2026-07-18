@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { repairQuestionBody } from "@/lib/question-text";
 
 type PreviewQuestion = {
   number: number;
@@ -27,6 +28,7 @@ export default function OneQuestionPreview({
     if (!submitted || selected == null) return null;
     return selected === question.answer ? "correct" : "wrong";
   }, [question.answer, selected, submitted]);
+  const questionBody = repairQuestionBody(question.body);
 
   return (
     <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -46,7 +48,7 @@ export default function OneQuestionPreview({
         <div className="px-5 py-5 sm:px-7 sm:py-6">
           <div className="mb-5 rounded-md bg-page px-4 py-3">
             <p className="whitespace-pre-line text-[15px] leading-7 text-ink">
-              {question.body}
+              {questionBody}
             </p>
             {question.imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
