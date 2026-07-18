@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
@@ -26,22 +26,45 @@ export default async function Dashboard() {
     .where(eq(exams.published, true))
     .orderBy(asc(exams.createdAt));
 
-  const allAttempts = await db.select().from(attempts);
-  const allUsers = await db.select().from(users);
-  const userById = new Map(allUsers.map((row) => [row.id, row]));
+  const publishedExamIds = examList.map((exam) => exam.id);
 
   // 통계는 유저·시험별 가장 최근 '완료' 응시 1개만 사용
-  const latestFinished = new Map<string, (typeof allAttempts)[number]>();
-  for (const a of allAttempts) {
-    if (!a.finishedAt) continue;
-    const k = `${a.userId}:${a.examId}`;
-    const cur = latestFinished.get(k);
-    if (!cur || a.id > cur.id) latestFinished.set(k, a);
+  const finishedRows = publishedExamIds.length
+    ? await db
+        .select({
+          id: attempts.id,
+          userId: attempts.userId,
+          examId: attempts.examId,
+          finishedAt: attempts.finishedAt,
+          campus: users.campus,
+          classNumber: users.classNumber,
+        })
+        .from(attempts)
+        .innerJoin(users, eq(users.id, attempts.userId))
+        .where(
+          and(
+            isNotNull(attempts.finishedAt),
+            inArray(attempts.examId, publishedExamIds)
+          )
+        )
+    : [];
+  const latestFinished = new Map<string, (typeof finishedRows)[number]>();
+  for (const a of finishedRows) {
+    const key = `${a.userId}:${a.examId}`;
+    const current = latestFinished.get(key);
+    if (!current || a.id > current.id) latestFinished.set(key, a);
   }
   const finished = [...latestFinished.values()];
   const myFinished = finished.filter((a) => a.userId === user.id);
+  const myFinishedByExam = new Map(myFinished.map((attempt) => [attempt.examId, attempt]));
   const myFinishedExamIds = new Set(myFinished.map((a) => a.examId));
   const attemptIds = finished.map((a) => a.id);
+  const attemptsByExam = new Map<number, typeof finished>();
+  for (const attempt of finished) {
+    const items = attemptsByExam.get(attempt.examId) ?? [];
+    items.push(attempt);
+    attemptsByExam.set(attempt.examId, items);
+  }
 
   // 응시별·과목별 정답 수
   const subjectCorrect = attemptIds.length
@@ -57,19 +80,19 @@ export default async function Dashboard() {
         .groupBy(responses.attemptId, questions.subject)
     : [];
   const correctOf = new Map<string, number>();
-  for (const r of subjectCorrect)
+  const scoreByAttempt = new Map<number, number>();
+  for (const r of subjectCorrect) {
     correctOf.set(`${r.attemptId}:${r.subject}`, r.correct);
-  const scoreOf = (attemptId: number) =>
-    SUBJECTS.reduce((acc, s) => acc + (correctOf.get(`${attemptId}:${s}`) ?? 0), 0);
-  const isSameCampus = (attempt: (typeof finished)[number]) =>
-    userById.get(attempt.userId)?.campus === user.campus;
-  const isSameClass = (attempt: (typeof finished)[number]) => {
-    const attemptUser = userById.get(attempt.userId);
-    return (
-      attemptUser?.campus === user.campus &&
-      attemptUser.classNumber === user.classNumber
+    scoreByAttempt.set(
+      r.attemptId,
+      (scoreByAttempt.get(r.attemptId) ?? 0) + r.correct
     );
-  };
+  }
+  const scoreOf = (attemptId: number) => scoreByAttempt.get(attemptId) ?? 0;
+  const isSameCampus = (attempt: (typeof finished)[number]) =>
+    attempt.campus === user.campus;
+  const isSameClass = (attempt: (typeof finished)[number]) =>
+    attempt.campus === user.campus && attempt.classNumber === user.classNumber;
   const avgScore = (items: (typeof finished)[number][]) =>
     items.length
       ? items.reduce((acc, item) => acc + scoreOf(item.id), 0) / items.length
@@ -84,13 +107,16 @@ export default async function Dashboard() {
     })
     .from(questions)
     .groupBy(questions.examId, questions.subject);
+  const totalByExamSubject = new Map(
+    examSubjectTotals.map((row) => [`${row.examId}:${row.subject}`, row.total])
+  );
+  const totalByExam = new Map<number, number>();
+  for (const row of examSubjectTotals) {
+    totalByExam.set(row.examId, (totalByExam.get(row.examId) ?? 0) + row.total);
+  }
   const totalOfSubject = (examId: number, subject: string) =>
-    examSubjectTotals.find((r) => r.examId === examId && r.subject === subject)
-      ?.total ?? 0;
-  const totalOfExam = (examId: number) =>
-    examSubjectTotals
-      .filter((r) => r.examId === examId)
-      .reduce((acc, r) => acc + r.total, 0);
+    totalByExamSubject.get(`${examId}:${subject}`) ?? 0;
+  const totalOfExam = (examId: number) => totalByExam.get(examId) ?? 0;
   const subjectInfoOfExam = (examId: number) =>
     SUBJECTS.map((subject) => ({
       subject,
@@ -98,7 +124,7 @@ export default async function Dashboard() {
     })).filter((s) => s.total > 0);
 
   const rankOfAttempt = (target: (typeof finished)[number]) => {
-    const peers = finished.filter((a) => a.examId === target.examId);
+    const peers = attemptsByExam.get(target.examId) ?? [];
     const myScoreForExam = scoreOf(target.id);
     return {
       rank: 1 + peers.filter((p) => scoreOf(p.id) > myScoreForExam).length,
@@ -117,7 +143,7 @@ export default async function Dashboard() {
     accent?: "up" | "down";
   }[] = [];
   if (latest) {
-    const peers = finished.filter((a) => a.examId === latest.examId);
+    const peers = attemptsByExam.get(latest.examId) ?? [];
     const campusPeers = peers.filter(isSameCampus);
     const classPeers = peers.filter(isSameClass);
     const myScore = scoreOf(latest.id);
@@ -171,10 +197,10 @@ export default async function Dashboard() {
 
   // ── 추이: 완료 회차별 정답률(%) 나 vs 그룹
   const trendData = examList
-    .filter((e) => myFinished.some((a) => a.examId === e.id))
+    .filter((e) => myFinishedByExam.has(e.id))
     .map((e) => {
-      const mine = myFinished.find((a) => a.examId === e.id)!;
-      const peers = finished.filter((a) => a.examId === e.id);
+      const mine = myFinishedByExam.get(e.id)!;
+      const peers = attemptsByExam.get(e.id) ?? [];
       const campusPeers = peers.filter(isSameCampus);
       const classPeers = peers.filter(isSameClass);
       const total = totalOfExam(e.id) || 1;
@@ -239,21 +265,24 @@ export default async function Dashboard() {
       examByRound.set(index + 1, e);
     }
   }
-  const rounds = Array.from({ length: ROUNDS }, (_, i) => {
-    const exam = examByRound.get(i + 1);
-    const locked =
-      Boolean(exam) &&
-      !myFinishedExamIds.has(exam!.id) &&
-      Array.from({ length: i }, (_, prevIndex) => examByRound.get(prevIndex + 1))
-        .filter(Boolean)
-        .some((previousExam) => !myFinishedExamIds.has(previousExam!.id));
-    return {
-      no: i + 1,
+  const rounds: {
+    no: number;
+    exam: (typeof examList)[number] | undefined;
+    done: boolean;
+    locked: boolean;
+  }[] = [];
+  let allPreviousDone = true;
+  for (let no = 1; no <= ROUNDS; no += 1) {
+    const exam = examByRound.get(no);
+    const done = exam ? myFinishedExamIds.has(exam.id) : false;
+    rounds.push({
+      no,
       exam,
-      done: exam ? myFinishedExamIds.has(exam.id) : false,
-      locked,
-    };
-  });
+      done,
+      locked: Boolean(exam) && !done && !allPreviousDone,
+    });
+    if (exam && !done) allPreviousDone = false;
+  }
 
   return (
     <div className="flex flex-col gap-6 md:flex-row md:items-start">
