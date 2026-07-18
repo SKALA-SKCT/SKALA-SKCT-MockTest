@@ -74,8 +74,14 @@ export default function ExamRunner({
   const endsAtMs = section
     ? new Date(section.startedAt).getTime() + SECTION_MINUTES * 60 * 1000
     : null;
+  const sectionStartedAt = section?.startedAt;
 
   const [remaining, setRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!sectionStartedAt) return;
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [idx, sectionStartedAt]);
 
   const handleFinishSection = useCallback(
     async (subject: Subject) => {
