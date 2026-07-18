@@ -118,7 +118,7 @@ function expandCompactFraction(value: string) {
 }
 
 export function normalizeChoiceTexts(choices: string[]) {
-  const hasFractionLikeChoice = choices.some((choice) => {
+  const fractionLikeChoiceCount = choices.filter((choice) => {
     const compact = choice.trim().replace(/\s+/g, "");
     return (
       /^\d+$/.test(compact) &&
@@ -128,7 +128,8 @@ export function normalizeChoiceTexts(choices: string[]) {
           compact.length > denominator.length
       )
     );
-  });
+  }).length;
+  const hasFractionLikeChoice = fractionLikeChoiceCount >= 2;
 
   if (!hasFractionLikeChoice) {
     return choices.map((choice) => normalizeKoreanSpacing(normalizeQuestionText(choice)));
