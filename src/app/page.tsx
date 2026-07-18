@@ -241,10 +241,17 @@ export default async function Dashboard() {
   }
   const rounds = Array.from({ length: ROUNDS }, (_, i) => {
     const exam = examByRound.get(i + 1);
+    const locked =
+      Boolean(exam) &&
+      !myFinishedExamIds.has(exam!.id) &&
+      Array.from({ length: i }, (_, prevIndex) => examByRound.get(prevIndex + 1))
+        .filter(Boolean)
+        .some((previousExam) => !myFinishedExamIds.has(previousExam!.id));
     return {
       no: i + 1,
       exam,
       done: exam ? myFinishedExamIds.has(exam.id) : false,
+      locked,
     };
   });
 
@@ -366,6 +373,9 @@ export default async function Dashboard() {
             <p className="mt-1 text-xs text-ink-3">
               모의고사는 재응시할 수 없습니다.
             </p>
+            <p className="mt-1 text-xs text-ink-3">
+              1회차부터 순서대로 완료해야 다음 회차가 열립니다.
+            </p>
           </div>
           <ul className="flex-1 divide-y divide-[var(--grid)] overflow-y-auto px-5">
             {rounds.map((r) => (
@@ -401,6 +411,10 @@ export default async function Dashboard() {
                     >
                       결과
                     </Link>
+                  ) : r.locked ? (
+                    <span className="rounded-lg bg-page px-3 py-1.5 text-[11px] font-medium text-ink-3">
+                      잠김
+                    </span>
                   ) : (
                     <ExamStartButton
                       examId={r.exam.id}
