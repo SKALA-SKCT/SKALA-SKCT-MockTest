@@ -117,6 +117,12 @@ function QuestionCard({
     displayQuestion.answer,
     displayChoices[displayQuestion.answer - 1]
   );
+  const reviewExplanation = sanitizeExplanationForReview(
+    explanation,
+    displayQuestion.subject,
+    displayQuestion.answer,
+    displayChoices[displayQuestion.answer - 1]
+  );
 
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
@@ -203,16 +209,44 @@ function QuestionCard({
         <b className="text-base text-zinc-800">{CIRCLED[question.answer - 1]}</b>
       </p>
 
-      {explanation && (
+      {reviewExplanation && (
         <div className="mt-3 rounded-lg bg-zinc-50 px-4 py-3">
           <p className="text-sm font-bold text-zinc-700">해설</p>
           <p className="mt-2 whitespace-pre-line text-sm leading-7 text-zinc-600 [overflow-wrap:anywhere]">
-            {explanation}
+            {reviewExplanation}
           </p>
         </div>
       )}
     </div>
   );
+}
+
+function sanitizeExplanationForReview(
+  explanation: string,
+  subject: string,
+  answer: number,
+  answerChoice?: string
+) {
+  if (!explanation) return "";
+  const circled = CIRCLED[answer - 1] ?? `${answer}번`;
+  const choice = normalizeReviewText(answerChoice).replace(/\s+/g, " ").trim();
+  const answerSentence = choice
+    ? `정답은 ${circled} '${choice}'이다.`
+    : `정답은 ${circled}이다.`;
+
+  if (subject === "수열추리") {
+    return choice
+      ? `수열의 규칙을 적용하면 빈칸에 들어갈 값은 ${choice}이다.\n${answerSentence}`
+      : answerSentence;
+  }
+
+  if (subject === "창의수리") {
+    return choice
+      ? `조건을 식으로 정리해 계산하면 ${choice}가 도출된다.\n${answerSentence}`
+      : answerSentence;
+  }
+
+  return explanation;
 }
 
 export default function ResultReview({

@@ -84,7 +84,7 @@ export function normalizeQuestionDisplayText(value: string | null | undefined) {
           .replace(/\n{3,}/g, "\n\n")
           .trim();
       }
-      return normalized;
+      return normalized.replace(/\s+([A-E]):/g, "\n$1:");
     })
     .filter(Boolean)
     .join("\n\n")
@@ -290,6 +290,9 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/들어\s*갈/g, "들어갈")
     .replace(/알\s*수\s*있$/g, "알 수 있다")
     .replace(/알\s*수\s*없$/g, "알 수 없다")
+    .replace(/연구진들은이/g, "연구진들은 이")
+    .replace(/않았\s+다/g, "않았다")
+    .replace(/그런데이/g, "그런데 이")
     .trim();
 }
 
