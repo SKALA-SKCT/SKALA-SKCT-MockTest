@@ -30,8 +30,10 @@ export function repairQuestionBody(
 
   if (imageHasMaterial) {
     text = text
+      .replace(/^다음\s*\n+\s*(<보기>|<조건>)\s*\n+\s*(의|에|을|를)\s*/u, "다음 ")
       .replace(/다음\s*<보기>\s*의/g, "다음 ")
       .replace(/다음\s*<조건>\s*과/g, "다음 조건과")
+      .replace(/^\s*(<보기>|<조건>)\s*\n+\s*/u, "")
       .replace(/\s*(<보기>|<조건>)\s*$/g, "")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
@@ -95,6 +97,11 @@ export function normalizeQuestionDisplayText(value: string | null | undefined) {
 }
 
 const COMPACT_FRACTION_DENOMINATORS = [
+  "17",
+  "23",
+  "31",
+  "32",
+  "35",
   "10",
   "13",
   "15",
@@ -114,7 +121,7 @@ function expandCompactFraction(value: string) {
   for (const denominator of COMPACT_FRACTION_DENOMINATORS) {
     if (!compact.endsWith(denominator)) continue;
     const numerator = compact.slice(0, -denominator.length);
-    if (/^[1-9]\d?$/.test(numerator)) return `${numerator}/${denominator}`;
+    if (/^[1-9]\d{0,2}$/.test(numerator)) return `${numerator}/${denominator}`;
   }
   return value;
 }
