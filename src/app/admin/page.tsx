@@ -29,6 +29,17 @@ function formatMinutes(value: number) {
   return `${Math.round(value)}분`;
 }
 
+function compactSubject(subject: string) {
+  const names: Record<string, string> = {
+    언어이해: "언어",
+    자료해석: "자료",
+    창의수리: "창의",
+    언어추리: "추리",
+    수열추리: "수열",
+  };
+  return names[subject] ?? subject;
+}
+
 export default async function AdminPage() {
   await requireAdmin();
 
@@ -411,89 +422,86 @@ export default async function AdminPage() {
             시작/완료/중도이탈은 응시 기록 기준, 점수는 완료 응시 기준입니다.
           </p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1280px] table-fixed text-left text-sm">
+        <div className="overflow-hidden">
+          <table className="w-full table-fixed text-left text-[13px]">
             <thead className="bg-page text-xs text-ink-3">
               <tr>
-                <th className="w-16 whitespace-nowrap px-5 py-3 font-semibold">회차</th>
-                <th className="w-[430px] whitespace-nowrap px-5 py-3 font-semibold">시험명</th>
-                <th className="w-20 whitespace-nowrap px-5 py-3 text-right font-semibold">시작</th>
-                <th className="w-20 whitespace-nowrap px-5 py-3 text-right font-semibold">완료</th>
-                <th className="w-24 whitespace-nowrap px-5 py-3 text-right font-semibold">중도이탈</th>
-                <th className="w-20 whitespace-nowrap px-5 py-3 text-right font-semibold">완료율</th>
-                <th className="w-20 whitespace-nowrap px-5 py-3 text-right font-semibold">응시자</th>
-                <th className="w-32 whitespace-nowrap px-5 py-3 text-right font-semibold">평균</th>
-                <th className="w-24 whitespace-nowrap px-5 py-3 text-right font-semibold">최고</th>
-                <th className="w-24 whitespace-nowrap px-5 py-3 text-right font-semibold">최저</th>
-                <th className="w-24 whitespace-nowrap px-5 py-3 text-right font-semibold">평균 시간</th>
+                <th className="w-12 whitespace-nowrap px-4 py-2.5 font-semibold">회차</th>
+                <th className="w-[42%] whitespace-nowrap px-4 py-2.5 font-semibold">시험</th>
+                <th className="w-[16%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">
+                  시작/완료
+                </th>
+                <th className="w-[10%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">완료율</th>
+                <th className="w-[22%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">점수</th>
+                <th className="w-[10%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">시간</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--grid)]">
               {examStats.map((row) => (
                 <tr key={row.exam.id} className="align-top">
-                  <td className="whitespace-nowrap px-5 py-4 font-bold text-ink">{row.no}</td>
-                  <td className="px-5 py-4">
-                    <p className="font-semibold text-ink">{row.exam.title}</p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {row.subjectRates.map((item) => (
-                        <span
-                          key={item.subject}
-                          className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-ink-3"
-                        >
-                          {item.subject} {pct(item.rate)}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {Object.entries(row.campusFinished).map(([campus, count]) => (
-                        <span
-                          key={campus}
-                          className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-brand"
-                        >
-                          {campus} 완료 {count}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {Object.entries(row.classFinished).map(([className, count]) => (
-                        <span
-                          key={className}
-                          className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
-                        >
-                          {className} 완료 {count}
-                        </span>
-                      ))}
-                    </div>
+                  <td className="whitespace-nowrap px-4 py-2.5 font-bold text-ink">{row.no}</td>
+                  <td className="px-4 py-2.5">
+                    <p className="truncate font-semibold text-ink" title={row.exam.title}>
+                      {row.exam.title}
+                    </p>
+                    <p
+                      className="mt-1 truncate text-[11px] leading-4 text-ink-3"
+                      title={row.subjectRates
+                        .map((item) => `${item.subject} ${pct(item.rate)}`)
+                        .join(" · ")}
+                    >
+                      유형{" "}
+                      {row.subjectRates
+                        .map((item) => `${compactSubject(item.subject)} ${pct(item.rate)}`)
+                        .join(" · ")}
+                    </p>
+                    <p className="truncate text-[11px] leading-4 text-ink-3">
+                      <span className="text-brand">
+                        캠퍼스{" "}
+                        {Object.entries(row.campusFinished).length
+                          ? Object.entries(row.campusFinished)
+                              .map(([campus, count]) => `${campus} ${count}`)
+                              .join(" · ")
+                          : "0"}
+                      </span>
+                      <span className="mx-1 text-ink-4">/</span>
+                      <span className="text-blue-700">
+                        분반{" "}
+                        {Object.entries(row.classFinished).length
+                          ? Object.entries(row.classFinished)
+                              .map(([className, count]) => `${className} ${count}`)
+                              .join(" · ")
+                          : "0"}
+                      </span>
+                    </p>
                   </td>
-                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
-                    {row.started}
+                  <td className="px-4 py-2.5 text-right tabular-nums">
+                    <p className="font-semibold text-ink">
+                      {row.started}/{row.completed}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-4 text-ink-3">
+                      중도 {row.abandoned} · 응시자 {row.uniqueFinishers}/{row.uniqueStarters}
+                    </p>
                   </td>
-                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
-                    {row.completed}
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
-                    {row.abandoned}
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-4 py-2.5 text-right font-semibold tabular-nums text-ink">
                     {pct(row.completionRate)}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
-                    {row.uniqueFinishers}/{row.uniqueStarters}
+                  <td className="px-4 py-2.5 text-right tabular-nums">
+                    {row.completed ? (
+                      <>
+                        <p className="font-semibold text-ink">
+                          평균 {row.averageScore.toFixed(1)}/{row.totalQuestions} (
+                          {pct(row.averageAccuracy)})
+                        </p>
+                        <p className="mt-1 text-[11px] leading-4 text-ink-3">
+                          최고 {row.bestScore} · 최저 {row.lowestScore}
+                        </p>
+                      </>
+                    ) : (
+                      "-"
+                    )}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
-                    {row.completed
-                      ? `${row.averageScore.toFixed(1)}/${row.totalQuestions} (${pct(
-                          row.averageAccuracy
-                        )})`
-                      : "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
-                    {row.completed ? `${row.bestScore}/${row.totalQuestions}` : "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
-                    {row.completed ? `${row.lowestScore}/${row.totalQuestions}` : "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
                     {formatMinutes(row.averageDuration)}
                   </td>
                 </tr>
