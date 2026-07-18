@@ -49,6 +49,18 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function hashEmailCode({
+  purpose,
+  email,
+  code,
+}: {
+  purpose: "email_verify" | "password_reset";
+  email: string;
+  code: string;
+}) {
+  return hashToken(`${purpose}:${email.toLowerCase()}:${code.trim()}`);
+}
+
 async function createAuthToken({
   userId,
   email,
@@ -105,6 +117,45 @@ export async function checkEmail(email: string): Promise<{
   return { exists: Boolean(existing), valid: true };
 }
 
+export async function requestRegistrationEmailCode(email: string) {
+  const trimmed = email.trim().toLowerCase();
+  if (!validateEmail(trimmed)) {
+    return { ok: false, error: "이메일을 올바르게 입력해주세요." };
+  }
+  if (isLimited("register-email-code", trimmed)) {
+    return { ok: false, error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." };
+  }
+  const [existingEmail] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, trimmed));
+  if (existingEmail) return { ok: false, error: "이미 가입된 이메일입니다." };
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  await db.insert(authTokens).values({
+    email: trimmed,
+    purpose: "email_verify",
+    tokenHash: hashEmailCode({
+      purpose: "email_verify",
+      email: trimmed,
+      code,
+    }),
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+  });
+
+  try {
+    await sendMail({
+      to: trimmed,
+      subject: "[SKCT 스터디] 회원가입 인증번호",
+      text: `회원가입 인증번호는 ${code} 입니다.\n\n이 인증번호는 10분 동안 유효합니다.`,
+    });
+  } catch {
+    return { ok: false, error: "메일 발송 설정을 확인해주세요." };
+  }
+
+  return { ok: true, message: "인증번호를 보냈습니다." };
+}
+
 export async function checkPasswordResetIdentity({
   nickname,
   email,
@@ -135,6 +186,7 @@ export async function register(
   const campus = String(formData.get("campus") ?? "").trim();
   const classNumber = Number(formData.get("classNumber") ?? "");
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const emailCode = String(formData.get("emailCode") ?? "").trim();
   const pin = String(formData.get("pin") ?? "");
   const pinConfirm = String(formData.get("pinConfirm") ?? "");
   if (isLimited("register", email || nickname))
@@ -146,6 +198,8 @@ export async function register(
   const campusErr = validateCampusClass(campus, classNumber);
   if (campusErr) return { error: campusErr };
   if (!validateEmail(email)) return { error: "이메일을 올바르게 입력해주세요." };
+  if (!/^\d{6}$/.test(emailCode))
+    return { error: "이메일 인증번호 6자리를 입력해주세요." };
   if (pin !== pinConfirm) return { error: "비밀번호가 서로 일치하지 않습니다." };
 
   const [existing] = await db
@@ -158,6 +212,30 @@ export async function register(
     .from(users)
     .where(eq(users.email, email));
   if (existingEmail) return { error: "이미 사용 중인 이메일입니다." };
+
+  const [emailToken] = await db
+    .select()
+    .from(authTokens)
+    .where(
+      and(
+        eq(authTokens.email, email),
+        eq(authTokens.purpose, "email_verify"),
+        eq(
+          authTokens.tokenHash,
+          hashEmailCode({
+            purpose: "email_verify",
+            email,
+            code: emailCode,
+          })
+        ),
+        isNull(authTokens.usedAt)
+      )
+    )
+    .orderBy(sql`${authTokens.createdAt} desc`)
+    .limit(1);
+  if (!emailToken || emailToken.expiresAt.getTime() < Date.now()) {
+    return { error: "이메일 인증번호가 올바르지 않거나 만료되었습니다." };
+  }
 
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -172,30 +250,19 @@ export async function register(
       campus: campus as Campus,
       classNumber,
       email,
+      emailVerifiedAt: new Date(),
       pinHash,
       isAdmin: count === 0,
     })
     .returning();
 
-  const token = await createAuthToken({
-    userId: user.id,
-    email,
-    purpose: "email_verify",
-    minutes: 60,
-  });
-  const url = appUrl(`/verify-email?token=${token}`);
-  try {
-    await sendMail({
-      to: email,
-      subject: "[SKCT 스터디] 이메일 인증",
-      text: `아래 링크를 눌러 회원가입을 완료해주세요.\n\n${url}\n\n이 링크는 60분 동안 유효합니다.`,
-    });
-  } catch {
-    await db.delete(users).where(eq(users.id, user.id));
-    return { error: "메일 발송 설정을 확인해주세요." };
-  }
+  await db
+    .update(authTokens)
+    .set({ userId: user.id, usedAt: new Date() })
+    .where(eq(authTokens.id, emailToken.id));
 
-  redirect(`/verify-email/sent?email=${encodeURIComponent(email)}`);
+  await createSession(user.id);
+  redirect("/");
 }
 
 export async function login(
@@ -252,6 +319,27 @@ export async function deleteAccountWithNickname(confirmNickname: string) {
   await db.delete(users).where(eq(users.id, user.id));
   await destroySession();
   return { ok: true };
+}
+
+export async function updateMyProfile({
+  campus,
+  classNumber,
+}: {
+  campus: string;
+  classNumber: number;
+}) {
+  const { getSessionUserId } = await import("@/lib/session");
+  const userId = await getSessionUserId();
+  if (userId == null) return { ok: false, error: "로그인이 필요합니다." };
+
+  const campusErr = validateCampusClass(campus, classNumber);
+  if (campusErr) return { ok: false, error: campusErr };
+
+  await db
+    .update(users)
+    .set({ campus: campus as Campus, classNumber })
+    .where(eq(users.id, userId));
+  return { ok: true, message: "내 정보가 변경되었습니다." };
 }
 
 export async function requestMyPasswordChangeCode() {

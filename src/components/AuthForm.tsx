@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   checkEmail,
   checkNickname,
+  requestRegistrationEmailCode,
   type AuthFormState,
 } from "@/lib/actions/auth";
 
@@ -38,6 +39,11 @@ export default function AuthForm({
   >("idle");
   const [campus, setCampus] = useState<(typeof CAMPUS_OPTIONS)[number]>("판교");
   const [classNumber, setClassNumber] = useState(1);
+  const [email, setEmail] = useState("");
+  const [emailCodeStatus, setEmailCodeStatus] = useState<
+    "idle" | "sending" | "sent" | "error"
+  >("idle");
+  const [emailCodeMessage, setEmailCodeMessage] = useState("");
   const [pin, setPin] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
 
@@ -77,6 +83,25 @@ export default function AuthForm({
     }
   };
 
+  const requestEmailCode = async () => {
+    const trimmed = email.trim();
+    setEmailCodeMessage("");
+    if (!trimmed) {
+      setEmailCodeStatus("error");
+      setEmailCodeMessage("이메일을 먼저 입력해주세요.");
+      return;
+    }
+    setEmailCodeStatus("sending");
+    const result = await requestRegistrationEmailCode(trimmed);
+    if (result.ok) {
+      setEmailCodeStatus("sent");
+      setEmailCodeMessage(result.message ?? "인증번호를 보냈습니다.");
+      return;
+    }
+    setEmailCodeStatus("error");
+    setEmailCodeMessage(result.error ?? "인증번호 발송에 실패했습니다.");
+  };
+
   return (
     <div className="relative mx-auto mt-24 w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
       {isRegister && (
@@ -113,7 +138,7 @@ export default function AuthForm({
                 setClassNumber(1);
               }}
               required
-              className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:border-red-500"
+              className="select-control rounded-lg border border-zinc-300 py-2.5 pl-4 text-sm outline-none focus:border-red-500"
             >
               {CAMPUS_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -126,7 +151,7 @@ export default function AuthForm({
               value={classNumber}
               onChange={(event) => setClassNumber(Number(event.target.value))}
               required
-              className="rounded-lg border border-zinc-300 px-3 py-2.5 text-sm outline-none focus:border-red-500"
+              className="select-control rounded-lg border border-zinc-300 py-2.5 pl-3 text-sm outline-none focus:border-red-500"
             >
               {classOptionsForCampus(campus).map((classNumber) => (
                 <option key={classNumber} value={classNumber}>
@@ -170,8 +195,14 @@ export default function AuthForm({
               placeholder="이메일"
               autoComplete="email"
               required
+              value={email}
               onBlur={(e) => onEmailBlur(e.target.value)}
-              onChange={() => setEmailStatus("idle")}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setEmailStatus("idle");
+                setEmailCodeStatus("idle");
+                setEmailCodeMessage("");
+              }}
               className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-red-500 ${
                 emailStatus === "taken" || emailStatus === "invalid"
                   ? "border-red-400"
@@ -194,6 +225,38 @@ export default function AuthForm({
             {emailStatus === "invalid" && (
               <p className="mt-1 text-xs text-red-600">
                 이메일을 올바르게 입력해주세요.
+              </p>
+            )}
+            <div className="mt-2 grid grid-cols-[1fr_112px] gap-2">
+              <input
+                name="emailCode"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                placeholder="인증번호 6자리"
+                required
+                className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:border-red-500"
+              />
+              <button
+                type="button"
+                onClick={() => void requestEmailCode()}
+                disabled={
+                  emailCodeStatus === "sending" ||
+                  emailStatus === "taken" ||
+                  emailStatus === "invalid"
+                }
+                className="rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                {emailCodeStatus === "sending" ? "발송 중" : "인증번호"}
+              </button>
+            </div>
+            {emailCodeMessage && (
+              <p
+                className={`mt-1 text-xs ${
+                  emailCodeStatus === "sent" ? "text-emerald-600" : "text-red-600"
+                }`}
+              >
+                {emailCodeMessage}
               </p>
             )}
           </div>

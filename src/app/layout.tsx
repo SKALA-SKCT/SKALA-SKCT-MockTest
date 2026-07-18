@@ -38,6 +38,8 @@ export default async function RootLayout({
                     nickname={user.nickname}
                     name={user.name}
                     email={user.email}
+                    campus={user.campus}
+                    classNumber={user.classNumber}
                   />
                 </div>
               </nav>
