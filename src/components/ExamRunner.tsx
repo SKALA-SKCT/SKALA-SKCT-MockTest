@@ -16,7 +16,11 @@ import {
 import Calculator from "@/components/exam/Calculator";
 import MemoPad from "@/components/exam/MemoPad";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
-import { normalizeChoiceTexts, repairQuestionBody } from "@/lib/question-text";
+import {
+  normalizeChoiceTexts,
+  normalizeQuestionDisplayText,
+  repairQuestionBody,
+} from "@/lib/question-text";
 
 export type ClientQuestion = {
   id: number;
@@ -230,10 +234,12 @@ export default function ExamRunner({
   }
 
   const q = applyQuestionContentOverride(examId, sectionQuestions[idx]);
-  const questionBody = repairQuestionBody(q.body, {
-    hasMaterialImage: Boolean(q.imageUrl || q.supplementImageUrl),
-    subject: q.subject,
-  });
+  const questionBody = normalizeQuestionDisplayText(
+    repairQuestionBody(q.body, {
+      hasMaterialImage: Boolean(q.imageUrl || q.supplementImageUrl),
+      subject: q.subject,
+    })
+  );
   const displayChoices = normalizeChoiceTexts(q.choices);
   const isLast = idx === sectionQuestions.length - 1;
   const mm = remaining != null ? Math.floor(remaining / 60) : SECTION_MINUTES;

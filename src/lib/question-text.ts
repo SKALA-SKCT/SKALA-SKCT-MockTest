@@ -59,6 +59,15 @@ export function repairQuestionBody(
   return text.replace(/소밀/g, "소멸");
 }
 
+export function normalizeQuestionDisplayText(value: string | null | undefined) {
+  if (!value) return "";
+  return normalizeQuestionText(value)
+    .split(/\n{2,}/)
+    .map((block) => block.replace(/\s*\n\s*/g, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 const COMPACT_FRACTION_DENOMINATORS = [
   "10",
   "13",
@@ -104,4 +113,130 @@ export function normalizeChoiceTexts(choices: string[]) {
     if (!/^\d[\d\s]*$/.test(trimmed)) return trimmed;
     return expandCompactFraction(trimmed);
   });
+}
+
+export function normalizeReviewText(value: string | null | undefined) {
+  if (!value) return "";
+  return normalizeQuestionText(value)
+    .replace(/(오답분석)/g, "\n$1\n")
+    .replace(/([①②③④⑤㉠㉡㉢㉣㉤㉥])\s*/g, "\n$1 ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function normalizeKoreanSpacing(value: string) {
+  return value
+    .replace(/\s+/g, " ")
+    .replace(/등의내용/g, "등의 내용")
+    .replace(/에대한/g, "에 대한")
+    .replace(/대해설명/g, "대해 설명")
+    .replace(/하고\s*있다/g, "하고 있다")
+    .replace(/라고하였다/g, "라고 하였다")
+    .replace(/라고하였/g, "라고 하였")
+    .replace(/이라고하였다/g, "이라고 하였다")
+    .replace(/이라\s+고/g, "이라고")
+    .replace(/이\s+라고/g, "이라고")
+    .replace(/적이\s+라고/g, "적이라고")
+    .replace(/글에이어질/g, "글에 이어질")
+    .replace(/가권장/g, "가 권장")
+    .replace(/는피로감/g, "는 피로감")
+    .replace(/호흡곤란등/g, "호흡곤란 등")
+    .replace(/대표적이\s+며/g, "대표적이며")
+    .replace(/([가-힣])\s+(을|를|이|가|은|는|의|에|에서|에게|와|과|로|으로|도|만|부터|까지|보다|처럼|마다|라고|이라고)(?=[\s.,)]|$)/g, "$1$2")
+    .replace(/\s+(며|고|면|지만|므로|라고|이라고)(?=[\s.,)]|$)/g, "$1")
+    .replace(/정답은\s+([①②③④⑤])\s*(?:번\s*)?이다/g, "정답은 $1이다")
+    .replace(/전제\s+가/g, "전제가")
+    .replace(/결과\s+가/g, "결과가")
+    .replace(/부분\s+을/g, "부분을")
+    .replace(/부분\s+은/g, "부분은")
+    .replace(/정수\s+부분/g, "정수 부분")
+    .replace(/소수\s+부분/g, "소수 부분")
+    .replace(/들어\s*갈/g, "들어갈")
+    .replace(/알\s*수\s*있$/g, "알 수 있다")
+    .replace(/알\s*수\s*없$/g, "알 수 없다")
+    .trim();
+}
+
+function hasFinalAnswer(text: string) {
+  return /정답\s*은?\s*[①②③④⑤1-5]/.test(text.slice(-100));
+}
+
+function isDanglingExplanationTail(text: string) {
+  if (!text) return false;
+  if (/[.!?)]$/.test(text) || /(?:다|요|임|음|함|됨)$/.test(text)) {
+    return /(?:이므|으므|따라|따라서|고르|가장\s*적|가장\s*알맞|시기와|관리)$/.test(text);
+  }
+
+  return true;
+}
+
+function dropDanglingTail(text: string) {
+  const explicitRepairs: Array<[RegExp, string]> = [
+    [/가장\s*적$/u, "가장 적절하다."],
+    [/가장\s*적절\s*하$/u, "가장 적절하다."],
+    [/적절\s*하$/u, "적절하다."],
+    [/알\s*수\s*있$/u, "알 수 있다."],
+    [/알\s*수\s*없$/u, "알 수 없다."],
+    [/추론할\s*수\s*없$/u, "추론할 수 없다."],
+    [/이므$/u, "이므로"],
+    [/으므$/u, "으므로"],
+    [/따$/u, "따라서"],
+    [/따라$/u, "따라서"],
+    [/글에\s*이어질\s*$/u, ""],
+  ];
+
+  for (const [pattern, replacement] of explicitRepairs) {
+    if (pattern.test(text)) return text.replace(pattern, replacement).trim();
+  }
+
+  const sentenceEnds = ["다.", "요.", "임.", "음.", "함.", "됨.", ")."];
+  const lastSentenceEnd = Math.max(
+    ...sentenceEnds.map((ending) => text.lastIndexOf(ending))
+  );
+
+  if (lastSentenceEnd > 0) {
+    return text.slice(0, lastSentenceEnd + 2).trim();
+  }
+
+  return text
+    .replace(
+      /(?:따라서\s*)?(?:글의\s*)?(?:주제로는|중심\s*내용으로는|내용으로는|옳은\s*것만을\s*모두\s*고르면|옳지\s*않은\s*것만을\s*모두\s*고르면|모두\s*고르|정답은).*$/u,
+      ""
+    )
+    .replace(
+      /(?:글에\s*이어질|이므로|이므|으므로|으므|따라서|따라|따|가장|고르|시기와|관리)$/u,
+      ""
+    )
+    .replace(/(?:글에\s*이어질)\s*$/u, "")
+    .trim();
+}
+
+export function formatReviewExplanation(
+  value: string | null | undefined,
+  answer: number,
+  answerChoice?: string
+) {
+  const circled = ["①", "②", "③", "④", "⑤"][answer - 1] ?? `${answer}번`;
+  const normalizedChoice = normalizeQuestionText(answerChoice).replace(/\s+/g, " ").trim();
+  const answerText = normalizedChoice
+    ? `정답은 ${circled} '${normalizedChoice}'이다.`
+    : `정답은 ${circled}이다.`;
+
+  let text = normalizeKoreanSpacing(String(value ?? ""));
+  if (!text) return answerText;
+
+  text = text
+    .replace(/오답분석\s*/g, "\n\n오답분석\n")
+    .replace(/([.!?다])\s*([①②③④⑤])\s*/g, "$1\n$2 ")
+    .replace(/([①②③④⑤])\s+/g, "$1 ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  if (hasFinalAnswer(text)) return text;
+
+  if (isDanglingExplanationTail(text)) {
+    text = dropDanglingTail(text);
+  }
+
+  return `${text}\n${answerText}`.trim();
 }

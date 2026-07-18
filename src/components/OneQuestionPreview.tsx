@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { normalizeChoiceTexts, repairQuestionBody } from "@/lib/question-text";
+import {
+  formatReviewExplanation,
+  normalizeChoiceTexts,
+  normalizeQuestionDisplayText,
+  repairQuestionBody,
+} from "@/lib/question-text";
 
 type PreviewQuestion = {
   number: number;
@@ -28,11 +33,18 @@ export default function OneQuestionPreview({
     if (!submitted || selected == null) return null;
     return selected === question.answer ? "correct" : "wrong";
   }, [question.answer, selected, submitted]);
-  const questionBody = repairQuestionBody(question.body, {
-    hasMaterialImage: Boolean(question.imageUrl),
-    subject: question.subject,
-  });
+  const questionBody = normalizeQuestionDisplayText(
+    repairQuestionBody(question.body, {
+      hasMaterialImage: Boolean(question.imageUrl),
+      subject: question.subject,
+    })
+  );
   const displayChoices = normalizeChoiceTexts(question.choices);
+  const explanation = formatReviewExplanation(
+    question.explanation,
+    question.answer,
+    displayChoices[question.answer - 1]
+  );
 
   return (
     <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -139,7 +151,7 @@ export default function OneQuestionPreview({
                 {CIRCLED[question.answer - 1]}번입니다.
               </p>
               <p className="mt-2 whitespace-pre-line text-sm leading-6 text-ink-2">
-                {question.explanation}
+                {explanation}
               </p>
             </div>
           )}

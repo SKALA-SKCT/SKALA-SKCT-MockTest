@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
 import {
+  formatReviewExplanation,
   normalizeChoiceTexts,
-  normalizeQuestionText,
+  normalizeQuestionDisplayText,
+  normalizeReviewText,
   repairQuestionBody,
 } from "@/lib/question-text";
 
@@ -66,72 +68,13 @@ function WrongRate({ value }: { value: number | null }) {
   );
 }
 
-function normalizeReviewText(value: string | null | undefined) {
-  if (!value) return "";
-  return normalizeQuestionText(value)
-    .replace(/(오답분석)/g, "\n$1\n")
-    .replace(/([①②③④⑤㉠㉡㉢㉣㉤㉥])\s*/g, "\n$1 ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function repairTruncatedExplanation(text: string, answerText: string) {
-  const repairs: Array<[RegExp, string]> = [
-    [/중심\s*내용으로\s*가$/, `중심 내용으로 가장 적절하므로, ${answerText}`],
-    [/주제로는\s*[‘'"]?([^’'"]+)[’'"]?\s*정도가\s*가장$/, `주제로는 '$1' 정도가 가장 적절하므로, ${answerText}`],
-    [/가장\s*적절\s*하$/, `가장 적절하므로, ${answerText}`],
-    [/적절\s*하$/, `적절하므로, ${answerText}`],
-    [/자연스럽$/, `자연스럽다. 따라서 ${answerText}`],
-    [/추론할\s*수\s*없$/, `추론할 수 없다. 따라서 ${answerText}`],
-    [/알\s*수\s*없$/, `알 수 없다. 따라서 ${answerText}`],
-    [/알\s*수\s*있$/, `알 수 있다. 따라서 ${answerText}`],
-    [/이므$/, `이므로 ${answerText}`],
-    [/으므$/, `으므로 ${answerText}`],
-    [/따$/, `따라서 ${answerText}`],
-    [/따라$/, `따라서 ${answerText}`],
-    [/따라서$/, `따라서 ${answerText}`],
-    [/하였$/, `하였으므로, ${answerText}`],
-    [/하였고$/, `하였으므로, ${answerText}`],
-  ];
-
-  for (const [pattern, replacement] of repairs) {
-    if (pattern.test(text)) return text.replace(pattern, replacement);
-  }
-
-  return text;
-}
-
-function formatExplanation(value: string | null | undefined, answer: number) {
-  const answerText = `정답은 ${CIRCLED[answer - 1]}이다.`;
-  let text = normalizeReviewText(value);
-  if (!text) return answerText;
-
-  const hasFinalAnswer = /정답\s*은?\s*[①②③④⑤1-5]/.test(text.slice(-80));
-  if (hasFinalAnswer) return text;
-
-  const repaired = repairTruncatedExplanation(text, answerText);
-  if (repaired !== text) return repaired;
-
-  const sentenceEnds = ["다.", "요.", "임.", "음.", "함.", "됨.", ")."];
-  const lastSentenceEnd = Math.max(
-    ...sentenceEnds.map((ending) => text.lastIndexOf(ending))
-  );
-  if (lastSentenceEnd > 0 && text.length - lastSentenceEnd <= 90) {
-    text = text.slice(0, lastSentenceEnd + 2).trim();
-  } else {
-    text = text
-      .replace(/(?:이므로|이므|으므로|따라서|따라|따|가장|가|하였고|하였|하)$/g, "")
-      .trim();
-  }
-
-  return `${text}\n${answerText}`.trim();
-}
-
 function splitQuestionBody(question: ReviewQuestion & { supplementImageUrl?: string }) {
-  const normalized = repairQuestionBody(question.body, {
-    hasMaterialImage: Boolean(question.imageUrl || question.supplementImageUrl),
-    subject: question.subject,
-  });
+  const normalized = normalizeQuestionDisplayText(
+    repairQuestionBody(question.body, {
+      hasMaterialImage: Boolean(question.imageUrl || question.supplementImageUrl),
+      subject: question.subject,
+    })
+  );
   const questionEnd = normalized.indexOf("?");
   if (questionEnd < 0 || questionEnd > 180) {
     return { prompt: normalized, passage: "" };
@@ -153,8 +96,12 @@ function QuestionCard({
   const choiceRates = question.choiceRates;
   const displayQuestion = applyQuestionContentOverride(examId, question);
   const { prompt, passage } = splitQuestionBody(displayQuestion);
-  const explanation = formatExplanation(displayQuestion.explanation, displayQuestion.answer);
   const displayChoices = normalizeChoiceTexts(displayQuestion.choices);
+  const explanation = formatReviewExplanation(
+    displayQuestion.explanation,
+    displayQuestion.answer,
+    displayChoices[displayQuestion.answer - 1]
+  );
 
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
