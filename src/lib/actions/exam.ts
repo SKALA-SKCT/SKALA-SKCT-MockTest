@@ -59,9 +59,10 @@ export async function startAttempt(examId: number) {
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
   if (!exam || !exam.published) throw new Error("존재하지 않거나 비공개 시험입니다.");
 
+  await assertExamOrderAllowed(user.id, examId);
+
   const existing = await getMyAttempt(user.id, examId);
   if (existing) return { attemptId: existing.id };
-  await assertExamOrderAllowed(user.id, examId);
 
   const [created] = await db
     .insert(attempts)

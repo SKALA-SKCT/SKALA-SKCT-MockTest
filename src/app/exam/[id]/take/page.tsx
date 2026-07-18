@@ -35,7 +35,11 @@ export default async function TakePage({
     .limit(1);
   if (finishedAttempt) redirect(`/exam/${examId}/result`);
 
-  await startAttempt(examId);
+  try {
+    await startAttempt(examId);
+  } catch {
+    redirect("/");
+  }
   const [attempt] = await db
     .select()
     .from(attempts)
