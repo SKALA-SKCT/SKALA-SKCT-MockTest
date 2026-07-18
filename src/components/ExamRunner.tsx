@@ -230,7 +230,10 @@ export default function ExamRunner({
   }
 
   const q = applyQuestionContentOverride(examId, sectionQuestions[idx]);
-  const questionBody = repairQuestionBody(q.body);
+  const questionBody = repairQuestionBody(q.body, {
+    hasMaterialImage: Boolean(q.imageUrl || q.supplementImageUrl),
+    subject: q.subject,
+  });
   const displayChoices = normalizeChoiceTexts(q.choices);
   const isLast = idx === sectionQuestions.length - 1;
   const mm = remaining != null ? Math.floor(remaining / 60) : SECTION_MINUTES;

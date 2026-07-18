@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { repairQuestionBody } from "@/lib/question-text";
+import { normalizeChoiceTexts, repairQuestionBody } from "@/lib/question-text";
 
 type PreviewQuestion = {
   number: number;
@@ -28,7 +28,11 @@ export default function OneQuestionPreview({
     if (!submitted || selected == null) return null;
     return selected === question.answer ? "correct" : "wrong";
   }, [question.answer, selected, submitted]);
-  const questionBody = repairQuestionBody(question.body);
+  const questionBody = repairQuestionBody(question.body, {
+    hasMaterialImage: Boolean(question.imageUrl),
+    subject: question.subject,
+  });
+  const displayChoices = normalizeChoiceTexts(question.choices);
 
   return (
     <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -61,7 +65,7 @@ export default function OneQuestionPreview({
           </div>
 
           <div className="space-y-2.5">
-            {question.choices.map((choice, index) => {
+            {displayChoices.map((choice, index) => {
               const value = index + 1;
               const isSelected = selected === value;
               const isAnswer = submitted && question.answer === value;

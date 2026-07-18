@@ -1,14 +1,47 @@
 export function normalizeQuestionText(value: string | null | undefined) {
   if (!value) return "";
   return value
+    .replace(/에서(?=모두)/g, "에서 ")
     .replace(/\s+(?=<보기>|<조건>|※)/g, "\n")
     .replace(/(<보기>|<조건>)/g, "\n$1\n")
+    .replace(/\n+\s*(<보기>|<조건>)\n(?=(?:에서|의|을|를|은|는|이|가|과|와))/g, " $1")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
-export function repairQuestionBody(value: string) {
+export function repairQuestionBody(
+  value: string,
+  options?: { hasMaterialImage?: boolean; subject?: string }
+) {
   let text = normalizeQuestionText(value);
+  const subject = options?.subject ?? "";
+  const imageHasMaterial =
+    Boolean(options?.hasMaterialImage) &&
+    (subject === "수열추리" || subject === "자료해석");
+
+  if (imageHasMaterial) {
+    text = text
+      .replace(/다음\s*<보기>\s*의/g, "다음 ")
+      .replace(/다음\s*<조건>\s*과/g, "다음 조건과")
+      .replace(/\s*(<보기>|<조건>)\s*$/g, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  text = text
+    .replace(
+      /^A\s*다음\s+수들이\s+일정한\s+규칙을\s+따를\s+때,\s*의\s+값으로\s+알맞은\s*B\s*것은\?$/,
+      "다음 수들이 일정한 규칙을 따를 때, A/B의 값으로 알맞은 것은?"
+    )
+    .replace(
+      /^A\s*다음\s+수들이\s+일정한\s+규칙을\s+따를\s+때,\s*의\s+값으로\s+알맞은\s*것\s*B\s*은\?$/,
+      "다음 수들이 일정한 규칙을 따를 때, A/B의 값으로 알맞은 것은?"
+    )
+    .replace(
+      /^B\s*다음\s+수들이\s+일정한\s+규칙을\s+따를\s+때,\s*의\s+값으로\s+알맞은\s+것\s*A\s*은\?$/,
+      "다음 수들이 일정한 규칙을 따를 때, B/A의 값으로 알맞은 것은?"
+    );
+
   const hasBlankPrompt = /빈칸\s*㉠/.test(text);
   const hasBlankMarker = /\(\s*㉠\s*\)/.test(text);
 

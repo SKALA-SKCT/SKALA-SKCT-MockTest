@@ -127,8 +127,11 @@ function formatExplanation(value: string | null | undefined, answer: number) {
   return `${text}\n${answerText}`.trim();
 }
 
-function splitQuestionBody(body: string) {
-  const normalized = repairQuestionBody(body);
+function splitQuestionBody(question: ReviewQuestion & { supplementImageUrl?: string }) {
+  const normalized = repairQuestionBody(question.body, {
+    hasMaterialImage: Boolean(question.imageUrl || question.supplementImageUrl),
+    subject: question.subject,
+  });
   const questionEnd = normalized.indexOf("?");
   if (questionEnd < 0 || questionEnd > 180) {
     return { prompt: normalized, passage: "" };
@@ -149,7 +152,7 @@ function QuestionCard({
 }) {
   const choiceRates = question.choiceRates;
   const displayQuestion = applyQuestionContentOverride(examId, question);
-  const { prompt, passage } = splitQuestionBody(displayQuestion.body);
+  const { prompt, passage } = splitQuestionBody(displayQuestion);
   const explanation = formatExplanation(displayQuestion.explanation, displayQuestion.answer);
   const displayChoices = normalizeChoiceTexts(displayQuestion.choices);
 
