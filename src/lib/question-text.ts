@@ -79,7 +79,9 @@ export function normalizeQuestionDisplayText(value: string | null | undefined) {
       return normalized;
     })
     .filter(Boolean)
-    .join("\n\n");
+    .join("\n\n")
+    .replace(/(<보기>|<조건>)\s*([㉠㉡㉢㉣㉤])/gu, "$1\n\n$2")
+    .replace(/([.?!])\s*([㉠㉡㉢㉣㉤])/gu, "$1\n$2");
 }
 
 const COMPACT_FRACTION_DENOMINATORS = [
