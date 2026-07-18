@@ -46,11 +46,6 @@ export default function ExamRunner({
   // 과목 안에서는 자유롭게 이동 가능
   const [idx, setIdx] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [confirmRequest, setConfirmRequest] = useState<{
-    message: string;
-    confirmText: string;
-    onConfirm: () => void;
-  } | null>(null);
   const pendingSavesRef = useRef<Set<Promise<unknown>>>(new Set());
 
   const currentSubject = subjects.find((s) => !sectionState[s]?.finishedAt);
@@ -115,22 +110,12 @@ export default function ExamRunner({
   }
 
   const exitExam = () => {
-    setConfirmRequest({
-      message:
-        "응시를 중단하고 나갈까요? 답안은 저장되며, 이미 시작한 과목의 타이머는 계속 진행됩니다.",
-      confirmText: "나가기",
-      onConfirm: () => router.push("/"),
-    });
+    router.push("/");
   };
 
   const moveToNextSubject = () => {
     if (!currentSubject) return;
-    setConfirmRequest({
-      message:
-        `${currentSubject} 유형을 제출하고 다음 유형으로 넘어갈까요? 제출한 유형은 다시 풀 수 없습니다.`,
-      confirmText: "제출하기",
-      onConfirm: () => void handleFinishSection(currentSubject),
-    });
+    void handleFinishSection(currentSubject);
   };
 
   // 과목 시작 전 안내 화면
@@ -341,36 +326,6 @@ export default function ExamRunner({
         </aside>
       </div>
 
-      {confirmRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
-            <p className="text-base font-bold text-zinc-900">확인</p>
-            <p className="mt-3 whitespace-pre-line text-sm leading-6 text-zinc-600">
-              {confirmRequest.message}
-            </p>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmRequest(null)}
-                className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const action = confirmRequest.onConfirm;
-                  setConfirmRequest(null);
-                  action();
-                }}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
-              >
-                {confirmRequest.confirmText}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
