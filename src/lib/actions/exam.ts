@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, desc, eq, isNotNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
@@ -152,6 +152,28 @@ export async function finishSection(examId: number, subject: Subject) {
     .where(eq(attempts.id, attempt.id));
 
   return { sectionState: state, finished: allDone };
+}
+
+/** 미완료 응시 중단. 나가기를 확정하면 답안과 진행 상태를 모두 초기화한다. */
+export async function abandonAttempt(examId: number) {
+  const user = await requireUser();
+  const unfinishedAttempts = await db
+    .select({ id: attempts.id })
+    .from(attempts)
+    .where(
+      and(
+        eq(attempts.userId, user.id),
+        eq(attempts.examId, examId),
+        isNull(attempts.finishedAt)
+      )
+    );
+  const attemptIds = unfinishedAttempts.map((attempt) => attempt.id);
+  if (attemptIds.length === 0) return { ok: true };
+
+  await db.delete(responses).where(inArray(responses.attemptId, attemptIds));
+  await db.delete(attempts).where(inArray(attempts.id, attemptIds));
+
+  return { ok: true };
 }
 
 /** 시험에 존재하는 과목을 SKCT 순서대로 반환 */

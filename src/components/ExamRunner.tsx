@@ -7,7 +7,12 @@ import {
   type SectionState,
   type Subject,
 } from "@/db/schema";
-import { finishSection, saveAnswer, startSection } from "@/lib/actions/exam";
+import {
+  abandonAttempt,
+  finishSection,
+  saveAnswer,
+  startSection,
+} from "@/lib/actions/exam";
 import Calculator from "@/components/exam/Calculator";
 import MemoPad from "@/components/exam/MemoPad";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
@@ -46,6 +51,13 @@ export default function ExamRunner({
   // 과목 안에서는 자유롭게 이동 가능
   const [idx, setIdx] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [confirmRequest, setConfirmRequest] = useState<{
+    title: string;
+    message: string;
+    confirmText: string;
+    tone?: "danger" | "default";
+    onConfirm: () => Promise<void> | void;
+  } | null>(null);
   const pendingSavesRef = useRef<Set<Promise<unknown>>>(new Set());
 
   const currentSubject = subjects.find((s) => !sectionState[s]?.finishedAt);
@@ -110,53 +122,110 @@ export default function ExamRunner({
   }
 
   const exitExam = () => {
-    router.push("/");
+    setConfirmRequest({
+      title: "응시를 중단할까요?",
+      message:
+        "지금 나가면 이번 응시 기록과 저장된 답안이 모두 초기화됩니다.",
+      confirmText: "나가기",
+      tone: "danger",
+      onConfirm: async () => {
+        await Promise.allSettled([...pendingSavesRef.current]);
+        await abandonAttempt(examId);
+        router.replace("/");
+      },
+    });
   };
 
   const moveToNextSubject = () => {
     if (!currentSubject) return;
-    void handleFinishSection(currentSubject);
+    setConfirmRequest({
+      title: "유형을 제출할까요?",
+      message: `${currentSubject} 유형을 제출하면 이 유형은 다시 풀 수 없습니다.`,
+      confirmText: "제출하기",
+      onConfirm: () => handleFinishSection(currentSubject),
+    });
   };
+
+  const confirmModal = confirmRequest ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
+        <p className="text-lg font-bold text-zinc-900">{confirmRequest.title}</p>
+        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-zinc-600">
+          {confirmRequest.message}
+        </p>
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmRequest(null)}
+            className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              const action = confirmRequest.onConfirm;
+              setConfirmRequest(null);
+              await action();
+            }}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+              confirmRequest.tone === "danger"
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-zinc-900 hover:bg-zinc-700"
+            }`}
+          >
+            {confirmRequest.confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   // 과목 시작 전 안내 화면
   if (!section) {
     const subjectIndex = subjects.indexOf(currentSubject);
     return (
-      <div className="mx-auto mt-20 max-w-md rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-        <p className="text-xs font-medium text-zinc-400">
-          {examTitle} · {subjectIndex + 1}/{subjects.length}교시
-        </p>
-        <h1 className="mt-2 text-3xl font-bold">{currentSubject}</h1>
-        <p className="mt-3 text-sm text-zinc-500">
-          {sectionQuestions.length}문항 · {SECTION_MINUTES}분
-        </p>
-        <ul className="mx-auto mt-4 max-w-xs space-y-1 text-left text-xs text-zinc-400">
-          <li>· 과목 안에서는 문항을 자유롭게 이동할 수 있습니다.</li>
-          <li>· 메모장/그림판은 문제를 넘기면 지워집니다.</li>
-          <li>· 시간이 끝나면 자동 제출됩니다.</li>
-        </ul>
-        <button
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              const res = await startSection(examId, currentSubject);
-              setSectionState(res.sectionState);
-            } finally {
-              setBusy(false);
-            }
-          }}
-          className="mt-6 w-full rounded-lg bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-        >
-          {busy ? "준비 중..." : "시작하기"}
-        </button>
-        <button
-          onClick={() => router.push("/")}
-          className="mt-3 text-xs text-zinc-400 hover:text-zinc-600 hover:underline"
-        >
-          나가기
-        </button>
-      </div>
+      <>
+        <div className="mx-auto mt-20 max-w-md rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-xs font-medium text-zinc-400">
+            {examTitle} · {subjectIndex + 1}/{subjects.length}교시
+          </p>
+          <h1 className="mt-2 text-3xl font-bold">{currentSubject}</h1>
+          <p className="mt-3 text-sm text-zinc-500">
+            {sectionQuestions.length}문항 · {SECTION_MINUTES}분
+          </p>
+          <ul className="mx-auto mt-4 max-w-xs space-y-1 text-left text-xs text-zinc-400">
+            <li>· 과목 안에서는 문항을 자유롭게 이동할 수 있습니다.</li>
+            <li>· 메모장/그림판은 문제를 넘기면 지워집니다.</li>
+            <li>· 시간이 끝나면 자동 제출됩니다.</li>
+          </ul>
+          <button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                const res = await startSection(examId, currentSubject);
+                setSectionState(res.sectionState);
+              } finally {
+                setBusy(false);
+              }
+            }}
+            className="mt-6 w-full rounded-lg bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+          >
+            {busy ? "준비 중..." : "시작하기"}
+          </button>
+          <button
+            disabled={busy}
+            onClick={exitExam}
+            className="mt-3 text-xs text-zinc-400 hover:text-zinc-600 hover:underline disabled:opacity-50"
+          >
+            나가기
+          </button>
+        </div>
+        {confirmModal}
+      </>
     );
   }
 
@@ -326,6 +395,7 @@ export default function ExamRunner({
         </aside>
       </div>
 
+      {confirmModal}
     </>
   );
 }
