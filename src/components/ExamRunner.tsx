@@ -34,6 +34,27 @@ export type ClientQuestion = {
 
 const CIRCLED = ["①", "②", "③", "④", "⑤"];
 
+function splitQuestionBodyText(value: string) {
+  const [firstBlock, ...restBlocks] = value.split(/\n{2,}/);
+  if (firstBlock?.trim().endsWith("?") && restBlocks.length > 0) {
+    return {
+      prompt: firstBlock.trim(),
+      passage: restBlocks.join("\n\n").trim(),
+    };
+  }
+
+  const questionEnd = value.indexOf("?");
+  if (questionEnd < 0) return { prompt: value, passage: "" };
+
+  const prompt = value.slice(0, questionEnd + 1).trim();
+  const passage = value.slice(questionEnd + 1).trim();
+  if (prompt.length > 220 && passage) {
+    return { prompt: value, passage: "" };
+  }
+
+  return { prompt, passage };
+}
+
 export default function ExamRunner({
   examId,
   examTitle,
@@ -256,6 +277,8 @@ export default function ExamRunner({
       subject: q.subject,
     })
   );
+  const { prompt: questionPrompt, passage: questionPassage } =
+    splitQuestionBodyText(questionBody);
   const displayChoices = normalizeChoiceTexts(q.choices);
   const isLast = idx === sectionQuestions.length - 1;
   const mm = remaining != null ? Math.floor(remaining / 60) : SECTION_MINUTES;
@@ -320,9 +343,18 @@ export default function ExamRunner({
               다음 유형으로
             </button>
           </div>
-          <p className="whitespace-pre-line text-[15px] leading-relaxed text-zinc-800">
-            {questionBody}
-          </p>
+          <div className="rounded-xl bg-zinc-50 px-4 py-4">
+            <p className="whitespace-pre-line text-[15px] font-bold leading-7 text-zinc-900 [overflow-wrap:anywhere]">
+              {questionPrompt}
+            </p>
+            {questionPassage && (
+              <div className="mt-3 border-t border-zinc-200 pt-3">
+                <p className="whitespace-pre-line text-sm leading-7 text-zinc-700 [overflow-wrap:anywhere]">
+                  {questionPassage}
+                </p>
+              </div>
+            )}
+          </div>
           {q.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
