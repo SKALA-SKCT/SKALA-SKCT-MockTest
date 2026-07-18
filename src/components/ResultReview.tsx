@@ -242,7 +242,7 @@ function sanitizeExplanationForReview(
 
   if (subject === "창의수리") {
     return choice
-      ? `조건을 식으로 정리해 계산하면 ${choice}가 도출된다.\n${answerSentence}`
+      ? `조건을 식으로 정리하면 계산 결과는 ${choice}이다.\n${answerSentence}`
       : answerSentence;
   }
 
