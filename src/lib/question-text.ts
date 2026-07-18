@@ -5,7 +5,13 @@ export function normalizeQuestionText(value: string | null | undefined) {
     .replace(/([?.])\s*※/g, "$1\n※")
     .replace(/\s+(?=<보기>|<조건>|※)/g, "\n")
     .replace(/(<보기>|<조건>)/g, "\n\n$1\n")
-    .replace(/\n+\s*(<보기>|<조건>)\n(?=(?:에서|의|을|를|은|는|이|가|과|와))/g, " $1")
+    .replace(
+      /\n+\s*(<보기>|<조건>)\n(?=(?:에서|의|을|를|은|는|이|가|과|와))/g,
+      " $1 "
+    )
+    .replace(/것만을\s*\n+\s*<보기>\s*\n+\s*에서/g, "것만을 <보기>에서")
+    .replace(/것을\s*\n+\s*<보기>\s*\n+\s*에서/g, "것을 <보기>에서")
+    .replace(/내용을\s*\n+\s*<보기>\s*\n+\s*에서/g, "내용을 <보기>에서")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -162,6 +168,7 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/구성성\s+분/g, "구성 성분")
     .replace(/일자\s+리/g, "일자리")
     .replace(/생산\s+액/g, "생산액")
+    .replace(/FTA\s*수출/g, "FTA 수출")
     .replace(/제작\s+해야/g, "제작해야")
     .replace(/영양\s+분/g, "영양분")
     .replace(/생성\s+되며/g, "생성되며")
@@ -228,6 +235,24 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/부분\s+은/g, "부분은")
     .replace(/정수\s+부분/g, "정수 부분")
     .replace(/소수\s+부분/g, "소수 부분")
+    .replace(/아메리\s+카노/g, "아메리카노")
+    .replace(/이익\s+을/g, "이익을")
+    .replace(/전제\s+들/g, "전제들")
+    .replace(/첫\s*번\s*째/g, "첫 번째")
+    .replace(/마지막\s+으로/g, "마지막으로")
+    .replace(/잔인\s+가/g, "잔인가")
+    .replace(/명인\s+가/g, "명인가")
+    .replace(/개인\s+가/g, "개인가")
+    .replace(/2(?=[㉠㉡㉢㉣㉤])/g, "")
+    .replace(/동2안/g, "동안")
+    .replace(/면적2이/g, "면적이")
+    .replace(/면적이\s*1백\s*m\s*만/g, "면적이 1백㎡ 미만")
+    .replace(/면적이\s*3천\s*m\s*이상/g, "면적이 3천㎡ 이상")
+    .replace(/3천\s*m\s*이상/g, "3천㎡ 이상")
+    .replace(/해2에/g, "해에")
+    .replace(/사망만\s*일율/g, "사망만인율")
+    .replace(/사망만\s*인율/g, "사망만인율")
+    .replace(/운수\s*·?\s*고\s+및\s+통신업/g, "운수·창고 및 통신업")
     .replace(/들어\s*갈/g, "들어갈")
     .replace(/알\s*수\s*있$/g, "알 수 있다")
     .replace(/알\s*수\s*없$/g, "알 수 없다")
@@ -252,6 +277,9 @@ function dropDanglingTail(text: string) {
     [/가장\s*적$/u, "가장 적절하다."],
     [/가장\s*적절\s*하$/u, "가장 적절하다."],
     [/적절\s*하$/u, "적절하다."],
+    [/중심\s*내용으로\s*가$/u, "중심 내용이다."],
+    [/주제로\s*가$/u, "주제이다."],
+    [/따라서\s*<보기>\s*에서$/u, ""],
     [/알\s*수\s*있$/u, "알 수 있다."],
     [/알\s*수\s*없$/u, "알 수 없다."],
     [/추론할\s*수\s*없$/u, "추론할 수 없다."],
@@ -277,7 +305,7 @@ function dropDanglingTail(text: string) {
 
   return text
     .replace(
-      /(?:따라서\s*)?(?:글의\s*)?(?:주제로는|중심\s*내용으로는|내용으로는|옳은\s*것만을\s*모두\s*고르면|옳지\s*않은\s*것만을\s*모두\s*고르면|모두\s*고르|정답은).*$/u,
+      /(?:따라서\s*)?(?:글의\s*)?(?:주제로는|주제로|중심\s*내용으로는|중심\s*내용으로|내용으로는|옳은\s*것만을\s*모두\s*고르면|옳지\s*않은\s*것만을\s*모두\s*고르면|모두\s*고르|정답은).*$/u,
       ""
     )
     .replace(

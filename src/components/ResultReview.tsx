@@ -75,14 +75,29 @@ function splitQuestionBody(question: ReviewQuestion & { supplementImageUrl?: str
       subject: question.subject,
     })
   );
+
+  const [firstBlock, ...restBlocks] = normalized.split(/\n{2,}/);
+  if (firstBlock?.trim().endsWith("?") && restBlocks.length > 0) {
+    return {
+      prompt: firstBlock.trim(),
+      passage: restBlocks.join("\n\n").trim(),
+    };
+  }
+
   const questionEnd = normalized.indexOf("?");
-  if (questionEnd < 0 || questionEnd > 180) {
+  if (questionEnd < 0) {
+    return { prompt: normalized, passage: "" };
+  }
+
+  const prompt = normalized.slice(0, questionEnd + 1).trim();
+  const passage = normalized.slice(questionEnd + 1).trim();
+  if (prompt.length > 220 && passage) {
     return { prompt: normalized, passage: "" };
   }
 
   return {
-    prompt: normalized.slice(0, questionEnd + 1).trim(),
-    passage: normalized.slice(questionEnd + 1).trim(),
+    prompt,
+    passage,
   };
 }
 
@@ -117,7 +132,7 @@ function QuestionCard({
       </div>
 
       <div className="rounded-xl bg-zinc-50 px-4 py-4">
-        <p className="text-[15px] font-bold leading-7 text-zinc-900 [overflow-wrap:anywhere]">
+        <p className="whitespace-pre-line text-[15px] font-bold leading-7 text-zinc-900 [overflow-wrap:anywhere]">
           {prompt}
         </p>
         {passage && (
