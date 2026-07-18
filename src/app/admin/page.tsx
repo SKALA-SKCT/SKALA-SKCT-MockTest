@@ -10,6 +10,7 @@ import {
   users,
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
+import AdminCharts from "@/components/AdminCharts";
 
 export const dynamic = "force-dynamic";
 
@@ -145,6 +146,14 @@ export default async function AdminPage() {
       },
       {}
     );
+    const classFinished = examFinished.reduce<Record<string, number>>(
+      (acc, attempt) => {
+        const key = `${attempt.campus} ${attempt.classNumber}반`;
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+      },
+      {}
+    );
 
     return {
       no: index + 1,
@@ -160,12 +169,74 @@ export default async function AdminPage() {
         : 0,
       averageScore: avg(scores),
       bestScore: scores.length ? Math.max(...scores) : 0,
+      lowestScore: scores.length ? Math.min(...scores) : 0,
       averageAccuracy: totalQuestions ? (avg(scores) / totalQuestions) * 100 : 0,
       averageDuration: avg(durations),
       subjectRates,
       campusFinished,
+      classFinished,
     };
   });
+
+  const scorePercent = (score: number, total: number) =>
+    total ? Math.round((score / total) * 100) : 0;
+  const examChartData = examStats.map((row) => ({
+    name: `${row.no}회`,
+    시작: row.started,
+    완료: row.completed,
+    중도이탈: row.abandoned,
+    평균: scorePercent(row.averageScore, row.totalQuestions),
+    최고: scorePercent(row.bestScore, row.totalQuestions),
+    최저: scorePercent(row.lowestScore, row.totalQuestions),
+  }));
+
+  const subjectChartData = SUBJECTS.map((subject) => {
+    const totals = completedAttempts.reduce(
+      (acc, attempt) => {
+        const total = totalByExamSubject.get(`${attempt.examId}:${subject}`) ?? 0;
+        return {
+          correct: acc.correct + (correctOf.get(`${attempt.id}:${subject}`) ?? 0),
+          total: acc.total + total,
+        };
+      },
+      { correct: 0, total: 0 }
+    );
+    return {
+      subject,
+      평균정답률: totals.total ? Math.round((totals.correct / totals.total) * 100) : 0,
+    };
+  });
+
+  const groupScores = completedAttempts.reduce<
+    Record<string, { completed: number; scoreSum: number }>
+  >((acc, attempt) => {
+    const campusKey = `campus:${attempt.campus}`;
+    const classKey = `class:${attempt.campus} ${attempt.classNumber}반`;
+    const score = scoreByAttempt.get(attempt.id) ?? 0;
+    for (const key of [campusKey, classKey]) {
+      const item = acc[key] ?? { completed: 0, scoreSum: 0 };
+      item.completed += 1;
+      item.scoreSum += score;
+      acc[key] = item;
+    }
+    return acc;
+  }, {});
+  const campusChartData = ["판교", "울산", "광주"].map((campus) => {
+    const item = groupScores[`campus:${campus}`] ?? { completed: 0, scoreSum: 0 };
+    return {
+      name: campus,
+      완료: item.completed,
+      평균점수: item.completed ? Math.round(item.scoreSum / item.completed) : 0,
+    };
+  });
+  const classChartData = Object.entries(groupScores)
+    .filter(([key]) => key.startsWith("class:"))
+    .map(([key, item]) => ({
+      name: key.replace(/^class:/, ""),
+      완료: item.completed,
+      평균점수: item.completed ? Math.round(item.scoreSum / item.completed) : 0,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ko"));
 
   const overallTiles = [
     { label: "가입자", value: `${userRows.length}명`, sub: "전체 계정" },
@@ -239,6 +310,100 @@ export default async function AdminPage() {
         </div>
       </section>
 
+      <AdminCharts
+        examData={examChartData}
+        subjectData={subjectChartData}
+        campusData={campusChartData}
+        classData={classChartData}
+      />
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <div className="card overflow-hidden">
+          <div className="border-b border-hairline px-5 py-4">
+            <h2 className="text-sm font-semibold text-ink">캠퍼스별 표</h2>
+            <p className="mt-1 text-xs text-ink-3">완료 응시 기준</p>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-page text-xs text-ink-3">
+              <tr>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-semibold">
+                  캠퍼스
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
+                  완료
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
+                  평균점수
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--grid)]">
+              {campusChartData.map((row) => (
+                <tr key={row.name}>
+                  <td className="whitespace-nowrap px-5 py-3 font-semibold text-ink">
+                    {row.name}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-3 text-right tabular-nums">
+                    {row.완료}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-3 text-right tabular-nums">
+                    {row.평균점수}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card overflow-hidden">
+          <div className="border-b border-hairline px-5 py-4">
+            <h2 className="text-sm font-semibold text-ink">분반별 표</h2>
+            <p className="mt-1 text-xs text-ink-3">완료 응시가 있는 분반 기준</p>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-page text-xs text-ink-3">
+              <tr>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-semibold">
+                  분반
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
+                  완료
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
+                  평균점수
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--grid)]">
+              {classChartData.length ? (
+                classChartData.map((row) => (
+                  <tr key={row.name}>
+                    <td className="whitespace-nowrap px-5 py-3 font-semibold text-ink">
+                      {row.name}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3 text-right tabular-nums">
+                      {row.완료}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3 text-right tabular-nums">
+                      {row.평균점수}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-5 py-8 text-center text-sm text-ink-3"
+                  >
+                    완료 응시가 있는 분반이 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section className="card overflow-hidden">
         <div className="border-b border-hairline px-5 py-4">
           <h2 className="text-sm font-semibold text-ink">회차별 통계</h2>
@@ -247,25 +412,26 @@ export default async function AdminPage() {
           </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1080px] text-left text-sm">
+          <table className="w-full min-w-[1280px] table-fixed text-left text-sm">
             <thead className="bg-page text-xs text-ink-3">
               <tr>
-                <th className="px-5 py-3 font-semibold">회차</th>
-                <th className="px-5 py-3 font-semibold">시험명</th>
-                <th className="px-5 py-3 text-right font-semibold">시작</th>
-                <th className="px-5 py-3 text-right font-semibold">완료</th>
-                <th className="px-5 py-3 text-right font-semibold">중도이탈</th>
-                <th className="px-5 py-3 text-right font-semibold">완료율</th>
-                <th className="px-5 py-3 text-right font-semibold">응시자</th>
-                <th className="px-5 py-3 text-right font-semibold">평균</th>
-                <th className="px-5 py-3 text-right font-semibold">최고</th>
-                <th className="px-5 py-3 text-right font-semibold">평균 시간</th>
+                <th className="w-16 whitespace-nowrap px-5 py-3 font-semibold">회차</th>
+                <th className="w-[430px] whitespace-nowrap px-5 py-3 font-semibold">시험명</th>
+                <th className="w-20 whitespace-nowrap px-5 py-3 text-right font-semibold">시작</th>
+                <th className="w-20 whitespace-nowrap px-5 py-3 text-right font-semibold">완료</th>
+                <th className="w-24 whitespace-nowrap px-5 py-3 text-right font-semibold">중도이탈</th>
+                <th className="w-20 whitespace-nowrap px-5 py-3 text-right font-semibold">완료율</th>
+                <th className="w-20 whitespace-nowrap px-5 py-3 text-right font-semibold">응시자</th>
+                <th className="w-32 whitespace-nowrap px-5 py-3 text-right font-semibold">평균</th>
+                <th className="w-24 whitespace-nowrap px-5 py-3 text-right font-semibold">최고</th>
+                <th className="w-24 whitespace-nowrap px-5 py-3 text-right font-semibold">최저</th>
+                <th className="w-24 whitespace-nowrap px-5 py-3 text-right font-semibold">평균 시간</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--grid)]">
               {examStats.map((row) => (
                 <tr key={row.exam.id} className="align-top">
-                  <td className="px-5 py-4 font-bold text-ink">{row.no}</td>
+                  <td className="whitespace-nowrap px-5 py-4 font-bold text-ink">{row.no}</td>
                   <td className="px-5 py-4">
                     <p className="font-semibold text-ink">{row.exam.title}</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
@@ -288,33 +454,46 @@ export default async function AdminPage() {
                         </span>
                       ))}
                     </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {Object.entries(row.classFinished).map(([className, count]) => (
+                        <span
+                          key={className}
+                          className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
+                        >
+                          {className} 완료 {count}
+                        </span>
+                      ))}
+                    </div>
                   </td>
-                  <td className="px-5 py-4 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
                     {row.started}
                   </td>
-                  <td className="px-5 py-4 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
                     {row.completed}
                   </td>
-                  <td className="px-5 py-4 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
                     {row.abandoned}
                   </td>
-                  <td className="px-5 py-4 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
                     {pct(row.completionRate)}
                   </td>
-                  <td className="px-5 py-4 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
                     {row.uniqueFinishers}/{row.uniqueStarters}
                   </td>
-                  <td className="px-5 py-4 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
                     {row.completed
                       ? `${row.averageScore.toFixed(1)}/${row.totalQuestions} (${pct(
                           row.averageAccuracy
                         )})`
                       : "-"}
                   </td>
-                  <td className="px-5 py-4 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
                     {row.completed ? `${row.bestScore}/${row.totalQuestions}` : "-"}
                   </td>
-                  <td className="px-5 py-4 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
+                    {row.completed ? `${row.lowestScore}/${row.totalQuestions}` : "-"}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums">
                     {formatMinutes(row.averageDuration)}
                   </td>
                 </tr>
