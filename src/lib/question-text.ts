@@ -71,6 +71,7 @@ export function normalizeQuestionDisplayText(value: string | null | undefined) {
       if (/^<보기>|^<조건>/.test(normalized)) {
         return normalized
           .replace(/^(<보기>|<조건>)\s*/u, "$1\n")
+          .replace(/([.?!])\s*([㉠㉡㉢㉣㉤])/gu, "$1\n$2")
           .replace(/\s*([㉠㉡㉢㉣㉤])\s+/gu, "\n$1 ")
           .replace(/\n{3,}/g, "\n\n")
           .trim();
@@ -142,7 +143,7 @@ export function normalizeReviewText(value: string | null | undefined) {
 function normalizeKoreanSpacing(value: string) {
   return value
     .replace(/\s+/g, " ")
-    .replace(/=\s+/g, "=")
+    .replace(/=\s*/g, "= ")
     .replace(/%\s+이다/g, "%이다")
     .replace(/것은\?\s*※/g, "것은?\n※")
     .replace(/\s*[⋅·]\s*/g, "·")
@@ -157,6 +158,8 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/간접\s+빌리루빈\s+라/g, "간접 빌리루빈이라")
     .replace(/직접\s+빌리루빈\s+라/g, "직접 빌리루빈이라")
     .replace(/구성성\s+분/g, "구성 성분")
+    .replace(/일자\s+리/g, "일자리")
+    .replace(/생산\s+액/g, "생산액")
     .replace(/영양\s+소/g, "영양소")
     .replace(/취사선\s+택/g, "취사선택")
     .replace(/아리스토텔레스가\s+심신\s+이원론의\s+입장인지/g, "아리스토텔레스가 심신 이원론의 입장인지")
