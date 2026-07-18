@@ -3,7 +3,7 @@ export function normalizeQuestionText(value: string | null | undefined) {
   return value
     .replace(/에서(?=모두)/g, "에서 ")
     .replace(/\s+(?=<보기>|<조건>|※)/g, "\n")
-    .replace(/(<보기>|<조건>)/g, "\n$1\n")
+    .replace(/(<보기>|<조건>)/g, "\n\n$1\n")
     .replace(/\n+\s*(<보기>|<조건>)\n(?=(?:에서|의|을|를|은|는|이|가|과|와))/g, " $1")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -63,7 +63,19 @@ export function normalizeQuestionDisplayText(value: string | null | undefined) {
   if (!value) return "";
   return normalizeQuestionText(value)
     .split(/\n{2,}/)
-    .map((block) => block.replace(/\s*\n\s*/g, " ").replace(/\s+/g, " ").trim())
+    .map((block) => {
+      const normalized = normalizeKoreanSpacing(
+        block.replace(/\s*\n\s*/g, " ").replace(/\s+/g, " ")
+      );
+      if (/^<보기>|^<조건>/.test(normalized)) {
+        return normalized
+          .replace(/^(<보기>|<조건>)\s*/u, "$1\n")
+          .replace(/\s*([㉠㉡㉢㉣㉤])\s+/gu, "\n$1 ")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+      }
+      return normalized;
+    })
     .filter(Boolean)
     .join("\n\n");
 }
@@ -106,10 +118,12 @@ export function normalizeChoiceTexts(choices: string[]) {
     );
   });
 
-  if (!hasFractionLikeChoice) return choices;
+  if (!hasFractionLikeChoice) {
+    return choices.map((choice) => normalizeKoreanSpacing(normalizeQuestionText(choice)));
+  }
 
   return choices.map((choice) => {
-    const trimmed = normalizeQuestionText(choice);
+    const trimmed = normalizeKoreanSpacing(normalizeQuestionText(choice));
     if (!/^\d[\d\s]*$/.test(trimmed)) return trimmed;
     return expandCompactFraction(trimmed);
   });
@@ -127,6 +141,43 @@ export function normalizeReviewText(value: string | null | undefined) {
 function normalizeKoreanSpacing(value: string) {
   return value
     .replace(/\s+/g, " ")
+    .replace(/\s*[⋅·]\s*/g, "·")
+    .replace(/분석·구한/g, "분석·연구한")
+    .replace(/대상이다른/g, "대상이 다른")
+    .replace(/위험이다시/g, "위험이 다시")
+    .replace(/결과\s+적으로/g, "결과적으로")
+    .replace(/에\s+서/g, "에서")
+    .replace(/유로\s+빌리노겐/g, "유로빌리노겐")
+    .replace(/전략 발표했/g, "전략을 발표했")
+    .replace(/화학적\s+재활용\s+수백/g, "화학적 재활용은 수백")
+    .replace(/간접\s+빌리루빈\s+라/g, "간접 빌리루빈이라")
+    .replace(/직접\s+빌리루빈\s+라/g, "직접 빌리루빈이라")
+    .replace(/구성성\s+분/g, "구성 성분")
+    .replace(/영양\s+소/g, "영양소")
+    .replace(/취사선\s+택/g, "취사선택")
+    .replace(/아리스토텔레스가\s+심신\s+이원론의\s+입장인지/g, "아리스토텔레스가 심신 이원론의 입장인지")
+    .replace(/제조업의\s+분야의/g, "제조업 분야의")
+    .replace(/긍정적이\s+기만/g, "긍정적이기만")
+    .replace(/수행해\s+야/g, "수행해야")
+    .replace(/하지\s+않은\s*것/g, "하지 않은 것")
+    .replace(/적절\s+하지/g, "적절하지")
+    .replace(/가장적절/g, "가장 적절")
+    .replace(/생산\s+된/g, "생산된")
+    .replace(/혼합\s+된/g, "혼합된")
+    .replace(/오염\s+된/g, "오염된")
+    .replace(/없었\s+던/g, "없었던")
+    .replace(/추출\s+할/g, "추출할")
+    .replace(/존중\s+하는/g, "존중하는")
+    .replace(/제재\s+할/g, "제재할")
+    .replace(/발생\s+한/g, "발생한")
+    .replace(/작위적이\s+고/g, "작위적이고")
+    .replace(/않았\s+으/g, "않았으")
+    .replace(/휘말리\s+지/g, "휘말리지")
+    .replace(/전시되지\s+않았\s+다/g, "전시되지 않았다")
+    .replace(/돌아다니\s+면서/g, "돌아다니면서")
+    .replace(/단단\s+한/g, "단단한")
+    .replace(/불어오\s+는/g, "불어오는")
+    .replace(/분분\s+하다/g, "분분하다")
     .replace(/등의내용/g, "등의 내용")
     .replace(/에대한/g, "에 대한")
     .replace(/대해설명/g, "대해 설명")
@@ -142,7 +193,12 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/는피로감/g, "는 피로감")
     .replace(/호흡곤란등/g, "호흡곤란 등")
     .replace(/대표적이\s+며/g, "대표적이며")
-    .replace(/([가-힣])\s+(을|를|이|가|은|는|의|에|에서|에게|와|과|로|으로|도|만|부터|까지|보다|처럼|마다|라고|이라고)(?=[\s.,)]|$)/g, "$1$2")
+    .replace(/([가-힣])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|라고|이라고|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=[\s.,)]|$)/g, "$1$2")
+    .replace(/([가-힣])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=\s+[가-힣A-Za-z0-9㉠㉡㉢㉣])/g, "$1$2")
+    .replace(/([㉠㉡㉢㉣㉤])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=[\s.,)]|$)/g, "$1$2")
+    .replace(/([㉠㉡㉢㉣㉤])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=\s+[가-힣A-Za-z0-9])/g, "$1$2")
+    .replace(/([A-Za-z0-9)])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=[\s.,)]|$)/g, "$1$2")
+    .replace(/([A-Za-z0-9)])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=\s+[가-힣A-Za-z0-9])/g, "$1$2")
     .replace(/\s+(며|고|면|지만|므로|라고|이라고)(?=[\s.,)]|$)/g, "$1")
     .replace(/정답은\s+([①②③④⑤])\s*(?:번\s*)?이다/g, "정답은 $1이다")
     .replace(/전제\s+가/g, "전제가")
