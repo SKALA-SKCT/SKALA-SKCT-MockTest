@@ -59,12 +59,61 @@ function WrongRate({ value }: { value: number | null }) {
   );
 }
 
+function normalizeReviewText(value: string | null | undefined) {
+  if (!value) return "";
+  return value
+    .replace(/\s+(?=<보기>|<조건>|※)/g, "\n")
+    .replace(/(<보기>|<조건>)/g, "\n$1\n")
+    .replace(/(오답분석)/g, "\n$1\n")
+    .replace(/([①②③④⑤㉠㉡㉢㉣㉤㉥])\s*/g, "\n$1 ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function formatExplanation(value: string | null | undefined, answer: number) {
+  let text = normalizeReviewText(value);
+  if (!text) return "";
+
+  const answerText = `정답은 ${CIRCLED[answer - 1]}이다.`;
+  const hasFinalAnswer = /정답\s*은?\s*[①②③④⑤1-5]/.test(text.slice(-80));
+  if (hasFinalAnswer) return text;
+
+  const sentenceEnds = ["다.", "요.", "임.", "음.", "함.", "됨.", ")."];
+  const lastSentenceEnd = Math.max(
+    ...sentenceEnds.map((ending) => text.lastIndexOf(ending))
+  );
+  if (lastSentenceEnd > 0 && text.length - lastSentenceEnd <= 90) {
+    text = text.slice(0, lastSentenceEnd + 2).trim();
+  } else {
+    text = text
+      .replace(/(?:이므로|이므|으므로|따라서|따라|따|가장|가|하였고|하였|하)$/g, "")
+      .trim();
+  }
+
+  return `${text}\n${answerText}`.trim();
+}
+
+function splitQuestionBody(body: string) {
+  const normalized = normalizeReviewText(body);
+  const questionEnd = normalized.indexOf("?");
+  if (questionEnd < 0 || questionEnd > 180) {
+    return { prompt: normalized, passage: "" };
+  }
+
+  return {
+    prompt: normalized.slice(0, questionEnd + 1).trim(),
+    passage: normalized.slice(questionEnd + 1).trim(),
+  };
+}
+
 function QuestionCard({
   question,
 }: {
   question: ReviewQuestion;
 }) {
   const choiceRates = question.choiceRates;
+  const { prompt, passage } = splitQuestionBody(question.body);
+  const explanation = formatExplanation(question.explanation, question.answer);
 
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
@@ -79,16 +128,23 @@ function QuestionCard({
         </span>
       </div>
 
-      <div className="rounded-xl bg-zinc-50 px-4 py-3">
-        <p className="whitespace-pre-line text-sm leading-6 text-zinc-800">
-          {question.body}
+      <div className="rounded-xl bg-zinc-50 px-4 py-4">
+        <p className="text-[15px] font-bold leading-7 text-zinc-900 [overflow-wrap:anywhere]">
+          {prompt}
         </p>
+        {passage && (
+          <div className="mt-3 border-t border-zinc-200 pt-3">
+            <p className="whitespace-pre-line text-sm leading-7 text-zinc-700 [overflow-wrap:anywhere]">
+              {passage}
+            </p>
+          </div>
+        )}
         {question.imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={question.imageUrl}
             alt={`${question.number}번 자료`}
-            className="mt-3 w-full rounded-lg border border-zinc-200 bg-white"
+            className="mt-4 h-auto w-full rounded-lg border border-zinc-200 bg-white object-contain"
           />
         )}
       </div>
@@ -101,7 +157,7 @@ function QuestionCard({
           return (
             <div
               key={value}
-              className={`flex gap-2 rounded-lg border px-3 py-2 text-sm leading-6 ${
+              className={`grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-1 rounded-lg border px-3 py-2.5 text-sm leading-6 ${
                 isAnswer
                   ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                   : isMine
@@ -110,8 +166,10 @@ function QuestionCard({
               }`}
             >
               <span className="shrink-0 font-bold">{CIRCLED[index]}</span>
-              <span className="min-w-0 flex-1 whitespace-pre-line">{choice}</span>
-              <span className="ml-auto flex shrink-0 items-center gap-2 text-xs">
+              <span className="min-w-0 whitespace-pre-line [overflow-wrap:anywhere]">
+                {normalizeReviewText(choice)}
+              </span>
+              <span className="col-start-2 flex flex-wrap items-center gap-2 text-xs">
                 {choiceRates && (
                   <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-semibold text-zinc-500">
                     선택 {choiceRates[index] ?? 0}%
@@ -134,10 +192,13 @@ function QuestionCard({
         <b className="text-base text-zinc-800">{CIRCLED[question.answer - 1]}</b>
       </p>
 
-      {question.explanation && (
-        <p className="mt-2 whitespace-pre-line rounded-lg bg-zinc-50 px-3 py-2 text-xs leading-5 text-zinc-500">
-          {question.explanation}
-        </p>
+      {explanation && (
+        <div className="mt-3 rounded-lg bg-zinc-50 px-4 py-3">
+          <p className="text-sm font-bold text-zinc-700">해설</p>
+          <p className="mt-2 whitespace-pre-line text-sm leading-7 text-zinc-600 [overflow-wrap:anywhere]">
+            {explanation}
+          </p>
+        </div>
       )}
     </div>
   );
