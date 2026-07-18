@@ -12,6 +12,8 @@ export function normalizeQuestionText(value: string | null | undefined) {
     .replace(/것만을\s*\n+\s*<보기>\s*\n+\s*에서/g, "것만을 <보기>에서")
     .replace(/것을\s*\n+\s*<보기>\s*\n+\s*에서/g, "것을 <보기>에서")
     .replace(/내용을\s*\n+\s*<보기>\s*\n+\s*에서/g, "내용을 <보기>에서")
+    .replace(/다음\s*\n+\s*<조건>\s*\n+\s*과/g, "다음 <조건>과")
+    .replace(/다음\s*\n+\s*<보기>\s*\n+\s*의/g, "다음 <보기>의")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -77,8 +79,8 @@ export function normalizeQuestionDisplayText(value: string | null | undefined) {
       if (/^<보기>|^<조건>/.test(normalized)) {
         return normalized
           .replace(/^(<보기>|<조건>)\s*/u, "$1\n")
-          .replace(/([.?!])\s*([㉠㉡㉢㉣㉤])/gu, "$1\n$2")
-          .replace(/\s*([㉠㉡㉢㉣㉤])\s+/gu, "\n$1 ")
+          .replace(/([.?!])\s*([㉠㉡㉢㉣㉤㉥])/gu, "$1\n$2")
+          .replace(/\s*([㉠㉡㉢㉣㉤㉥])\s+/gu, "\n$1 ")
           .replace(/\n{3,}/g, "\n\n")
           .trim();
       }
@@ -86,8 +88,8 @@ export function normalizeQuestionDisplayText(value: string | null | undefined) {
     })
     .filter(Boolean)
     .join("\n\n")
-    .replace(/(<보기>|<조건>)\s*([㉠㉡㉢㉣㉤])/gu, "$1\n\n$2")
-    .replace(/([.?!])\s*([㉠㉡㉢㉣㉤])/gu, "$1\n$2");
+    .replace(/(<보기>|<조건>)\s*([㉠㉡㉢㉣㉤㉥])/gu, "$1\n\n$2")
+    .replace(/([.?!])\s*([㉠㉡㉢㉣㉤㉥])/gu, "$1\n$2");
 }
 
 const COMPACT_FRACTION_DENOMINATORS = [
@@ -143,7 +145,7 @@ export function normalizeReviewText(value: string | null | undefined) {
   if (!value) return "";
   return normalizeQuestionText(value)
     .replace(/(오답분석)/g, "\n$1\n")
-    .replace(/([①②③④⑤㉠㉡㉢㉣㉤㉥])\s*/g, "\n$1 ")
+    .replace(/([①②③④⑤㉠㉡㉢㉣㉤㉥㉥])\s*/g, "\n$1 ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -223,8 +225,8 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/대표적이\s+며/g, "대표적이며")
     .replace(/([가-힣])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|라고|이라고|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=[\s.,)]|$)/g, "$1$2")
     .replace(/([가-힣])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=\s+[가-힣A-Za-z0-9㉠㉡㉢㉣])/g, "$1$2")
-    .replace(/([㉠㉡㉢㉣㉤])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=[\s.,)]|$)/g, "$1$2")
-    .replace(/([㉠㉡㉢㉣㉤])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=\s+[가-힣A-Za-z0-9])/g, "$1$2")
+    .replace(/([㉠㉡㉢㉣㉤㉥])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=[\s.,)]|$)/g, "$1$2")
+    .replace(/([㉠㉡㉢㉣㉤㉥])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=\s+[가-힣A-Za-z0-9])/g, "$1$2")
     .replace(/([A-Za-z0-9)])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=[\s.,)]|$)/g, "$1$2")
     .replace(/([A-Za-z0-9)])\s+(에서|에게|으로|부터|까지|보다|처럼|마다|을|를|이|가|은|는|의|에|와|과|로|도|만)(?=\s+[가-힣A-Za-z0-9])/g, "$1$2")
     .replace(/\s+(며|고|면|지만|므로|라고|이라고)(?=[\s.,)]|$)/g, "$1")
@@ -239,13 +241,14 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/이익\s+을/g, "이익을")
     .replace(/전제\s+들/g, "전제들")
     .replace(/전제\s+만/g, "전제만")
+    .replace(/전제\s+로/g, "전제로")
     .replace(/자인\s+지/g, "자인지")
     .replace(/첫\s*번\s*째/g, "첫 번째")
     .replace(/마지막\s+으로/g, "마지막으로")
     .replace(/잔인\s+가/g, "잔인가")
     .replace(/명인\s+가/g, "명인가")
     .replace(/개인\s+가/g, "개인가")
-    .replace(/2(?=[㉠㉡㉢㉣㉤])/g, "")
+    .replace(/2(?=[㉠㉡㉢㉣㉤㉥])/g, "")
     .replace(/동2안/g, "동안")
     .replace(/면적2이/g, "면적이")
     .replace(/면적이\s*1백\s*m\s*만/g, "면적이 1백㎡ 미만")
@@ -260,6 +263,20 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/A~H를\s+8명을/g, "A~H 8명을")
     .replace(/A~E5명/g, "A~E 5명")
     .replace(/A~F6명/g, "A~F 6명")
+    .replace(/E중/g, "E 중")
+    .replace(/C중/g, "C 중")
+    .replace(/갑이\s*다섯/g, "갑이 다섯")
+    .replace(/월요\s+일/g, "월요일")
+    .replace(/A는\s*을\s+지역/g, "A는 을 지역")
+    .replace(/E바로/g, "E 바로")
+    .replace(/여자이\s+며/g, "여자이며")
+    .replace(/인접\s+하여/g, "인접하여")
+    .replace(/양옆에\s+는/g, "양옆에는")
+    .replace(/우유\s+도/g, "우유도")
+    .replace(/우유\s+를/g, "우유를")
+    .replace(/전제\s*3:\s*\(\s*결론:/g, "전제 3: ( ㉠ )\n결론:")
+    .replace(/전제\s*2:\s*\(\s*전제\s*3:/g, "전제 2: ( ㉠ )\n전제 3:")
+    .replace(/결론:\s*\(\s*$/g, "결론: ( ㉠ )")
     .replace(/제작\s+하면/g, "제작하면")
     .replace(/제작\s+후/g, "제작 후")
     .replace(/생산\s+하는/g, "생산하는")
