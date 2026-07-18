@@ -46,6 +46,12 @@ export default function ExamRunner({
   // 과목 안에서는 자유롭게 이동 가능
   const [idx, setIdx] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [confirmRequest, setConfirmRequest] = useState<{
+    message: string;
+    confirmText: string;
+    onConfirm: () => void;
+  } | null>(null);
+  const pendingSavesRef = useRef<Set<Promise<unknown>>>(new Set());
 
   const currentSubject = subjects.find((s) => !sectionState[s]?.finishedAt);
   const section = currentSubject ? sectionState[currentSubject] : undefined;
@@ -65,6 +71,7 @@ export default function ExamRunner({
       if (busy) return;
       setBusy(true);
       try {
+        await Promise.allSettled([...pendingSavesRef.current]);
         const res = await finishSection(examId, subject);
         setSectionState(res.sectionState);
         setIdx(0);
@@ -108,22 +115,22 @@ export default function ExamRunner({
   }
 
   const exitExam = () => {
-    if (
-      confirm(
-        "응시를 중단하고 나갈까요? 답안은 저장되며, 이미 시작한 과목의 타이머는 계속 진행됩니다."
-      )
-    )
-      router.push("/");
+    setConfirmRequest({
+      message:
+        "응시를 중단하고 나갈까요? 답안은 저장되며, 이미 시작한 과목의 타이머는 계속 진행됩니다.",
+      confirmText: "나가기",
+      onConfirm: () => router.push("/"),
+    });
   };
 
   const moveToNextSubject = () => {
     if (!currentSubject) return;
-    if (
-      confirm(
-        `${currentSubject} 유형을 제출하고 다음 유형으로 넘어갈까요? 제출한 유형은 다시 풀 수 없습니다.`
-      )
-    )
-      void handleFinishSection(currentSubject);
+    setConfirmRequest({
+      message:
+        `${currentSubject} 유형을 제출하고 다음 유형으로 넘어갈까요? 제출한 유형은 다시 풀 수 없습니다.`,
+      confirmText: "제출하기",
+      onConfirm: () => void handleFinishSection(currentSubject),
+    });
   };
 
   // 과목 시작 전 안내 화면
@@ -176,49 +183,53 @@ export default function ExamRunner({
   const urgent = remaining != null && remaining < 60;
 
   const select = (choice: number) => {
-    const next = answers[q.id] === choice ? null : choice;
+    const next = choice;
     setAnswers((a) => ({ ...a, [q.id]: next }));
-    void saveAnswer(examId, q.id, next).catch(() => {});
+    const pendingSave = saveAnswer(examId, q.id, next).catch(() => {});
+    pendingSavesRef.current.add(pendingSave);
+    void pendingSave.finally(() => {
+      pendingSavesRef.current.delete(pendingSave);
+    });
   };
 
   const goNext = () => {
     if (isLast) {
-      if (confirm(`${currentSubject} 마지막 문제입니다. 과목을 제출할까요?`))
-        void handleFinishSection(currentSubject);
+      moveToNextSubject();
       return;
     }
     setIdx((v) => v + 1);
   };
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4 md:flex-row md:items-start">
-      {/* 왼쪽: 문제 영역 */}
-      <div className="min-w-0 flex-1">
-        {/* 문항 번호 스트립: 과목 내 자유 이동 */}
-        <div className="mb-3 flex flex-wrap gap-1">
-          {sectionQuestions.map((qq, i) => (
-            <button
-              key={qq.id}
-              onClick={() => setIdx(i)}
-              className={`h-7 w-7 rounded text-xs font-medium transition ${
-                i === idx
-                  ? "bg-red-600 text-white"
-                  : answers[qq.id] != null
-                    ? "bg-zinc-800 text-white"
-                    : "bg-white text-zinc-500 ring-1 ring-zinc-200 hover:bg-zinc-100"
-              }`}
-            >
-              {qq.number}
-            </button>
-          ))}
-        </div>
+    <>
+      <div className="mx-auto flex max-w-5xl flex-col gap-4 md:flex-row md:items-start">
+        {/* 왼쪽: 문제 영역 */}
+        <div className="min-w-0 flex-1">
+          {/* 문항 번호 스트립: 과목 내 자유 이동 */}
+          <div className="mb-3 flex flex-wrap gap-1">
+            {sectionQuestions.map((qq, i) => (
+              <button
+                key={qq.id}
+                onClick={() => setIdx(i)}
+                className={`h-7 w-7 rounded text-xs font-medium transition ${
+                  i === idx
+                    ? "bg-red-600 text-white"
+                    : answers[qq.id] != null
+                      ? "bg-zinc-800 text-white"
+                      : "bg-white text-zinc-500 ring-1 ring-zinc-200 hover:bg-zinc-100"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
 
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="mb-3 flex items-baseline justify-between">
             <p className="text-sm font-bold text-red-600">
-              문제 {q.number}
-              <span className="ml-2 text-xs font-normal text-zinc-400">
-                {idx + 1} / {sectionQuestions.length}
+              문제 {idx + 1}{" "}
+              <span className="text-xs font-normal text-zinc-400">
+                / {sectionQuestions.length}
               </span>
             </p>
             <button
@@ -327,7 +338,39 @@ export default function ExamRunner({
             </div>
           </div>
         </div>
-      </aside>
-    </div>
+        </aside>
+      </div>
+
+      {confirmRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
+            <p className="text-base font-bold text-zinc-900">확인</p>
+            <p className="mt-3 whitespace-pre-line text-sm leading-6 text-zinc-600">
+              {confirmRequest.message}
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmRequest(null)}
+                className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = confirmRequest.onConfirm;
+                  setConfirmRequest(null);
+                  action();
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                {confirmRequest.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
