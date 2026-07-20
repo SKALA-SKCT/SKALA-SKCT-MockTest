@@ -8,6 +8,13 @@ import { users } from "@/db/schema";
 const COOKIE = "skct_session";
 let cachedSecret: Uint8Array | null = null;
 
+const SESSION_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+} as const;
+
 function getSessionSecret() {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32) {
@@ -25,17 +32,17 @@ export async function createSession(userId: number) {
     .sign(getSessionSecret());
   const store = await cookies();
   store.set(COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 30,
-    path: "/",
+    ...SESSION_COOKIE_OPTIONS,
   });
 }
 
 export async function destroySession() {
   const store = await cookies();
-  store.delete(COOKIE);
+  store.set(COOKIE, "", {
+    ...SESSION_COOKIE_OPTIONS,
+    maxAge: 0,
+  });
 }
 
 export async function getSessionUserId(): Promise<number | null> {

@@ -33,15 +33,45 @@ export type AdminGroupDatum = {
 };
 
 const tooltipStyle = {
-  borderRadius: 10,
-  border: "1px solid rgba(11,11,11,0.08)",
+  borderRadius: 12,
+  border: "1px solid rgba(66,76,96,0.1)",
+  boxShadow: "0 14px 34px rgba(38,51,77,0.12)",
   fontSize: 12,
+};
+
+const chartMargin = { top: 12, right: 16, bottom: 0, left: -16 };
+const gridStroke = "#e9edf5";
+const tickStyle = { fontSize: 11, fill: "#9aa2b4" };
+const colors = {
+  blue: "#566bd6",
+  mint: "#72d8d2",
+  pink: "#d879cf",
+  amber: "#f2bd70",
+  green: "#78d89a",
 };
 
 function EmptyChart({ label }: { label: string }) {
   return (
-    <div className="flex h-64 items-center justify-center rounded-xl bg-page text-sm text-ink-3">
+    <div className="flex h-64 items-center justify-center rounded-2xl bg-page text-sm text-ink-3">
       {label}
+    </div>
+  );
+}
+
+function ChartHeader({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="mb-3 flex items-start justify-between gap-3">
+      <div>
+        <h2 className="text-sm font-bold text-ink">{title}</h2>
+        <p className="mt-1 text-xs text-ink-3">{description}</p>
+      </div>
+      <span className="mt-1 h-1.5 w-8 rounded-full bg-[var(--series-group)]" />
     </div>
   );
 }
@@ -59,23 +89,20 @@ export default function AdminCharts({
 }) {
   return (
     <section className="grid gap-4 xl:grid-cols-2">
-      <div className="card p-5">
-        <h2 className="text-sm font-semibold text-ink">회차별 응시 현황</h2>
-        <p className="mb-3 mt-1 text-xs text-ink-3">
-          시작, 완료, 중도이탈 건수
-        </p>
+      <div className="chart-card p-5">
+        <ChartHeader title="회차별 응시 현황" description="시작, 완료, 중도이탈 건수" />
         {examData.length ? (
           <div className="h-72 w-full">
             <ResponsiveContainer>
-              <BarChart data={examData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
-                <CartesianGrid stroke="#e1e0d9" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#898781" }} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#898781" }} axisLine={false} tickLine={false} />
+              <BarChart data={examData} margin={chartMargin} barGap={6}>
+                <CartesianGrid stroke={gridStroke} vertical={false} />
+                <XAxis dataKey="name" tick={tickStyle} tickLine={false} axisLine={{ stroke: gridStroke }} />
+                <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="시작" fill="#2a78d6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="완료" fill="#16a34a" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="중도이탈" fill="#e34948" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="시작" fill={colors.blue} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="완료" fill={colors.mint} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="중도이탈" fill={colors.pink} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -84,23 +111,20 @@ export default function AdminCharts({
         )}
       </div>
 
-      <div className="card p-5">
-        <h2 className="text-sm font-semibold text-ink">회차별 점수 분포</h2>
-        <p className="mb-3 mt-1 text-xs text-ink-3">
-          완료 응시 기준 평균, 최고, 최저
-        </p>
+      <div className="chart-card p-5">
+        <ChartHeader title="회차별 점수 분포" description="완료 응시 기준 평균, 최고, 최저" />
         {examData.some((row) => row.완료 > 0) ? (
           <div className="h-72 w-full">
             <ResponsiveContainer>
-              <BarChart data={examData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
-                <CartesianGrid stroke="#e1e0d9" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#898781" }} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#898781" }} axisLine={false} tickLine={false} />
+              <BarChart data={examData} margin={chartMargin} barGap={6}>
+                <CartesianGrid stroke={gridStroke} vertical={false} />
+                <XAxis dataKey="name" tick={tickStyle} tickLine={false} axisLine={{ stroke: gridStroke }} />
+                <YAxis domain={[0, 100]} tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="평균" fill="#2a78d6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="최고" fill="#16a34a" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="최저" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="평균" fill={colors.blue} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="최고" fill={colors.mint} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="최저" fill={colors.amber} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -109,22 +133,19 @@ export default function AdminCharts({
         )}
       </div>
 
-      <div className="card p-5">
-        <h2 className="text-sm font-semibold text-ink">캠퍼스별 통계</h2>
-        <p className="mb-3 mt-1 text-xs text-ink-3">
-          완료 인원과 평균 점수
-        </p>
+      <div className="chart-card p-5">
+        <ChartHeader title="캠퍼스별 통계" description="완료 인원과 평균 점수" />
         {campusData.length ? (
           <div className="h-64 w-full">
             <ResponsiveContainer>
-              <BarChart data={campusData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
-                <CartesianGrid stroke="#e1e0d9" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#898781" }} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#898781" }} axisLine={false} tickLine={false} />
+              <BarChart data={campusData} margin={chartMargin} barGap={8}>
+                <CartesianGrid stroke={gridStroke} vertical={false} />
+                <XAxis dataKey="name" tick={tickStyle} tickLine={false} axisLine={{ stroke: gridStroke }} />
+                <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="완료" fill="#16a34a" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="평균점수" fill="#2a78d6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="완료" fill={colors.mint} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="평균점수" fill={colors.blue} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -133,22 +154,19 @@ export default function AdminCharts({
         )}
       </div>
 
-      <div className="card p-5">
-        <h2 className="text-sm font-semibold text-ink">분반별 통계</h2>
-        <p className="mb-3 mt-1 text-xs text-ink-3">
-          완료 인원과 평균 점수
-        </p>
+      <div className="chart-card p-5">
+        <ChartHeader title="분반별 통계" description="완료 인원과 평균 점수" />
         {classData.length ? (
           <div className="h-64 w-full">
             <ResponsiveContainer>
-              <BarChart data={classData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
-                <CartesianGrid stroke="#e1e0d9" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#898781" }} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#898781" }} axisLine={false} tickLine={false} />
+              <BarChart data={classData} margin={chartMargin} barGap={8}>
+                <CartesianGrid stroke={gridStroke} vertical={false} />
+                <XAxis dataKey="name" tick={tickStyle} tickLine={false} axisLine={{ stroke: gridStroke }} />
+                <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="완료" fill="#16a34a" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="평균점수" fill="#2a78d6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="완료" fill={colors.mint} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="평균점수" fill={colors.blue} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -157,20 +175,17 @@ export default function AdminCharts({
         )}
       </div>
 
-      <div className="card p-5 xl:col-span-2">
-        <h2 className="text-sm font-semibold text-ink">유형별 평균 정답률</h2>
-        <p className="mb-3 mt-1 text-xs text-ink-3">
-          전체 완료 응시 기준
-        </p>
+      <div className="chart-card p-5 xl:col-span-2">
+        <ChartHeader title="유형별 평균 정답률" description="전체 완료 응시 기준" />
         {subjectData.length ? (
           <div className="h-72 w-full">
             <ResponsiveContainer>
-              <BarChart data={subjectData} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
-                <CartesianGrid stroke="#e1e0d9" vertical={false} />
-                <XAxis dataKey="subject" tick={{ fontSize: 11, fill: "#898781" }} tickLine={false} />
-                <YAxis domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: "#898781" }} axisLine={false} tickLine={false} />
+              <BarChart data={subjectData} margin={chartMargin}>
+                <CartesianGrid stroke={gridStroke} vertical={false} />
+                <XAxis dataKey="subject" tick={tickStyle} tickLine={false} axisLine={{ stroke: gridStroke }} />
+                <YAxis domain={[0, 100]} unit="%" tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip formatter={(v) => `${v}%`} contentStyle={tooltipStyle} />
-                <Bar dataKey="평균정답률" fill="#e34948" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="평균정답률" fill={colors.blue} radius={[10, 10, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

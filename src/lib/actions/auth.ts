@@ -49,6 +49,11 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function normalizeOpaqueToken(token: string) {
+  const trimmed = token.trim();
+  return /^[A-Za-z0-9_-]{32,128}$/.test(trimmed) ? trimmed : null;
+}
+
 function hashEmailCode({
   purpose,
   email,
@@ -434,7 +439,9 @@ export async function changeMyPasswordWithCode({
 }
 
 export async function verifyEmailToken(token: string) {
-  const tokenHash = hashToken(token);
+  const normalizedToken = normalizeOpaqueToken(token);
+  if (!normalizedToken) return { ok: false };
+  const tokenHash = hashToken(normalizedToken);
   const [row] = await db
     .select()
     .from(authTokens)
@@ -531,9 +538,10 @@ export async function resetPassword(
   _prev: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
-  const token = String(formData.get("token") ?? "");
+  const token = normalizeOpaqueToken(String(formData.get("token") ?? ""));
   const pin = String(formData.get("pin") ?? "");
   const pinConfirm = String(formData.get("pinConfirm") ?? "");
+  if (!token) return { error: "유효하지 않거나 만료된 링크입니다." };
   if (pin !== pinConfirm) return { error: "비밀번호가 서로 일치하지 않습니다." };
   const err = validatePassword(pin);
   if (err) return { error: err };
@@ -563,12 +571,14 @@ export async function resetPassword(
 }
 
 export async function consumeFindIdToken(token: string) {
+  const normalizedToken = normalizeOpaqueToken(token);
+  if (!normalizedToken) return null;
   const [row] = await db
     .select()
     .from(authTokens)
     .where(
       and(
-        eq(authTokens.tokenHash, hashToken(token)),
+        eq(authTokens.tokenHash, hashToken(normalizedToken)),
         eq(authTokens.purpose, "find_id"),
         isNull(authTokens.usedAt)
       )

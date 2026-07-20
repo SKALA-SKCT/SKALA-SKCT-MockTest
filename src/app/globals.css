@@ -2,9 +2,10 @@
 
 :root {
   /* 페이지/서피스 */
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --border: rgba(11, 11, 11, 0.08);
+  --page: #f6f8fc;
+  --surface: #ffffff;
+  --surface-soft: #fbfcff;
+  --border: rgba(66, 76, 96, 0.1);
 
   /* 잉크 */
   --ink: #0b0b0b;
@@ -12,11 +13,13 @@
   --ink-3: #898781;
 
   /* 브랜드 & 시리즈 (검증된 팔레트) */
-  --brand: #e34948; /* 나 / CTA */
-  --series-me: #e34948;
-  --series-group: #2a78d6;
+  --brand: #566bd6; /* 나 / CTA */
+  --series-me: #566bd6;
+  --series-group: #72d8d2;
+  --series-class: #d879cf;
+  --series-campus: #f2bd70;
 
-  --grid: #e1e0d9;
+  --grid: #e9edf5;
 
   --background: var(--page);
   --foreground: var(--ink);
@@ -55,8 +58,69 @@ body {
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.03);
+  border-radius: 18px;
+  box-shadow:
+    0 18px 45px rgba(38, 51, 77, 0.08),
+    0 2px 8px rgba(38, 51, 77, 0.04);
+}
+
+.metric-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(251, 252, 255, 0.96)),
+    var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow:
+    0 14px 32px rgba(38, 51, 77, 0.07),
+    0 2px 7px rgba(38, 51, 77, 0.04);
+}
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow:
+    0 18px 45px rgba(38, 51, 77, 0.08),
+    0 2px 8px rgba(38, 51, 77, 0.04);
+}
+
+.soft-panel {
+  background: var(--surface-soft);
+  border: 1px solid rgba(66, 76, 96, 0.08);
+  border-radius: 14px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.data-table thead {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.data-table th {
+  background: var(--surface-soft);
+  font-weight: 700;
+}
+
+.data-table th,
+.data-table td {
+  border-bottom: 1px solid var(--grid);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr {
+  transition: background-color 160ms ease;
+}
+
+.data-table tbody tr:hover {
+  background: #fbfcff;
 }
 
 .select-control {

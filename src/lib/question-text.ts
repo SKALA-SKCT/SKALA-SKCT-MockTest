@@ -102,6 +102,7 @@ const COMPACT_FRACTION_DENOMINATORS = [
   "31",
   "32",
   "35",
+  "37",
   "10",
   "13",
   "15",

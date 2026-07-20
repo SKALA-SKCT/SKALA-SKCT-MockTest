@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
@@ -58,6 +58,22 @@ export default async function Dashboard() {
   const myFinished = finished.filter((a) => a.userId === user.id);
   const myFinishedByExam = new Map(myFinished.map((attempt) => [attempt.examId, attempt]));
   const myFinishedExamIds = new Set(myFinished.map((a) => a.examId));
+  const myUnfinished = publishedExamIds.length
+    ? await db
+        .select({
+          id: attempts.id,
+          examId: attempts.examId,
+        })
+        .from(attempts)
+        .where(
+          and(
+            eq(attempts.userId, user.id),
+            isNull(attempts.finishedAt),
+            inArray(attempts.examId, publishedExamIds)
+          )
+        )
+    : [];
+  const myUnfinishedExamIds = new Set(myUnfinished.map((a) => a.examId));
   const attemptIds = finished.map((a) => a.id);
   const attemptsByExam = new Map<number, typeof finished>();
   for (const attempt of finished) {
@@ -162,7 +178,7 @@ export default async function Dashboard() {
       {
         label: "최근 회차 점수",
         value: `${myScore}`,
-        sub: `/${total}문항`,
+        sub: `/${total}점`,
       },
       {
         label: "최근 회차 등수",
@@ -177,7 +193,7 @@ export default async function Dashboard() {
       {
         label: "그룹 평균과 차이",
         value: `${diff > 0 ? "+" : ""}${diff}`,
-        sub: "문항 (내 점수-평균)",
+        sub: "점 (내 점수-평균)",
         accent: diff >= 0 ? "up" : "down",
       },
       {
@@ -195,26 +211,36 @@ export default async function Dashboard() {
     ];
   }
 
-  // ── 추이: 완료 회차별 정답률(%) 나 vs 그룹
-  const trendData = examList
-    .filter((e) => myFinishedByExam.has(e.id))
-    .map((e) => {
-      const mine = myFinishedByExam.get(e.id)!;
-      const peers = attemptsByExam.get(e.id) ?? [];
-      const campusPeers = peers.filter(isSameCampus);
-      const classPeers = peers.filter(isSameClass);
-      const total = totalOfExam(e.id) || 1;
-      const groupAvg = avgScore(peers);
-      const campusAvg = avgScore(campusPeers);
-      const classAvg = avgScore(classPeers);
-      return {
-        name: e.title.length > 10 ? e.title.slice(0, 10) + "…" : e.title,
-        나: Math.round((scoreOf(mine.id) / total) * 100),
-        그룹평균: Math.round((groupAvg / total) * 100),
-        캠퍼스평균: Math.round((campusAvg / total) * 100),
-        분반평균: Math.round((classAvg / total) * 100),
-      };
-    });
+  // 회차 목록: 1~12회차. 제목("N회차 모의고사")으로 매핑
+  const ROUNDS = 12;
+  const examByRound = new Map<number, (typeof examList)[number]>();
+  for (const [index, e] of examList.entries()) {
+    const m = e.title.match(/^(\d+)회차/);
+    if (m) {
+      examByRound.set(Number(m[1]), e);
+    } else if (index < ROUNDS) {
+      examByRound.set(index + 1, e);
+    }
+  }
+
+  // ── 추이: X축은 항상 1~12회차, 내 점수는 완료한 회차만 표시
+  const trendData = Array.from({ length: ROUNDS }, (_, index) => {
+    const round = index + 1;
+    const exam = examByRound.get(round);
+    const mine = exam ? myFinishedByExam.get(exam.id) : undefined;
+    const peers = exam ? (attemptsByExam.get(exam.id) ?? []) : [];
+    const campusPeers = peers.filter(isSameCampus);
+    const classPeers = peers.filter(isSameClass);
+    const total = exam ? totalOfExam(exam.id) || 1 : 1;
+    const scoreToPoint = (score: number) => Math.round((score / total) * 100);
+    return {
+      name: `${round}회차`,
+      나: mine ? scoreToPoint(scoreOf(mine.id)) : null,
+      그룹평균: peers.length ? scoreToPoint(avgScore(peers)) : null,
+      캠퍼스평균: campusPeers.length ? scoreToPoint(avgScore(campusPeers)) : null,
+      분반평균: classPeers.length ? scoreToPoint(avgScore(classPeers)) : null,
+    };
+  });
 
   // ── 레이더: 과목별 누적 정답률 나 vs 그룹
   const radarData = SUBJECTS.map((s) => {
@@ -254,31 +280,23 @@ export default async function Dashboard() {
     };
   });
 
-  // 회차 목록: 1~12회차. 제목("N회차 모의고사")으로 매핑
-  const ROUNDS = 12;
-  const examByRound = new Map<number, (typeof examList)[number]>();
-  for (const [index, e] of examList.entries()) {
-    const m = e.title.match(/^(\d+)회차/);
-    if (m) {
-      examByRound.set(Number(m[1]), e);
-    } else if (index < ROUNDS) {
-      examByRound.set(index + 1, e);
-    }
-  }
   const rounds: {
     no: number;
     exam: (typeof examList)[number] | undefined;
     done: boolean;
+    inProgress: boolean;
     locked: boolean;
   }[] = [];
   let allPreviousDone = true;
   for (let no = 1; no <= ROUNDS; no += 1) {
     const exam = examByRound.get(no);
     const done = exam ? myFinishedExamIds.has(exam.id) : false;
+    const inProgress = exam ? myUnfinishedExamIds.has(exam.id) : false;
     rounds.push({
       no,
       exam,
       done,
+      inProgress,
       locked: Boolean(exam) && !done && !allPreviousDone,
     });
     if (exam && !done) allPreviousDone = false;
@@ -287,18 +305,18 @@ export default async function Dashboard() {
   return (
     <div className="flex flex-col gap-6 md:flex-row md:items-start">
       {/* ── 좌측: 분석 대시보드 */}
-      <div className="flex min-w-0 flex-1 flex-col gap-6">
+      <div className="flex min-w-0 flex-1 flex-col gap-5">
         {/* 스탯 타일 */}
         {tiles.length > 0 && (
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
             {tiles.map((t) => (
-              <div key={t.label} className="card px-5 py-4">
+              <div key={t.label} className="metric-card px-5 py-4">
                 <p className="text-xs font-medium text-ink-3">{t.label}</p>
                 <p className="mt-1.5">
                   <span
                     className={`text-3xl font-bold tracking-tight ${
                       t.accent === "up"
-                        ? "text-[#006300]"
+                        ? "text-[#2fb5a9]"
                         : t.accent === "down"
                           ? "text-brand"
                           : "text-ink"
@@ -317,18 +335,18 @@ export default async function Dashboard() {
 
         {/* 차트 */}
         {myFinished.length > 0 ? (
-          <div className="grid gap-4 xl:grid-cols-2">
-            <div className="card p-5">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+            <div className="chart-card p-4">
               <h2 className="text-sm font-semibold text-ink">
-                회차별 정답률 추이
+                회차별 점수 추이
               </h2>
-              <p className="mb-2 text-xs text-ink-3">완료한 회차 기준, %</p>
+              <p className="mb-2 text-xs text-ink-3">완료한 회차 기준, 100점 만점</p>
               <TrendChart data={trendData} />
             </div>
-            <div className="card p-5">
-              <h2 className="text-sm font-semibold text-ink">유형별 정답률</h2>
-              <p className="mb-2 text-xs text-ink-3">전체 회차 누적, %</p>
-              <SubjectRadar data={radarData} />
+            <div className="chart-card p-4">
+              <h2 className="text-sm font-semibold text-ink">유형별 점수</h2>
+              <p className="mb-2 text-xs text-ink-3">전체 회차 누적, 100점 만점</p>
+              <SubjectRadar data={radarData} className="h-56" />
             </div>
           </div>
         ) : (
@@ -352,9 +370,8 @@ export default async function Dashboard() {
 
         {/* 유형별 상세 */}
         {myFinished.length > 0 && radarData.length > 0 && (
-          <div className="card p-5">
-            <h2 className="mb-3 text-sm font-semibold text-ink">유형별 상세</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+          <section>
+            <div className="grid grid-cols-5 gap-2.5">
               {radarData.map((r) => {
                 const diff = r.나 - r.그룹평균;
                 const campusDiff = r.나 - (r.캠퍼스평균 ?? 0);
@@ -362,41 +379,49 @@ export default async function Dashboard() {
                 return (
                   <div
                     key={r.subject}
-                    className="rounded-xl border border-hairline px-4 py-3"
+                    className="metric-card flex min-h-[180px] flex-col justify-between px-4 py-4"
                   >
-                    <p className="text-xs text-ink-3">{r.subject}</p>
-                    <p className="mt-1 text-xl font-bold">{r.나}%</p>
-                    <p
-                      className={`mt-0.5 text-xs font-medium ${
-                        diff > 0
-                          ? "text-[#006300]"
-                          : diff < 0
-                            ? "text-brand"
-                            : "text-ink-3"
-                      }`}
-                    >
-                      그룹 평균과 차이 {diff > 0 ? "+" : ""}
-                      {diff}%p
-                    </p>
-                    <p className="mt-0.5 text-xs font-medium text-ink-3">
-                      캠퍼스 평균과 차이 {campusDiff > 0 ? "+" : ""}
-                      {campusDiff}%p
-                    </p>
-                    <p className="mt-0.5 text-xs font-medium text-ink-3">
-                      분반 평균과 차이 {classDiff > 0 ? "+" : ""}
-                      {classDiff}%p
-                    </p>
+                    <div>
+                      <p className="truncate text-sm font-semibold text-ink-3">
+                        {r.subject}
+                      </p>
+                      <p className="mt-2 text-2xl font-extrabold tracking-tight text-ink">
+                        {r.나}점
+                      </p>
+                    </div>
+                    <div className="grid gap-1 text-sm leading-5">
+                      <p
+                        className={`font-semibold ${
+                          diff > 0
+                            ? "text-[#2fb5a9]"
+                            : diff < 0
+                              ? "text-brand"
+                              : "text-ink-3"
+                        }`}
+                      >
+                        그룹 {diff > 0 ? "+" : ""}
+                        {diff}점
+                      </p>
+                      <p className="text-ink-3">
+                        캠퍼스 {campusDiff > 0 ? "+" : ""}
+                        {campusDiff}점
+                      </p>
+                      <p className="text-ink-3">
+                        분반 {classDiff > 0 ? "+" : ""}
+                        {classDiff}점
+                      </p>
+                    </div>
                   </div>
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
       </div>
 
       {/* ── 우측: 모의고사 회차 패널 */}
       <aside className="w-full shrink-0 md:sticky md:top-24 md:w-72 lg:w-80">
-        <div className="card flex max-h-[calc(100vh-8rem)] flex-col">
+        <div className="card flex flex-col">
           <div className="border-b border-hairline px-5 py-4">
             <h2 className="text-sm font-semibold text-ink">모의고사</h2>
             <p className="mt-1 text-xs text-ink-3">
@@ -406,13 +431,13 @@ export default async function Dashboard() {
               1회차부터 순서대로 완료해야 다음 회차가 열립니다.
             </p>
           </div>
-          <ul className="flex-1 divide-y divide-[var(--grid)] overflow-y-auto px-5">
+          <ul className="flex flex-1 flex-col divide-y divide-[var(--grid)] px-4">
             {rounds.map((r) => (
-              <li key={r.no} className="flex items-center gap-3 py-2.5">
+              <li key={r.no} className="flex flex-1 items-center gap-3 py-2.5">
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                     r.done
-                      ? "bg-[#0ca30c]/10 text-[#006300]"
+                      ? "bg-[#72d8d2]/20 text-[#2fb5a9]"
                       : r.exam
                         ? "bg-page text-ink-2"
                         : "bg-page text-ink-3/50"
@@ -422,26 +447,36 @@ export default async function Dashboard() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p
-                    className={`truncate text-sm font-medium ${
+                    className={`truncate text-[13px] font-medium ${
                       r.exam ? "text-ink" : "text-ink-3/60"
                     }`}
                   >
                     {r.exam?.title ?? `${r.no}회차 모의고사`}
                   </p>
                   {r.done && (
-                    <p className="text-[11px] text-[#006300]">응시 완료</p>
+                    <p className="text-[10px] text-[#2fb5a9]">응시 완료</p>
+                  )}
+                  {r.inProgress && !r.done && (
+                    <p className="text-[10px] text-brand">진행 중</p>
                   )}
                 </div>
                 {r.exam ? (
                   r.done ? (
                     <Link
                       href={`/exam/${r.exam.id}/result`}
-                      className="rounded-lg border border-hairline px-3 py-1.5 text-[11px] font-semibold text-ink-2 transition hover:bg-page"
+                      className="rounded-lg border border-hairline px-2.5 py-1.5 text-[11px] font-semibold text-ink-2 transition hover:bg-page"
                     >
                       결과
                     </Link>
+                  ) : r.inProgress ? (
+                    <Link
+                      href={`/exam/${r.exam.id}/take`}
+                      className="rounded-lg bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:opacity-90"
+                    >
+                      이어가기
+                    </Link>
                   ) : r.locked ? (
-                    <span className="rounded-lg bg-page px-3 py-1.5 text-[11px] font-medium text-ink-3">
+                    <span className="rounded-lg bg-page px-2.5 py-1.5 text-[11px] font-medium text-ink-3">
                       잠김
                     </span>
                   ) : (
@@ -455,7 +490,7 @@ export default async function Dashboard() {
                     />
                   )
                 ) : (
-                  <span className="rounded-lg bg-page px-3 py-1.5 text-[11px] font-medium text-ink-3/60">
+                  <span className="rounded-lg bg-page px-2.5 py-1.5 text-[11px] font-medium text-ink-3/60">
                     준비 중
                   </span>
                 )}

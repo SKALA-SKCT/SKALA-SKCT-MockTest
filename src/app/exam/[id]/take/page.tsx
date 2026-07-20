@@ -46,6 +46,7 @@ export default async function TakePage({
     .where(and(eq(attempts.userId, user.id), eq(attempts.examId, examId)))
     .orderBy(desc(attempts.id))
     .limit(1);
+  if (!attempt) redirect("/");
   if (attempt.finishedAt) redirect(`/exam/${examId}/result`);
 
   const qs = await db

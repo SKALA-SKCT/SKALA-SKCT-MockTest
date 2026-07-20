@@ -84,6 +84,8 @@ export default function ExamRunner({
     onConfirm: () => Promise<void> | void;
   } | null>(null);
   const pendingSavesRef = useRef<Set<Promise<unknown>>>(new Set());
+  const [notice, setNotice] = useState<string | null>(null);
+  const restoredSubjectRef = useRef<string | null>(null);
 
   const currentSubject = subjects.find((s) => !sectionState[s]?.finishedAt);
   const section = currentSubject ? sectionState[currentSubject] : undefined;
@@ -114,6 +116,27 @@ export default function ExamRunner({
     };
   }, [idx, sectionStartedAt]);
 
+  useEffect(() => {
+    if (!sectionStartedAt || !currentSubject || sectionQuestions.length === 0) return;
+    if (restoredSubjectRef.current === currentSubject) return;
+    const requestedParam = new URLSearchParams(window.location.search).get("q");
+    const timeout = window.setTimeout(() => {
+      const requested = Number(requestedParam);
+      if (Number.isInteger(requested)) {
+        setIdx(Math.min(sectionQuestions.length - 1, Math.max(0, requested - 1)));
+      }
+      restoredSubjectRef.current = currentSubject;
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [currentSubject, sectionQuestions.length, sectionStartedAt]);
+
+  useEffect(() => {
+    if (!sectionStartedAt || restoredSubjectRef.current !== currentSubject) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("q", String(idx + 1));
+    window.history.replaceState(null, "", url);
+  }, [currentSubject, idx, sectionStartedAt]);
+
   const handleFinishSection = useCallback(
     async (subject: Subject) => {
       if (busy) return;
@@ -123,7 +146,14 @@ export default function ExamRunner({
         const res = await finishSection(examId, subject);
         setSectionState(res.sectionState);
         setIdx(0);
-        if (res.finished) router.replace(`/exam/${examId}/result`);
+        restoredSubjectRef.current = null;
+        if (res.finished) {
+          router.replace(`/exam/${examId}/result`);
+        } else if (typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          url.searchParams.set("q", "1");
+          window.history.replaceState(null, "", url);
+        }
       } finally {
         setBusy(false);
       }
@@ -179,6 +209,12 @@ export default function ExamRunner({
 
   const moveToNextSubject = () => {
     if (!currentSubject) return;
+    const firstUnansweredIndex = sectionQuestions.findIndex((qq) => answers[qq.id] == null);
+    if (firstUnansweredIndex >= 0) {
+      setIdx(firstUnansweredIndex);
+      setNotice(`미응답 ${sectionQuestions.filter((qq) => answers[qq.id] == null).length}문항이 남아 있습니다.`);
+      return;
+    }
     setConfirmRequest({
       title: "유형을 제출할까요?",
       message: `${currentSubject} 유형을 제출하면 이 유형은 다시 풀 수 없습니다.`,
@@ -248,6 +284,7 @@ export default function ExamRunner({
               setBusy(true);
               try {
                 const res = await startSection(examId, currentSubject);
+                setIdx(0);
                 setSectionState(res.sectionState);
               } finally {
                 setBusy(false);
@@ -280,6 +317,10 @@ export default function ExamRunner({
   const { prompt: questionPrompt, passage: questionPassage } =
     splitQuestionBodyText(questionBody);
   const displayChoices = normalizeChoiceTexts(q.choices);
+  const supplementImageUrl =
+    q.supplementImageUrl && q.supplementImageUrl !== q.imageUrl
+      ? q.supplementImageUrl
+      : null;
   const isLast = idx === sectionQuestions.length - 1;
   const mm = remaining != null ? Math.floor(remaining / 60) : SECTION_MINUTES;
   const ss = remaining != null ? remaining % 60 : 0;
@@ -287,6 +328,7 @@ export default function ExamRunner({
 
   const select = (choice: number) => {
     const next = choice;
+    setNotice(null);
     setAnswers((a) => ({ ...a, [q.id]: next }));
     const pendingSave = saveAnswer(examId, q.id, next).catch(() => {});
     pendingSavesRef.current.add(pendingSave);
@@ -343,6 +385,11 @@ export default function ExamRunner({
               다음 유형으로
             </button>
           </div>
+          {notice && (
+            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700">
+              {notice}
+            </div>
+          )}
           <div className="rounded-xl bg-zinc-50 px-4 py-4">
             <p className="whitespace-pre-line text-[15px] font-bold leading-7 text-zinc-900 [overflow-wrap:anywhere]">
               {questionPrompt}
@@ -363,10 +410,10 @@ export default function ExamRunner({
               className="mt-3 max-w-full rounded-lg border"
             />
           )}
-          {q.supplementImageUrl && (
+          {supplementImageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={q.supplementImageUrl}
+              src={supplementImageUrl}
               alt="문제 조건"
               className="mt-3 max-w-full rounded-lg border border-zinc-200 bg-white"
             />

@@ -289,7 +289,7 @@ export default async function AdminPage() {
 
       <section className="grid grid-cols-2 gap-4 xl:grid-cols-6">
         {overallTiles.map((tile) => (
-          <div key={tile.label} className="card px-5 py-4">
+          <div key={tile.label} className="metric-card px-5 py-4">
             <p className="text-xs font-medium text-ink-3">{tile.label}</p>
             <p className="mt-1.5 text-3xl font-bold tracking-tight text-ink">
               {tile.value}
@@ -299,7 +299,7 @@ export default async function AdminPage() {
         ))}
       </section>
 
-      <section className="card p-5">
+      <section className="chart-card p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-ink">캠퍼스별 가입자</h2>
@@ -310,7 +310,7 @@ export default async function AdminPage() {
           {["판교", "울산", "광주"].map((campus) => (
             <div
               key={campus}
-              className="rounded-xl border border-hairline bg-page px-4 py-3"
+              className="soft-panel px-4 py-3"
             >
               <p className="text-xs text-ink-3">{campus}</p>
               <p className="mt-1 text-2xl font-bold text-ink">
@@ -329,26 +329,26 @@ export default async function AdminPage() {
       />
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <div className="card overflow-hidden">
+        <div className="chart-card overflow-hidden">
           <div className="border-b border-hairline px-5 py-4">
             <h2 className="text-sm font-semibold text-ink">캠퍼스별 표</h2>
             <p className="mt-1 text-xs text-ink-3">완료 응시 기준</p>
           </div>
-          <table className="w-full text-sm">
-            <thead className="bg-page text-xs text-ink-3">
+          <table className="data-table text-sm">
+            <thead>
               <tr>
-                <th className="whitespace-nowrap px-5 py-3 text-left font-semibold">
+                <th className="whitespace-nowrap px-5 py-3 text-left font-semibold first:rounded-tl-2xl">
                   캠퍼스
                 </th>
                 <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
                   완료
                 </th>
-                <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
+                <th className="whitespace-nowrap px-5 py-3 text-right font-semibold last:rounded-tr-2xl">
                   평균점수
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--grid)]">
+            <tbody>
               {campusChartData.map((row) => (
                 <tr key={row.name}>
                   <td className="whitespace-nowrap px-5 py-3 font-semibold text-ink">
@@ -366,26 +366,26 @@ export default async function AdminPage() {
           </table>
         </div>
 
-        <div className="card overflow-hidden">
+        <div className="chart-card overflow-hidden">
           <div className="border-b border-hairline px-5 py-4">
             <h2 className="text-sm font-semibold text-ink">분반별 표</h2>
             <p className="mt-1 text-xs text-ink-3">완료 응시가 있는 분반 기준</p>
           </div>
-          <table className="w-full text-sm">
-            <thead className="bg-page text-xs text-ink-3">
+          <table className="data-table text-sm">
+            <thead>
               <tr>
-                <th className="whitespace-nowrap px-5 py-3 text-left font-semibold">
+                <th className="whitespace-nowrap px-5 py-3 text-left font-semibold first:rounded-tl-2xl">
                   분반
                 </th>
                 <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
                   완료
                 </th>
-                <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
+                <th className="whitespace-nowrap px-5 py-3 text-right font-semibold last:rounded-tr-2xl">
                   평균점수
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--grid)]">
+            <tbody>
               {classChartData.length ? (
                 classChartData.map((row) => (
                   <tr key={row.name}>
@@ -415,7 +415,7 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      <section className="card overflow-hidden">
+      <section className="chart-card overflow-hidden">
         <div className="border-b border-hairline px-5 py-4">
           <h2 className="text-sm font-semibold text-ink">회차별 통계</h2>
           <p className="mt-1 text-xs text-ink-3">
@@ -423,20 +423,20 @@ export default async function AdminPage() {
           </p>
         </div>
         <div className="overflow-hidden">
-          <table className="w-full table-fixed text-left text-[13px]">
-            <thead className="bg-page text-xs text-ink-3">
+          <table className="data-table table-fixed text-left text-[13px]">
+            <thead>
               <tr>
-                <th className="w-12 whitespace-nowrap px-4 py-2.5 font-semibold">회차</th>
+                <th className="w-12 whitespace-nowrap px-4 py-2.5 font-semibold first:rounded-tl-2xl">회차</th>
                 <th className="w-[42%] whitespace-nowrap px-4 py-2.5 font-semibold">시험</th>
                 <th className="w-[16%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">
                   시작/완료
                 </th>
                 <th className="w-[10%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">완료율</th>
                 <th className="w-[22%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">점수</th>
-                <th className="w-[10%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">시간</th>
+                <th className="w-[10%] whitespace-nowrap px-4 py-2.5 text-right font-semibold last:rounded-tr-2xl">시간</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--grid)]">
+            <tbody>
               {examStats.map((row) => (
                 <tr key={row.exam.id} className="align-top">
                   <td className="whitespace-nowrap px-4 py-2.5 font-bold text-ink">{row.no}</td>

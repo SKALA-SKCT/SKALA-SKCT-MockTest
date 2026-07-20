@@ -16,6 +16,14 @@ import { requireUser } from "@/lib/session";
 
 const GRACE_MS = 30 * 1000;
 
+function isValidId(value: number) {
+  return Number.isInteger(value) && value > 0;
+}
+
+function isSubject(value: string): value is Subject {
+  return SUBJECTS.includes(value as Subject);
+}
+
 /** 가장 최근 응시 */
 async function getMyAttempt(userId: number, examId: number) {
   const [attempt] = await db
@@ -73,9 +81,20 @@ export async function startAttempt(examId: number) {
 
 /** 과목 섹션 시작 — 타이머 기준 시각을 서버가 기록 */
 export async function startSection(examId: number, subject: Subject) {
+  if (!isValidId(examId) || !isSubject(subject)) {
+    throw new Error("잘못된 응시 요청입니다.");
+  }
   const user = await requireUser();
   const attempt = await getMyAttempt(user.id, examId);
   if (!attempt || attempt.finishedAt) throw new Error("응시 상태가 아닙니다.");
+
+  const examSubjects = await getExamSubjects(examId);
+  const targetIndex = examSubjects.indexOf(subject);
+  if (targetIndex < 0) throw new Error("시험에 없는 유형입니다.");
+  const firstOpenSubject = examSubjects.find(
+    (item) => !attempt.sectionState[item]?.finishedAt
+  );
+  if (firstOpenSubject !== subject) throw new Error("유형은 순서대로 응시해야 합니다.");
 
   const state: SectionState = { ...attempt.sectionState };
   if (!state[subject]) {
@@ -102,6 +121,7 @@ export async function saveAnswer(
   questionId: number,
   choice: number | null
 ) {
+  if (!isValidId(examId) || !isValidId(questionId)) return { ok: false };
   const user = await requireUser();
   const attempt = await getMyAttempt(user.id, examId);
   if (!attempt || attempt.finishedAt) return { ok: false };
@@ -111,6 +131,12 @@ export async function saveAnswer(
     .from(questions)
     .where(and(eq(questions.id, questionId), eq(questions.examId, examId)));
   if (!q) return { ok: false };
+  if (
+    choice !== null &&
+    (!Number.isInteger(choice) || choice < 1 || choice > q.choices.length)
+  ) {
+    return { ok: false };
+  }
   if (!sectionActive(attempt.sectionState, q.subject)) return { ok: false };
 
   const isCorrect = choice != null && choice === q.answer;
@@ -126,6 +152,9 @@ export async function saveAnswer(
 
 /** 과목 섹션 종료(수동 제출 또는 시간 만료). 마지막 과목이면 응시 완료 처리 */
 export async function finishSection(examId: number, subject: Subject) {
+  if (!isValidId(examId) || !isSubject(subject)) {
+    throw new Error("잘못된 응시 요청입니다.");
+  }
   const user = await requireUser();
   const attempt = await getMyAttempt(user.id, examId);
   if (!attempt || attempt.finishedAt)
@@ -133,6 +162,7 @@ export async function finishSection(examId: number, subject: Subject) {
 
   const state: SectionState = { ...attempt.sectionState };
   const s = state[subject];
+  if (!s) throw new Error("시작하지 않은 유형입니다.");
   if (s && !s.finishedAt) {
     state[subject] = { ...s, finishedAt: new Date().toISOString() };
   }

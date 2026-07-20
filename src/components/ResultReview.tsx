@@ -112,6 +112,11 @@ function QuestionCard({
   const displayQuestion = applyQuestionContentOverride(examId, question);
   const { prompt, passage } = splitQuestionBody(displayQuestion);
   const displayChoices = normalizeChoiceTexts(displayQuestion.choices);
+  const supplementImageUrl =
+    displayQuestion.supplementImageUrl &&
+    displayQuestion.supplementImageUrl !== displayQuestion.imageUrl
+      ? displayQuestion.supplementImageUrl
+      : null;
   const explanation = formatReviewExplanation(
     displayQuestion.explanation,
     displayQuestion.answer,
@@ -130,7 +135,7 @@ function QuestionCard({
         <ResultPill question={question} />
         <span className="font-medium text-zinc-500">문제 {question.number}</span>
         <span className="ml-auto font-medium text-zinc-400">
-          그룹 정답률 {question.groupAccuracy}%
+          그룹 정답 점수 {question.groupAccuracy}점
         </span>
         <span className="font-medium">
           <WrongRate value={question.peerWrongRate} />
@@ -156,10 +161,10 @@ function QuestionCard({
             className="mt-4 h-auto w-full rounded-lg border border-zinc-200 bg-white object-contain"
           />
         )}
-        {displayQuestion.supplementImageUrl && (
+        {supplementImageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={displayQuestion.supplementImageUrl}
+            src={supplementImageUrl}
             alt={`${displayQuestion.number}번 조건`}
             className="mt-4 h-auto max-w-full rounded-lg border border-zinc-200 bg-white object-contain"
           />
@@ -189,7 +194,7 @@ function QuestionCard({
               <span className="col-start-2 flex flex-wrap items-center gap-2 text-xs">
                 {choiceRates && (
                   <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-semibold text-zinc-500">
-                    선택 {choiceRates[index] ?? 0}%
+                    선택 {choiceRates[index] ?? 0}점
                   </span>
                 )}
                 {isAnswer && (
@@ -311,7 +316,7 @@ export default function ResultReview({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="chart-card p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold">유형별 고오답률 문항</h2>
@@ -330,10 +335,7 @@ export default function ResultReview({
             const hardQuestions =
               hardQuestionPreviewBySubject.get(subject.subject) ?? [];
             return (
-              <div
-                key={subject.subject}
-                className="rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3"
-              >
+              <div key={subject.subject} className="soft-panel px-4 py-3">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <p className="text-sm font-bold text-zinc-800">
                     {subject.subject}
@@ -348,13 +350,13 @@ export default function ResultReview({
                         <button
                           type="button"
                           onClick={() => jumpToQuestion(q)}
-                          className="w-full rounded-lg border border-white bg-white px-3 py-2 text-left text-xs shadow-sm transition hover:border-red-100 hover:bg-red-50"
+                          className="w-full rounded-xl border border-white bg-white px-3 py-2 text-left text-xs shadow-sm transition hover:border-[#dfe4ff] hover:bg-[#f5f7ff]"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-semibold text-zinc-700">
                               {q.number}번
                             </span>
-                            <span className="font-extrabold text-red-500">
+                            <span className="font-extrabold text-brand">
                               {q.wrongRate}%
                             </span>
                           </div>
@@ -382,12 +384,12 @@ export default function ResultReview({
               문제 원문, 자료, 보기, 해설을 함께 확인합니다.
             </p>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-1 text-xs font-semibold shadow-sm">
+          <div className="rounded-xl border border-hairline bg-white p-1 text-xs font-semibold shadow-sm">
             <button
               type="button"
               onClick={() => setReviewFilter("all")}
               className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "all" ? "bg-zinc-900 text-white" : "text-zinc-500"
+                reviewFilter === "all" ? "bg-brand text-white" : "text-zinc-500"
               }`}
             >
               전체 {questions.length}
@@ -396,7 +398,7 @@ export default function ResultReview({
               type="button"
               onClick={() => setReviewFilter("wrong")}
               className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "wrong" ? "bg-red-600 text-white" : "text-zinc-500"
+                reviewFilter === "wrong" ? "bg-[#d879cf] text-white" : "text-zinc-500"
               }`}
             >
               틀린 문제 {wrongCount}
@@ -405,7 +407,7 @@ export default function ResultReview({
               type="button"
               onClick={() => setReviewFilter("correct")}
               className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "correct" ? "bg-emerald-600 text-white" : "text-zinc-500"
+                reviewFilter === "correct" ? "bg-[#72d8d2] text-white" : "text-zinc-500"
               }`}
             >
               맞춘 문제 {correctCount}
@@ -429,7 +431,7 @@ export default function ResultReview({
                   [subject.subject]: isOpen,
                 }));
               }}
-              className="rounded-2xl border border-zinc-200 bg-white shadow-sm"
+              className="chart-card"
             >
               <summary className="cursor-pointer select-none px-5 py-4 font-semibold">
                 {subject.subject}{" "}

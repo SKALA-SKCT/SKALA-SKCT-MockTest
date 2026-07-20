@@ -24,7 +24,7 @@ export default async function RootLayout({
         <div className="desktop-app-shell flex min-h-full flex-col">
           {user && (
             <header className="sticky top-0 z-10 border-b border-hairline bg-surface/90 backdrop-blur">
-              <nav className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-6">
+              <nav className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-6">
                 <Link href="/" className="flex items-baseline gap-1.5">
                   <span className="text-xl font-black tracking-tight text-brand">
                     SKCT
@@ -54,7 +54,7 @@ export default async function RootLayout({
               </nav>
             </header>
           )}
-          <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
+          <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10">
             {children}
           </main>
         </div>
