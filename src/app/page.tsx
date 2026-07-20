@@ -343,10 +343,10 @@ export default async function Dashboard() {
               <p className="mb-2 text-xs text-ink-3">완료한 회차 기준, 100점 만점</p>
               <TrendChart data={trendData} />
             </div>
-            <div className="chart-card p-4">
+            <div className="chart-card flex min-h-[360px] flex-col p-4">
               <h2 className="text-sm font-semibold text-ink">유형별 점수</h2>
               <p className="mb-2 text-xs text-ink-3">전체 회차 누적, 100점 만점</p>
-              <SubjectRadar data={radarData} className="h-56" />
+              <SubjectRadar data={radarData} className="min-h-0 flex-1" />
             </div>
           </div>
         ) : (

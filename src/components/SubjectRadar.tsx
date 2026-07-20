@@ -21,8 +21,8 @@ export type RadarDatum = {
 
 const legendItems = [
   { key: "나", label: "나", color: "#e94343" },
-  { key: "그룹평균", label: "그룹 평균", color: "#f59a8e" },
-  { key: "분반평균", label: "분반 평균", color: "#8f7d73" },
+  { key: "그룹평균", label: "그룹 평균", color: "#8b5cf6" },
+  { key: "분반평균", label: "분반 평균", color: "#14b8a6" },
   { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#f0b85b" },
 ] as const;
 
@@ -45,7 +45,7 @@ export default function SubjectRadar({
 
   return (
     <div className={`flex w-full flex-col ${className}`}>
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 pb-2">
         <ResponsiveContainer>
           <RadarChart data={data} outerRadius="76%">
             <PolarGrid stroke="#f1ece9" />
@@ -77,20 +77,20 @@ export default function SubjectRadar({
               <Radar
                 name="그룹 평균"
                 dataKey="그룹평균"
-                stroke="#f59a8e"
+                stroke="#8b5cf6"
                 strokeWidth={2}
-                fill="#f59a8e"
-                fillOpacity={0.1}
+                fill="#8b5cf6"
+                fillOpacity={0.09}
               />
             )}
             {visible.분반평균 && (
               <Radar
                 name="분반 평균"
                 dataKey="분반평균"
-                stroke="#8f7d73"
+                stroke="#14b8a6"
                 strokeWidth={2}
-                fill="#8f7d73"
-                fillOpacity={0.07}
+                fill="#14b8a6"
+                fillOpacity={0.08}
               />
             )}
             {visible.캠퍼스평균 && (
@@ -118,7 +118,8 @@ export default function SubjectRadar({
               type="checkbox"
               checked={visible[item.key]}
               onChange={() => toggleSeries(item.key)}
-              className="h-3.5 w-3.5 rounded border-[var(--border)] accent-[var(--brand)]"
+              className="h-3.5 w-3.5 rounded border-[var(--border)]"
+              style={{ accentColor: item.color }}
             />
             <span style={{ color: item.color }}>{item.label}</span>
           </label>
