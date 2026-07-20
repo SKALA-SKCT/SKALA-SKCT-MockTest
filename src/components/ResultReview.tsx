@@ -350,7 +350,7 @@ export default function ResultReview({
                         <button
                           type="button"
                           onClick={() => jumpToQuestion(q)}
-                          className="w-full rounded-xl border border-white bg-white px-3 py-2 text-left text-xs shadow-sm transition hover:border-[#dfe4ff] hover:bg-[#f5f7ff]"
+                          className="w-full rounded-xl border border-white bg-white px-3 py-2 text-left text-xs shadow-sm transition hover:border-[#f4d4ce] hover:bg-[#fff7f5]"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-semibold text-zinc-700">

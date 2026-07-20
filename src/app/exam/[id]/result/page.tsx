@@ -471,7 +471,7 @@ export default async function ResultPage({
                 </li>
               ))}
             </ol>
-            <div className="mt-3 flex justify-between rounded-xl bg-[#eef1ff] px-3 py-2 text-sm font-semibold text-brand">
+            <div className="mt-3 flex justify-between rounded-xl border border-[#f4d4ce] bg-[#fff7f5] px-3 py-2 text-sm font-semibold text-brand">
               <span>내 등수 · {rank}위</span>
               <span>
                 {myScore.total}/{totalQuestions}
