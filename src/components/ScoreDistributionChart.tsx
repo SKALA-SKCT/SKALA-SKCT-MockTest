@@ -33,11 +33,13 @@ export default function ScoreDistributionChart({
   const averageBand = data.find(
     (band) => average >= band.min && average <= band.max
   )?.label;
+  const maxCount = Math.max(1, ...data.map((band) => band.count));
+  const yMax = Math.ceil(maxCount * 1.28);
 
   return (
     <div className="h-72 w-full min-w-[680px]">
       <ResponsiveContainer>
-        <AreaChart data={data} margin={{ top: 38, right: 24, bottom: 8, left: -12 }}>
+        <AreaChart data={data} margin={{ top: 58, right: 24, bottom: 8, left: -12 }}>
           <defs>
             <linearGradient id="scoreDistributionFill" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor="#e94343" stopOpacity={0.24} />
@@ -55,6 +57,7 @@ export default function ScoreDistributionChart({
           />
           <YAxis
             allowDecimals={false}
+            domain={[0, yMax]}
             tick={{ fontSize: 11, fill: "#9aa2b4" }}
             tickLine={false}
             axisLine={false}
@@ -82,7 +85,7 @@ export default function ScoreDistributionChart({
               label={{
                 value: `내 점수 ${myScore}점`,
                 position: "insideTopRight",
-                dy: -14,
+                dy: -24,
                 fill: "#e94343",
                 fontSize: 12,
                 fontWeight: 700,
@@ -97,7 +100,7 @@ export default function ScoreDistributionChart({
               label={{
                 value: `평균 ${average.toFixed(1)}점`,
                 position: "insideTopLeft",
-                dy: -14,
+                dy: -24,
                 fill: "#c43b3b",
                 fontSize: 12,
                 fontWeight: 700,
