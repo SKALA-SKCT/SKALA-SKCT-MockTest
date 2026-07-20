@@ -2,10 +2,10 @@
 
 :root {
   /* 페이지/서피스 */
-  --page: #f7f6f5;
+  --page: #fbfaf9;
   --surface: #ffffff;
-  --surface-soft: #fffafa;
-  --border: rgba(76, 54, 54, 0.1);
+  --surface-soft: #fffdfc;
+  --border: rgba(76, 54, 54, 0.08);
 
   /* 잉크 */
   --ink: #0b0b0b;
@@ -19,7 +19,7 @@
   --series-class: #8f7d73;
   --series-campus: #f0b85b;
 
-  --grid: #eee7e3;
+  --grid: #f1ece9;
 
   --background: var(--page);
   --foreground: var(--ink);
@@ -60,19 +60,19 @@ body {
   border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow:
-    0 18px 45px rgba(60, 40, 40, 0.08),
-    0 2px 8px rgba(60, 40, 40, 0.04);
+    0 16px 38px rgba(60, 40, 40, 0.055),
+    0 2px 7px rgba(60, 40, 40, 0.03);
 }
 
 .metric-card {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(251, 252, 255, 0.96)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 253, 252, 0.98)),
     var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow:
-    0 14px 32px rgba(60, 40, 40, 0.07),
-    0 2px 7px rgba(60, 40, 40, 0.04);
+    0 12px 28px rgba(60, 40, 40, 0.05),
+    0 2px 7px rgba(60, 40, 40, 0.03);
 }
 
 .chart-card {
@@ -80,8 +80,8 @@ body {
   border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow:
-    0 18px 45px rgba(60, 40, 40, 0.08),
-    0 2px 8px rgba(60, 40, 40, 0.04);
+    0 16px 38px rgba(60, 40, 40, 0.055),
+    0 2px 7px rgba(60, 40, 40, 0.03);
 }
 
 .soft-panel {
@@ -120,7 +120,7 @@ body {
 }
 
 .data-table tbody tr:hover {
-  background: #fffafa;
+  background: #fffdfc;
 }
 
 .select-control {

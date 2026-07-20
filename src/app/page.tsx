@@ -316,7 +316,7 @@ export default async function Dashboard() {
                   <span
                     className={`text-3xl font-bold tracking-tight ${
                       t.accent === "up"
-                        ? "text-[#2fb5a9]"
+                        ? "text-[#b98328]"
                         : t.accent === "down"
                           ? "text-brand"
                           : "text-ink"
@@ -393,7 +393,7 @@ export default async function Dashboard() {
                       <p
                         className={`font-semibold ${
                           diff > 0
-                            ? "text-[#2fb5a9]"
+                            ? "text-[#b98328]"
                             : diff < 0
                               ? "text-brand"
                               : "text-ink-3"
@@ -437,7 +437,7 @@ export default async function Dashboard() {
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                     r.done
-                      ? "bg-[#e94343]/12 text-brand"
+                      ? "border border-[#f4d4ce] bg-white text-brand"
                       : r.exam
                         ? "bg-page text-ink-2"
                         : "bg-page text-ink-3/50"
@@ -454,7 +454,7 @@ export default async function Dashboard() {
                     {r.exam?.title ?? `${r.no}회차 모의고사`}
                   </p>
                   {r.done && (
-                    <p className="text-[10px] text-[#2fb5a9]">응시 완료</p>
+                    <p className="text-[10px] font-medium text-[#b76458]">응시 완료</p>
                   )}
                   {r.inProgress && !r.done && (
                     <p className="text-[10px] text-brand">진행 중</p>

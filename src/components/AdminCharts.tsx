@@ -40,7 +40,7 @@ const tooltipStyle = {
 };
 
 const chartMargin = { top: 12, right: 16, bottom: 0, left: -16 };
-const gridStroke = "#eee7e3";
+const gridStroke = "#f1ece9";
 const tickStyle = { fontSize: 11, fill: "#9aa2b4" };
 const colors = {
   red: "#e94343",

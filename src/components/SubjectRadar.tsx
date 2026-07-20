@@ -37,7 +37,7 @@ export default function SubjectRadar({
       <div className="min-h-0 flex-1">
         <ResponsiveContainer>
           <RadarChart data={data} outerRadius="76%">
-            <PolarGrid stroke="#eee7e3" />
+            <PolarGrid stroke="#f1ece9" />
             <PolarAngleAxis
               dataKey="subject"
               tick={{ fontSize: 12, fill: "#7c8498" }}

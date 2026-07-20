@@ -40,7 +40,7 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
             <XAxis
               dataKey="name"
               tick={{ fontSize: 11, fill: "#9aa2b4" }}
-              axisLine={{ stroke: "#eee7e3" }}
+              axisLine={{ stroke: "#f1ece9" }}
               tickLine={false}
               interval={0}
             />

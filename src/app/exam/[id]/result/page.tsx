@@ -439,7 +439,7 @@ export default async function ResultPage({
                       <td
                         className={`px-3 py-2.5 text-right text-xs font-medium ${
                           diff > 0
-                            ? "text-[#2fb5a9]"
+                            ? "text-[#b98328]"
                             : diff < 0
                               ? "text-brand"
                               : "text-zinc-400"

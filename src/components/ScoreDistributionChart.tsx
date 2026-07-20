@@ -37,20 +37,20 @@ export default function ScoreDistributionChart({
   return (
     <div className="h-72 w-full min-w-[680px]">
       <ResponsiveContainer>
-        <AreaChart data={data} margin={{ top: 14, right: 24, bottom: 8, left: -12 }}>
+        <AreaChart data={data} margin={{ top: 38, right: 24, bottom: 8, left: -12 }}>
           <defs>
             <linearGradient id="scoreDistributionFill" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor="#e94343" stopOpacity={0.24} />
               <stop offset="100%" stopColor="#e94343" stopOpacity={0.03} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#eee7e3" vertical={false} />
+          <CartesianGrid stroke="#f1ece9" vertical={false} />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 11, fill: "#9aa2b4" }}
             tickFormatter={(value) => `${value}점`}
             tickLine={false}
-            axisLine={{ stroke: "#eee7e3" }}
+            axisLine={{ stroke: "#f1ece9" }}
             interval={0}
           />
           <YAxis
@@ -82,6 +82,7 @@ export default function ScoreDistributionChart({
               label={{
                 value: `내 점수 ${myScore}점`,
                 position: "insideTopRight",
+                dy: -14,
                 fill: "#e94343",
                 fontSize: 12,
                 fontWeight: 700,
@@ -96,6 +97,7 @@ export default function ScoreDistributionChart({
               label={{
                 value: `평균 ${average.toFixed(1)}점`,
                 position: "insideTopLeft",
+                dy: -14,
                 fill: "#c43b3b",
                 fontSize: 12,
                 fontWeight: 700,
