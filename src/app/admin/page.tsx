@@ -465,7 +465,7 @@ export default async function AdminPage() {
                           : "0"}
                       </span>
                       <span className="mx-1 text-ink-4">/</span>
-                      <span className="text-blue-700">
+                      <span className="text-[#7aa7e8]">
                         분반{" "}
                         {Object.entries(row.classFinished).length
                           ? Object.entries(row.classFinished)

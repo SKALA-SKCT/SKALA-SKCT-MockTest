@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import SubjectRadar from "@/components/SubjectRadar";
+import ScoreDistributionChart from "@/components/ScoreDistributionChart";
 import ResultReview, { type ReviewQuestion } from "@/components/ResultReview";
 
 export const dynamic = "force-dynamic";
@@ -160,11 +161,6 @@ export default async function ResultPage({
       percent: n ? Math.round((count / n) * 100) : 0,
     };
   });
-  const maxDistributionCount = Math.max(
-    1,
-    ...scoreDistribution.map((band) => band.count)
-  );
-
   // 문항별 그룹 정답률 (무응답/미기록은 오답 처리: 분모 = 완료 인원)
   const qAccuracyRows = await db
     .select({
@@ -388,57 +384,11 @@ export default async function ResultPage({
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="data-table min-w-[760px] table-fixed text-center text-xs">
-            <thead>
-              <tr>
-                {scoreDistribution.map((band) => (
-                  <th key={band.label} className="px-2 py-2 font-medium first:rounded-l-xl last:rounded-r-xl">
-                    {band.label}점
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="align-bottom">
-                {scoreDistribution.map((band) => (
-                  <td key={band.label} className="px-1 pt-4">
-                    <div className="flex h-24 items-end justify-center rounded-xl bg-page px-1">
-                      <div
-                        className={`w-full rounded-t ${
-                          band.includesMe ? "bg-brand" : "bg-[#dbe2f2]"
-                        }`}
-                        style={{
-                          height: `${Math.max(
-                            band.count ? 12 : 2,
-                            (band.count / maxDistributionCount) * 88
-                          )}px`,
-                        }}
-                      />
-                    </div>
-                  </td>
-                ))}
-              </tr>
-              <tr>
-                {scoreDistribution.map((band) => (
-                  <td
-                    key={band.label}
-                    className={`py-2 font-semibold ${
-                      band.includesMe ? "text-brand" : "text-zinc-700"
-                    }`}
-                  >
-                    {band.count}명
-                  </td>
-                ))}
-              </tr>
-              <tr className="text-zinc-400">
-                {scoreDistribution.map((band) => (
-                  <td key={band.label} className="pt-2">
-                    {band.percent}%
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
+          <ScoreDistributionChart
+            data={scoreDistribution}
+            myScore={myScore.total}
+            average={averageTotal}
+          />
         </div>
       </div>
 

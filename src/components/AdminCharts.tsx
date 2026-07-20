@@ -43,10 +43,10 @@ const chartMargin = { top: 12, right: 16, bottom: 0, left: -16 };
 const gridStroke = "#e9edf5";
 const tickStyle = { fontSize: 11, fill: "#9aa2b4" };
 const colors = {
-  blue: "#566bd6",
-  mint: "#72d8d2",
-  pink: "#d879cf",
-  amber: "#f2bd70",
+  red: "#e94343",
+  coral: "#f59a8e",
+  blue: "#7aa7e8",
+  amber: "#f0b85b",
   green: "#78d89a",
 };
 
@@ -100,9 +100,9 @@ export default function AdminCharts({
                 <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="시작" fill={colors.blue} radius={[8, 8, 0, 0]} />
-                <Bar dataKey="완료" fill={colors.mint} radius={[8, 8, 0, 0]} />
-                <Bar dataKey="중도이탈" fill={colors.pink} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="시작" fill={colors.coral} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="완료" fill={colors.red} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="중도이탈" fill={colors.blue} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -122,8 +122,8 @@ export default function AdminCharts({
                 <YAxis domain={[0, 100]} tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="평균" fill={colors.blue} radius={[8, 8, 0, 0]} />
-                <Bar dataKey="최고" fill={colors.mint} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="평균" fill={colors.red} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="최고" fill={colors.coral} radius={[8, 8, 0, 0]} />
                 <Bar dataKey="최저" fill={colors.amber} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -144,8 +144,8 @@ export default function AdminCharts({
                 <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="완료" fill={colors.mint} radius={[8, 8, 0, 0]} />
-                <Bar dataKey="평균점수" fill={colors.blue} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="완료" fill={colors.coral} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="평균점수" fill={colors.red} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -165,8 +165,8 @@ export default function AdminCharts({
                 <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="완료" fill={colors.mint} radius={[8, 8, 0, 0]} />
-                <Bar dataKey="평균점수" fill={colors.blue} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="완료" fill={colors.coral} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="평균점수" fill={colors.red} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -185,7 +185,7 @@ export default function AdminCharts({
                 <XAxis dataKey="subject" tick={tickStyle} tickLine={false} axisLine={{ stroke: gridStroke }} />
                 <YAxis domain={[0, 100]} unit="%" tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip formatter={(v) => `${v}%`} contentStyle={tooltipStyle} />
-                <Bar dataKey="평균정답률" fill={colors.blue} radius={[10, 10, 0, 0]} />
+                <Bar dataKey="평균정답률" fill={colors.red} radius={[10, 10, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

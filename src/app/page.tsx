@@ -437,7 +437,7 @@ export default async function Dashboard() {
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                     r.done
-                      ? "bg-[#72d8d2]/20 text-[#2fb5a9]"
+                      ? "bg-[#e94343]/12 text-brand"
                       : r.exam
                         ? "bg-page text-ink-2"
                         : "bg-page text-ink-3/50"

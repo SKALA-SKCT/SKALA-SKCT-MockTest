@@ -19,10 +19,10 @@ export type RadarDatum = {
 };
 
 const legendItems = [
-  { label: "나", color: "#566bd6" },
-  { label: "그룹 평균", color: "#72d8d2" },
-  { label: "분반 평균", color: "#d879cf" },
-  { label: "캠퍼스 평균", color: "#f2bd70" },
+  { label: "나", color: "#e94343" },
+  { label: "그룹 평균", color: "#f59a8e" },
+  { label: "분반 평균", color: "#7aa7e8" },
+  { label: "캠퍼스 평균", color: "#f0b85b" },
 ];
 
 export default function SubjectRadar({
@@ -55,33 +55,33 @@ export default function SubjectRadar({
             <Radar
               name="나"
               dataKey="나"
-              stroke="#566bd6"
+              stroke="#e94343"
               strokeWidth={2.4}
-              fill="#566bd6"
+              fill="#e94343"
               fillOpacity={0.2}
             />
             <Radar
               name="그룹 평균"
               dataKey="그룹평균"
-              stroke="#72d8d2"
+              stroke="#f59a8e"
               strokeWidth={2}
-              fill="#72d8d2"
+              fill="#f59a8e"
               fillOpacity={0.1}
             />
             <Radar
               name="분반 평균"
               dataKey="분반평균"
-              stroke="#d879cf"
+              stroke="#7aa7e8"
               strokeWidth={2}
-              fill="#d879cf"
+              fill="#7aa7e8"
               fillOpacity={0.07}
             />
             <Radar
               name="캠퍼스 평균"
               dataKey="캠퍼스평균"
-              stroke="#f2bd70"
+              stroke="#f0b85b"
               strokeWidth={2}
-              fill="#f2bd70"
+              fill="#f0b85b"
               fillOpacity={0.07}
             />
           </RadarChart>

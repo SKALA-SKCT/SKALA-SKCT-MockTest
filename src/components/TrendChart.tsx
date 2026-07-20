@@ -19,10 +19,10 @@ export type TrendDatum = {
 };
 
 const legendItems = [
-  { label: "나", color: "#566bd6" },
-  { label: "그룹 평균", color: "#72d8d2" },
-  { label: "분반 평균", color: "#d879cf" },
-  { label: "캠퍼스 평균", color: "#f2bd70" },
+  { label: "나", color: "#e94343" },
+  { label: "그룹 평균", color: "#f59a8e" },
+  { label: "분반 평균", color: "#7aa7e8" },
+  { label: "캠퍼스 평균", color: "#f0b85b" },
 ];
 
 export default function TrendChart({ data }: { data: TrendDatum[] }) {
@@ -33,8 +33,8 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
           <AreaChart data={data} margin={{ top: 10, right: 28, bottom: 8, left: -8 }}>
             <defs>
               <linearGradient id="trendMine" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#566bd6" stopOpacity={0.22} />
-                <stop offset="100%" stopColor="#566bd6" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="#e94343" stopOpacity={0.22} />
+                <stop offset="100%" stopColor="#e94343" stopOpacity={0.02} />
               </linearGradient>
             </defs>
             <XAxis
@@ -66,17 +66,17 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
               name="나"
               dataKey="나"
               type="monotone"
-              stroke="#566bd6"
+              stroke="#e94343"
               strokeWidth={2.4}
               fill="url(#trendMine)"
-              dot={{ r: 3.5, fill: "#fff", stroke: "#566bd6", strokeWidth: 2 }}
-              activeDot={{ r: 5, fill: "#566bd6", stroke: "#fff", strokeWidth: 2 }}
+              dot={{ r: 3.5, fill: "#fff", stroke: "#e94343", strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: "#e94343", stroke: "#fff", strokeWidth: 2 }}
             />
             <Line
               name="그룹 평균"
               dataKey="그룹평균"
               type="monotone"
-              stroke="#72d8d2"
+              stroke="#f59a8e"
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
@@ -85,7 +85,7 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
               name="분반 평균"
               dataKey="분반평균"
               type="monotone"
-              stroke="#d879cf"
+              stroke="#7aa7e8"
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
@@ -94,7 +94,7 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
               name="캠퍼스 평균"
               dataKey="캠퍼스평균"
               type="monotone"
-              stroke="#f2bd70"
+              stroke="#f0b85b"
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}

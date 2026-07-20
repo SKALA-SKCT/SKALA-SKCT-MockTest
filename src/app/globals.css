@@ -12,12 +12,12 @@
   --ink-2: #52514e;
   --ink-3: #898781;
 
-  /* 브랜드 & 시리즈 (검증된 팔레트) */
-  --brand: #566bd6; /* 나 / CTA */
-  --series-me: #566bd6;
-  --series-group: #72d8d2;
-  --series-class: #d879cf;
-  --series-campus: #f2bd70;
+  /* 브랜드 & 시리즈 */
+  --brand: #e94343; /* 나 / CTA */
+  --series-me: #e94343;
+  --series-group: #f59a8e;
+  --series-class: #7aa7e8;
+  --series-campus: #f0b85b;
 
   --grid: #e9edf5;
 

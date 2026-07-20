@@ -398,7 +398,7 @@ export default function ResultReview({
               type="button"
               onClick={() => setReviewFilter("wrong")}
               className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "wrong" ? "bg-[#d879cf] text-white" : "text-zinc-500"
+                reviewFilter === "wrong" ? "bg-[#7aa7e8] text-white" : "text-zinc-500"
               }`}
             >
               틀린 문제 {wrongCount}
@@ -407,7 +407,7 @@ export default function ResultReview({
               type="button"
               onClick={() => setReviewFilter("correct")}
               className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "correct" ? "bg-[#72d8d2] text-white" : "text-zinc-500"
+                reviewFilter === "correct" ? "bg-[#f59a8e] text-white" : "text-zinc-500"
               }`}
             >
               맞춘 문제 {correctCount}
