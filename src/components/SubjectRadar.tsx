@@ -87,11 +87,11 @@ export default function SubjectRadar({
           </RadarChart>
         </ResponsiveContainer>
       </div>
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-medium">
+      <div className="mt-4 flex flex-nowrap items-center justify-center gap-3 whitespace-nowrap text-xs font-medium sm:gap-4">
         {legendItems.map((item) => (
-          <span key={item.label} className="inline-flex items-center gap-1.5">
+          <span key={item.label} className="inline-flex shrink-0 items-center gap-1.5">
             <span
-              className="h-2 w-4 rounded-full"
+              className="h-2 w-4 shrink-0 rounded-full"
               style={{ backgroundColor: item.color }}
             />
             <span style={{ color: item.color }}>{item.label}</span>
