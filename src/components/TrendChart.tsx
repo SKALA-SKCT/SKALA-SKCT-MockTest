@@ -26,7 +26,13 @@ const legendItems = [
   { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#f0b85b" },
 ] as const;
 
-export default function TrendChart({ data }: { data: TrendDatum[] }) {
+export default function TrendChart({
+  data,
+  className = "h-64",
+}: {
+  data: TrendDatum[];
+  className?: string;
+}) {
   const [visible, setVisible] = useState<Record<(typeof legendItems)[number]["key"], boolean>>({
     나: true,
     그룹평균: true,
@@ -38,7 +44,7 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
   };
 
   return (
-    <div className="flex h-64 w-full flex-col">
+    <div className={`flex w-full flex-col ${className}`}>
       <div className="min-h-0 flex-1">
         <ResponsiveContainer>
           <AreaChart data={data} margin={{ top: 10, right: 28, bottom: 8, left: -8 }}>
@@ -121,7 +127,7 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-medium">
+      <div className="mt-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-3 text-xs font-medium">
         {legendItems.map((item) => (
           <label
             key={item.key}

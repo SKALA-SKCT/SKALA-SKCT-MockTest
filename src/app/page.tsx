@@ -336,12 +336,12 @@ export default async function Dashboard() {
         {/* 차트 */}
         {myFinished.length > 0 ? (
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-            <div className="chart-card p-4">
+            <div className="chart-card flex min-h-[360px] flex-col p-4">
               <h2 className="text-sm font-semibold text-ink">
                 회차별 점수 추이
               </h2>
               <p className="mb-2 text-xs text-ink-3">완료한 회차 기준, 100점 만점</p>
-              <TrendChart data={trendData} />
+              <TrendChart data={trendData} className="min-h-0 flex-1" />
             </div>
             <div className="chart-card flex min-h-[360px] flex-col p-4">
               <h2 className="text-sm font-semibold text-ink">유형별 점수</h2>
@@ -379,17 +379,17 @@ export default async function Dashboard() {
                 return (
                   <div
                     key={r.subject}
-                    className="metric-card flex min-h-[180px] flex-col justify-between px-4 py-4"
+                    className="metric-card flex min-h-[142px] flex-col justify-between px-4 py-3"
                   >
                     <div>
                       <p className="truncate text-sm font-semibold text-ink-3">
                         {r.subject}
                       </p>
-                      <p className="mt-2 text-2xl font-extrabold tracking-tight text-ink">
+                      <p className="mt-1.5 text-2xl font-extrabold tracking-tight text-ink">
                         {r.나}점
                       </p>
                     </div>
-                    <div className="grid gap-1 text-sm leading-5">
+                    <div className="grid gap-0.5 text-sm leading-5">
                       <p
                         className={`font-semibold ${
                           diff > 0
