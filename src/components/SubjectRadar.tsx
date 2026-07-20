@@ -21,7 +21,7 @@ export type RadarDatum = {
 const legendItems = [
   { label: "나", color: "#e94343" },
   { label: "그룹 평균", color: "#f59a8e" },
-  { label: "분반 평균", color: "#7aa7e8" },
+  { label: "분반 평균", color: "#8f7d73" },
   { label: "캠퍼스 평균", color: "#f0b85b" },
 ];
 
@@ -37,7 +37,7 @@ export default function SubjectRadar({
       <div className="min-h-0 flex-1">
         <ResponsiveContainer>
           <RadarChart data={data} outerRadius="76%">
-            <PolarGrid stroke="#e9edf5" />
+            <PolarGrid stroke="#eee7e3" />
             <PolarAngleAxis
               dataKey="subject"
               tick={{ fontSize: 12, fill: "#7c8498" }}
@@ -47,8 +47,8 @@ export default function SubjectRadar({
               formatter={(v) => `${v}점`}
               contentStyle={{
                 borderRadius: 12,
-                border: "1px solid rgba(66,76,96,0.1)",
-                boxShadow: "0 14px 34px rgba(38,51,77,0.12)",
+                border: "1px solid rgba(76,54,54,0.1)",
+                boxShadow: "0 14px 34px rgba(60,40,40,0.12)",
                 fontSize: 12,
               }}
             />
@@ -71,9 +71,9 @@ export default function SubjectRadar({
             <Radar
               name="분반 평균"
               dataKey="분반평균"
-              stroke="#7aa7e8"
+              stroke="#8f7d73"
               strokeWidth={2}
-              fill="#7aa7e8"
+              fill="#8f7d73"
               fillOpacity={0.07}
             />
             <Radar

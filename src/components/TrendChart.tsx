@@ -21,7 +21,7 @@ export type TrendDatum = {
 const legendItems = [
   { label: "나", color: "#e94343" },
   { label: "그룹 평균", color: "#f59a8e" },
-  { label: "분반 평균", color: "#7aa7e8" },
+  { label: "분반 평균", color: "#8f7d73" },
   { label: "캠퍼스 평균", color: "#f0b85b" },
 ];
 
@@ -40,7 +40,7 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
             <XAxis
               dataKey="name"
               tick={{ fontSize: 11, fill: "#9aa2b4" }}
-              axisLine={{ stroke: "#edf0f6" }}
+              axisLine={{ stroke: "#eee7e3" }}
               tickLine={false}
               interval={0}
             />
@@ -54,11 +54,11 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
             />
             <Tooltip
               formatter={(v) => (v == null ? "" : `${v}점`)}
-              cursor={{ stroke: "#d6dcef", strokeDasharray: "3 4" }}
+              cursor={{ stroke: "#ead9d4", strokeDasharray: "3 4" }}
               contentStyle={{
                 borderRadius: 12,
-                border: "1px solid rgba(66,76,96,0.1)",
-                boxShadow: "0 14px 34px rgba(38,51,77,0.12)",
+                border: "1px solid rgba(76,54,54,0.1)",
+                boxShadow: "0 14px 34px rgba(60,40,40,0.12)",
                 fontSize: 12,
               }}
             />
@@ -85,7 +85,7 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
               name="분반 평균"
               dataKey="분반평균"
               type="monotone"
-              stroke="#7aa7e8"
+              stroke="#8f7d73"
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}

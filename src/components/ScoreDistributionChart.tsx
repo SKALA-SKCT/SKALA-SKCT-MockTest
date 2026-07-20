@@ -44,13 +44,13 @@ export default function ScoreDistributionChart({
               <stop offset="100%" stopColor="#e94343" stopOpacity={0.03} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#e9edf5" vertical={false} />
+          <CartesianGrid stroke="#eee7e3" vertical={false} />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 11, fill: "#9aa2b4" }}
             tickFormatter={(value) => `${value}점`}
             tickLine={false}
-            axisLine={{ stroke: "#edf0f6" }}
+            axisLine={{ stroke: "#eee7e3" }}
             interval={0}
           />
           <YAxis
@@ -69,8 +69,8 @@ export default function ScoreDistributionChart({
             cursor={{ stroke: "#e94343", strokeDasharray: "3 4", strokeOpacity: 0.45 }}
             contentStyle={{
               borderRadius: 12,
-              border: "1px solid rgba(66,76,96,0.1)",
-              boxShadow: "0 14px 34px rgba(38,51,77,0.12)",
+              border: "1px solid rgba(76,54,54,0.1)",
+              boxShadow: "0 14px 34px rgba(60,40,40,0.12)",
               fontSize: 12,
             }}
           />
@@ -95,7 +95,7 @@ export default function ScoreDistributionChart({
               strokeDasharray="3 5"
               label={{
                 value: `평균 ${average.toFixed(1)}점`,
-                position: "insideBottomLeft",
+                position: "insideTopLeft",
                 fill: "#c43b3b",
                 fontSize: 12,
                 fontWeight: 700,

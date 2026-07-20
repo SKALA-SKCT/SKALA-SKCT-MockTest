@@ -34,18 +34,18 @@ export type AdminGroupDatum = {
 
 const tooltipStyle = {
   borderRadius: 12,
-  border: "1px solid rgba(66,76,96,0.1)",
-  boxShadow: "0 14px 34px rgba(38,51,77,0.12)",
+  border: "1px solid rgba(76,54,54,0.1)",
+  boxShadow: "0 14px 34px rgba(60,40,40,0.12)",
   fontSize: 12,
 };
 
 const chartMargin = { top: 12, right: 16, bottom: 0, left: -16 };
-const gridStroke = "#e9edf5";
+const gridStroke = "#eee7e3";
 const tickStyle = { fontSize: 11, fill: "#9aa2b4" };
 const colors = {
   red: "#e94343",
   coral: "#f59a8e",
-  blue: "#7aa7e8",
+  taupe: "#8f7d73",
   amber: "#f0b85b",
   green: "#78d89a",
 };
@@ -102,7 +102,7 @@ export default function AdminCharts({
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="시작" fill={colors.coral} radius={[8, 8, 0, 0]} />
                 <Bar dataKey="완료" fill={colors.red} radius={[8, 8, 0, 0]} />
-                <Bar dataKey="중도이탈" fill={colors.blue} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="중도이탈" fill={colors.taupe} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

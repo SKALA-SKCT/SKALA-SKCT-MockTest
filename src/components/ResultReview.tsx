@@ -398,7 +398,7 @@ export default function ResultReview({
               type="button"
               onClick={() => setReviewFilter("wrong")}
               className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "wrong" ? "bg-[#7aa7e8] text-white" : "text-zinc-500"
+                reviewFilter === "wrong" ? "bg-[#8f7d73] text-white" : "text-zinc-500"
               }`}
             >
               틀린 문제 {wrongCount}
