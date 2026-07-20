@@ -46,7 +46,7 @@ const colors = {
   red: "#e94343",
   coral: "#f59a8e",
   taupe: "#8f7d73",
-  amber: "#f0b85b",
+  amber: "#d8a12d",
   green: "#78d89a",
 };
 

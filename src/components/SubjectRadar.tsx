@@ -21,9 +21,9 @@ export type RadarDatum = {
 
 const legendItems = [
   { key: "나", label: "나", color: "#e94343" },
-  { key: "그룹평균", label: "그룹 평균", color: "#8b5cf6" },
-  { key: "분반평균", label: "분반 평균", color: "#14b8a6" },
-  { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#f0b85b" },
+  { key: "그룹평균", label: "그룹 평균", color: "#c8755a" },
+  { key: "분반평균", label: "분반 평균", color: "#5f8f6b" },
+  { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#d8a12d" },
 ] as const;
 
 export default function SubjectRadar({
@@ -70,36 +70,36 @@ export default function SubjectRadar({
                 stroke="#e94343"
                 strokeWidth={2.4}
                 fill="#e94343"
-                fillOpacity={0.2}
+                fillOpacity={0.16}
               />
             )}
             {visible.그룹평균 && (
               <Radar
                 name="그룹 평균"
                 dataKey="그룹평균"
-                stroke="#8b5cf6"
+                stroke="#c8755a"
                 strokeWidth={2}
-                fill="#8b5cf6"
-                fillOpacity={0.09}
+                fill="#c8755a"
+                fillOpacity={0.07}
               />
             )}
             {visible.분반평균 && (
               <Radar
                 name="분반 평균"
                 dataKey="분반평균"
-                stroke="#14b8a6"
+                stroke="#5f8f6b"
                 strokeWidth={2}
-                fill="#14b8a6"
-                fillOpacity={0.08}
+                fill="#5f8f6b"
+                fillOpacity={0.07}
               />
             )}
             {visible.캠퍼스평균 && (
               <Radar
                 name="캠퍼스 평균"
                 dataKey="캠퍼스평균"
-                stroke="#f0b85b"
+                stroke="#d8a12d"
                 strokeWidth={2}
-                fill="#f0b85b"
+                fill="#d8a12d"
                 fillOpacity={0.07}
               />
             )}

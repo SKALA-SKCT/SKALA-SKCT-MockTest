@@ -21,9 +21,9 @@ export type TrendDatum = {
 
 const legendItems = [
   { key: "나", label: "나", color: "#e94343" },
-  { key: "그룹평균", label: "그룹 평균", color: "#8b5cf6" },
-  { key: "분반평균", label: "분반 평균", color: "#14b8a6" },
-  { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#f0b85b" },
+  { key: "그룹평균", label: "그룹 평균", color: "#c8755a" },
+  { key: "분반평균", label: "분반 평균", color: "#5f8f6b" },
+  { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#d8a12d" },
 ] as const;
 
 export default function TrendChart({
@@ -96,8 +96,8 @@ export default function TrendChart({
                 name="그룹 평균"
                 dataKey="그룹평균"
                 type="monotone"
-                stroke="#8b5cf6"
-                strokeWidth={2}
+                stroke="#c8755a"
+                strokeWidth={2.2}
                 dot={false}
                 activeDot={{ r: 4 }}
               />
@@ -107,8 +107,8 @@ export default function TrendChart({
                 name="분반 평균"
                 dataKey="분반평균"
                 type="monotone"
-                stroke="#14b8a6"
-                strokeWidth={2}
+                stroke="#5f8f6b"
+                strokeWidth={2.2}
                 dot={false}
                 activeDot={{ r: 4 }}
               />
@@ -118,8 +118,8 @@ export default function TrendChart({
                 name="캠퍼스 평균"
                 dataKey="캠퍼스평균"
                 type="monotone"
-                stroke="#f0b85b"
-                strokeWidth={2}
+                stroke="#d8a12d"
+                strokeWidth={2.2}
                 dot={false}
                 activeDot={{ r: 4 }}
               />
