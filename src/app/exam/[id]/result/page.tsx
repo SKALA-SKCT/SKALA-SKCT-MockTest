@@ -376,7 +376,7 @@ export default async function ResultPage({
           <div>
             <h2 className="font-semibold">전체 시험자 점수 분포</h2>
             <p className="mt-1 text-xs text-zinc-400">
-              완료 응시 {n}명 기준 · 내 점수대는 브랜드 컬러로 표시
+              완료 응시 {n}명 기준
             </p>
           </div>
           <div className="text-right text-xs text-zinc-500">

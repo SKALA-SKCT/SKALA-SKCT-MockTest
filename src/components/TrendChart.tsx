@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -19,13 +20,23 @@ export type TrendDatum = {
 };
 
 const legendItems = [
-  { label: "나", color: "#e94343" },
-  { label: "그룹 평균", color: "#f59a8e" },
-  { label: "분반 평균", color: "#8f7d73" },
-  { label: "캠퍼스 평균", color: "#f0b85b" },
-];
+  { key: "나", label: "나", color: "#e94343" },
+  { key: "그룹평균", label: "그룹 평균", color: "#f59a8e" },
+  { key: "분반평균", label: "분반 평균", color: "#8f7d73" },
+  { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#f0b85b" },
+] as const;
 
 export default function TrendChart({ data }: { data: TrendDatum[] }) {
+  const [visible, setVisible] = useState<Record<(typeof legendItems)[number]["key"], boolean>>({
+    나: true,
+    그룹평균: true,
+    분반평균: true,
+    캠퍼스평균: true,
+  });
+  const toggleSeries = (key: (typeof legendItems)[number]["key"]) => {
+    setVisible((current) => ({ ...current, [key]: !current[key] }));
+  };
+
   return (
     <div className="flex h-64 w-full flex-col">
       <div className="min-h-0 flex-1">
@@ -62,55 +73,70 @@ export default function TrendChart({ data }: { data: TrendDatum[] }) {
                 fontSize: 12,
               }}
             />
-            <Area
-              name="나"
-              dataKey="나"
-              type="monotone"
-              stroke="#e94343"
-              strokeWidth={2.4}
-              fill="url(#trendMine)"
-              dot={{ r: 3.5, fill: "#fff", stroke: "#e94343", strokeWidth: 2 }}
-              activeDot={{ r: 5, fill: "#e94343", stroke: "#fff", strokeWidth: 2 }}
-            />
-            <Line
-              name="그룹 평균"
-              dataKey="그룹평균"
-              type="monotone"
-              stroke="#f59a8e"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-            />
-            <Line
-              name="분반 평균"
-              dataKey="분반평균"
-              type="monotone"
-              stroke="#8f7d73"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-            />
-            <Line
-              name="캠퍼스 평균"
-              dataKey="캠퍼스평균"
-              type="monotone"
-              stroke="#f0b85b"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-            />
+            {visible.나 && (
+              <Area
+                name="나"
+                dataKey="나"
+                type="monotone"
+                stroke="#e94343"
+                strokeWidth={2.4}
+                fill="url(#trendMine)"
+                dot={{ r: 3.5, fill: "#fff", stroke: "#e94343", strokeWidth: 2 }}
+                activeDot={{ r: 5, fill: "#e94343", stroke: "#fff", strokeWidth: 2 }}
+              />
+            )}
+            {visible.그룹평균 && (
+              <Line
+                name="그룹 평균"
+                dataKey="그룹평균"
+                type="monotone"
+                stroke="#f59a8e"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            )}
+            {visible.분반평균 && (
+              <Line
+                name="분반 평균"
+                dataKey="분반평균"
+                type="monotone"
+                stroke="#8f7d73"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            )}
+            {visible.캠퍼스평균 && (
+              <Line
+                name="캠퍼스 평균"
+                dataKey="캠퍼스평균"
+                type="monotone"
+                stroke="#f0b85b"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-medium">
         {legendItems.map((item) => (
-          <span key={item.label} className="inline-flex items-center gap-1.5">
-            <span
-              className="h-2 w-4 rounded-full"
-              style={{ backgroundColor: item.color }}
+          <label
+            key={item.key}
+            className={`inline-flex cursor-pointer items-center gap-1.5 transition ${
+              visible[item.key] ? "" : "opacity-45"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={visible[item.key]}
+              onChange={() => toggleSeries(item.key)}
+              className="h-3.5 w-3.5 rounded border-[var(--border)] accent-[var(--brand)]"
             />
             <span style={{ color: item.color }}>{item.label}</span>
-          </span>
+          </label>
         ))}
       </div>
     </div>
