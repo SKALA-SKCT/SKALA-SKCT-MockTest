@@ -9,14 +9,9 @@ import {
   responses,
   SUBJECTS,
   users,
-  maxClassForCampus,
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
-import {
-  deleteAttemptRecord,
-  setUserAdminRole,
-  updateUserInfo,
-} from "@/lib/actions/admin";
+import { setUserAdminRole } from "@/lib/actions/admin";
 import AdminCharts from "@/components/AdminCharts";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +70,7 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 function normalizeTab(value: string | undefined) {
-  return value === "users" || value === "attempts" ? value : "stats";
+  return value === "users" ? value : "stats";
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -113,17 +108,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         finishedAt: attempts.finishedAt,
         campus: users.campus,
         classNumber: users.classNumber,
-        name: users.name,
-        nickname: users.nickname,
-        email: users.email,
-        emailVerifiedAt: users.emailVerifiedAt,
-        isAdmin: users.isAdmin,
-        examTitle: exams.title,
       })
       .from(attempts)
-      .innerJoin(users, eq(users.id, attempts.userId))
-      .innerJoin(exams, eq(exams.id, attempts.examId))
-      .orderBy(sql`${attempts.startedAt} desc`),
+      .innerJoin(users, eq(users.id, attempts.userId)),
     db
       .select({
         examId: questions.examId,
@@ -386,48 +373,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       return true;
     });
 
-  const allClassNumbers = Array.from(
-    { length: Math.max(...CAMPUSES.map((campus) => maxClassForCampus(campus))) },
-    (_, index) => index + 1
-  );
-
-  const filteredAttempts = attemptRows
-    .map((attempt) => {
-      const score = scoreByAttempt.get(attempt.id) ?? 0;
-      const totalQuestions = totalByExam.get(attempt.examId) ?? 0;
-      const duration =
-        attempt.finishedAt
-          ? (attempt.finishedAt.getTime() - attempt.startedAt.getTime()) / 60000
-          : 0;
-      return {
-        ...attempt,
-        score,
-        totalQuestions,
-        duration,
-        status: attempt.finishedAt ? "완료" : "진행/이탈",
-      };
-    })
-    .filter((attempt) => {
-      const searchable = [
-        attempt.name,
-        attempt.nickname,
-        attempt.email ?? "",
-        attempt.examTitle,
-        attempt.campus,
-        `${attempt.classNumber}반`,
-      ]
-        .join(" ")
-        .toLowerCase();
-      if (normalizedQuery && !searchable.includes(normalizedQuery)) return false;
-      if (campusFilter !== "all" && attempt.campus !== campusFilter) return false;
-      if (classFilter !== "all" && attempt.classNumber !== Number(classFilter)) return false;
-      if (verifyFilter === "verified" && !attempt.emailVerifiedAt) return false;
-      if (verifyFilter === "unverified" && attempt.emailVerifiedAt) return false;
-      if (roleFilter === "admin" && !attempt.isAdmin) return false;
-      if (roleFilter === "user" && attempt.isAdmin) return false;
-      return true;
-    });
-
   return (
     <div className="space-y-6">
       <div>
@@ -464,16 +409,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           }`}
         >
           회원
-        </Link>
-        <Link
-          href="/admin?tab=attempts"
-          className={`border-b-2 px-4 py-3 text-sm font-bold transition ${
-            activeTab === "attempts"
-              ? "border-brand text-brand"
-              : "border-transparent text-ink-3 hover:text-ink"
-          }`}
-        >
-          응시 내역
         </Link>
       </nav>
 
@@ -676,7 +611,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
       </section>
         </>
-      ) : activeTab === "users" ? (
+      ) : (
         <>
           <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
             <div className="metric-card px-5 py-4">
@@ -808,11 +743,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <div className="border-b border-hairline px-5 py-4">
               <h2 className="text-sm font-semibold text-ink">회원 목록</h2>
               <p className="mt-1 text-xs text-ink-3">
-                가입 정보 수정, 인증 상태, 관리자 권한을 함께 관리합니다.
+                가입 정보와 응시 요약을 함께 확인합니다.
               </p>
             </div>
             <div className="overflow-x-auto">
-              <table className="data-table min-w-[1320px] text-left text-[13px]">
+              <table className="data-table min-w-[1120px] text-left text-[13px]">
                 <thead>
                   <tr>
                     <th className="whitespace-nowrap px-4 py-2.5 font-semibold first:rounded-tl-2xl">
@@ -828,9 +763,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       이메일
                     </th>
                     <th className="whitespace-nowrap px-4 py-2.5 font-semibold">
-                      인증
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-2.5 font-semibold">
                       캠퍼스/반
                     </th>
                     <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold">
@@ -843,147 +775,85 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       권한
                     </th>
                     <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold last:rounded-tr-2xl">
-                      관리
+                      최근응시
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredUsers.length ? (
-                    filteredUsers.map((user) => {
-                      const editFormId = `edit-user-${user.id}`;
-                      return (
-                        <tr key={user.id} className="align-top">
-                          <td className="whitespace-nowrap px-4 py-2.5 text-ink-3">
-                            <form id={editFormId} action={updateUserInfo}>
-                              <input type="hidden" name="userId" value={user.id} />
-                            </form>
-                            <p>{formatDate(user.createdAt)}</p>
-                            <p className="mt-1 text-[11px] text-ink-3">
-                              최근 {formatDate(user.latestAt)}
-                            </p>
-                          </td>
-                          <td className="px-4 py-2.5">
+                    filteredUsers.map((user) => (
+                      <tr key={user.id} className="align-top">
+                        <td className="whitespace-nowrap px-4 py-2.5 text-ink-3">
+                          {formatDate(user.createdAt)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 font-semibold text-ink">
+                          {user.name}
+                          {user.isAdmin && (
+                            <span className="ml-2 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-brand">
+                              관리자
+                            </span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-ink">
+                          {user.nickname}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <p className="max-w-[260px] truncate text-ink" title={user.email ?? ""}>
+                            {user.email ?? "-"}
+                          </p>
+                          <p className="mt-1 text-[11px] text-ink-3">
+                            {user.emailVerifiedAt ? "인증 완료" : "미인증"}
+                          </p>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-ink">
+                          {user.campus} {user.classNumber}반
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
+                          {user.started}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
+                          {user.completed}
+                          {user.abandoned > 0 && (
+                            <span className="ml-1 text-[11px] text-ink-3">
+                              / 이탈 {user.abandoned}
+                            </span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
+                          {user.completed ? user.averageScore.toFixed(1) : "-"}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                          <form action={setUserAdminRole}>
+                            <input type="hidden" name="userId" value={user.id} />
                             <input
-                              form={editFormId}
-                              name="name"
-                              defaultValue={user.name}
-                              className="h-9 w-24 rounded-lg border border-hairline bg-white px-2 text-sm font-semibold text-ink outline-none focus:border-brand"
+                              type="hidden"
+                              name="isAdmin"
+                              value={user.isAdmin ? "false" : "true"}
                             />
-                            {user.isAdmin && (
-                              <span className="ml-2 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-brand">
-                                관리자
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <input
-                              form={editFormId}
-                              name="nickname"
-                              defaultValue={user.nickname}
-                              className="h-9 w-28 rounded-lg border border-hairline bg-white px-2 text-sm text-ink outline-none focus:border-brand"
-                            />
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <input
-                              form={editFormId}
-                              name="email"
-                              type="email"
-                              defaultValue={user.email ?? ""}
-                              placeholder="이메일 없음"
-                              className="h-9 w-56 rounded-lg border border-hairline bg-white px-2 text-sm text-ink outline-none focus:border-brand"
-                            />
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-2.5">
-                            <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-hairline bg-white px-2 text-xs font-semibold text-ink">
-                              <input
-                                form={editFormId}
-                                type="checkbox"
-                                name="emailVerified"
-                                value="true"
-                                defaultChecked={Boolean(user.emailVerifiedAt)}
-                                className="h-4 w-4 accent-red-500"
-                              />
-                              인증
-                            </label>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-2.5">
-                            <div className="flex gap-2">
-                              <select
-                                form={editFormId}
-                                name="campus"
-                                defaultValue={user.campus}
-                                className="h-9 rounded-lg border border-hairline bg-white px-2 text-sm text-ink outline-none focus:border-brand"
-                              >
-                                {CAMPUSES.map((campus) => (
-                                  <option key={campus} value={campus}>
-                                    {campus}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                form={editFormId}
-                                name="classNumber"
-                                defaultValue={user.classNumber}
-                                className="h-9 rounded-lg border border-hairline bg-white px-2 text-sm text-ink outline-none focus:border-brand"
-                              >
-                                {allClassNumbers.map((classNumber) => (
-                                  <option key={classNumber} value={classNumber}>
-                                    {classNumber}반
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
-                            {user.started}건
-                            {user.abandoned > 0 && (
-                              <p className="mt-1 text-[11px] text-ink-3">
-                                이탈 {user.abandoned}
-                              </p>
-                            )}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
-                            {user.completed ? user.averageScore.toFixed(1) : "-"}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                            <form action={setUserAdminRole}>
-                              <input type="hidden" name="userId" value={user.id} />
-                              <input
-                                type="hidden"
-                                name="isAdmin"
-                                value={user.isAdmin ? "false" : "true"}
-                              />
-                              <button
-                                type="submit"
-                                disabled={user.id === currentAdmin.id && user.isAdmin}
-                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                                  user.id === currentAdmin.id && user.isAdmin
-                                    ? "cursor-not-allowed border border-hairline bg-page text-ink-4"
-                                    : user.isAdmin
-                                      ? "border border-hairline bg-white text-ink-2 hover:bg-page"
-                                      : "bg-brand text-white hover:bg-red-600"
-                                }`}
-                              >
-                                {user.isAdmin
-                                  ? user.id === currentAdmin.id
-                                    ? "본인"
-                                    : "권한 회수"
-                                  : "관리자 부여"}
-                              </button>
-                            </form>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-2.5 text-right">
                             <button
-                              form={editFormId}
                               type="submit"
-                              className="rounded-lg bg-ink px-3 py-1.5 text-xs font-bold text-white transition hover:bg-black"
+                              disabled={user.id === currentAdmin.id && user.isAdmin}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                                user.id === currentAdmin.id && user.isAdmin
+                                  ? "cursor-not-allowed border border-hairline bg-page text-ink-4"
+                                  : user.isAdmin
+                                    ? "border border-hairline bg-white text-ink-2 hover:bg-page"
+                                    : "bg-brand text-white hover:bg-red-600"
+                              }`}
                             >
-                              저장
+                              {user.isAdmin
+                                ? user.id === currentAdmin.id
+                                  ? "본인"
+                                  : "권한 회수"
+                                : "관리자 부여"}
                             </button>
-                          </td>
-                        </tr>
-                      );
-                    })
+                          </form>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-right text-ink-3">
+                          {formatDate(user.latestAt)}
+                        </td>
+                      </tr>
+                    ))
                   ) : (
                     <tr>
                       <td
@@ -991,249 +861,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         className="px-5 py-10 text-center text-sm text-ink-3"
                       >
                         조건에 맞는 회원이 없습니다.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
-      ) : (
-        <>
-          <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-            <div className="metric-card px-5 py-4">
-              <p className="text-xs font-medium text-ink-3">전체 응시</p>
-              <p className="mt-1.5 text-3xl font-bold tracking-tight text-ink">
-                {attemptRows.length}건
-              </p>
-              <p className="mt-1 text-xs text-ink-3">시작 기록 전체</p>
-            </div>
-            <div className="metric-card px-5 py-4">
-              <p className="text-xs font-medium text-ink-3">검색 결과</p>
-              <p className="mt-1.5 text-3xl font-bold tracking-tight text-ink">
-                {filteredAttempts.length}건
-              </p>
-              <p className="mt-1 text-xs text-ink-3">현재 필터 적용</p>
-            </div>
-            <div className="metric-card px-5 py-4">
-              <p className="text-xs font-medium text-ink-3">완료</p>
-              <p className="mt-1.5 text-3xl font-bold tracking-tight text-ink">
-                {completedAttempts.length}건
-              </p>
-              <p className="mt-1 text-xs text-ink-3">결과 산출 가능</p>
-            </div>
-            <div className="metric-card px-5 py-4">
-              <p className="text-xs font-medium text-ink-3">진행/이탈</p>
-              <p className="mt-1.5 text-3xl font-bold tracking-tight text-ink">
-                {abandonedAttempts.length}건
-              </p>
-              <p className="mt-1 text-xs text-ink-3">미완료 기록</p>
-            </div>
-          </section>
-
-          <section className="chart-card p-5">
-            <form className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_140px_120px_140px_140px_auto_auto]">
-              <input type="hidden" name="tab" value="attempts" />
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                  검색
-                </span>
-                <input
-                  name="q"
-                  defaultValue={userQuery}
-                  placeholder="이름, 아이디, 시험명"
-                  className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                  캠퍼스
-                </span>
-                <select
-                  name="campus"
-                  defaultValue={campusFilter}
-                  className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                >
-                  <option value="all">전체</option>
-                  {CAMPUSES.map((campus) => (
-                    <option key={campus} value={campus}>
-                      {campus}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                  반
-                </span>
-                <select
-                  name="classNumber"
-                  defaultValue={classFilter}
-                  className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                >
-                  <option value="all">전체</option>
-                  {classOptions.map((classNumber) => (
-                    <option key={classNumber} value={classNumber}>
-                      {classNumber}반
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                  이메일
-                </span>
-                <select
-                  name="verified"
-                  defaultValue={verifyFilter}
-                  className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                >
-                  <option value="all">전체</option>
-                  <option value="verified">인증 완료</option>
-                  <option value="unverified">미인증</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                  권한
-                </span>
-                <select
-                  name="role"
-                  defaultValue={roleFilter}
-                  className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                >
-                  <option value="all">전체</option>
-                  <option value="admin">관리자</option>
-                  <option value="user">일반</option>
-                </select>
-              </label>
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  className="h-10 w-full rounded-lg bg-brand px-4 text-sm font-bold text-white shadow-sm transition hover:bg-red-600"
-                >
-                  적용
-                </button>
-              </div>
-              <div className="flex items-end">
-                <Link
-                  href="/admin?tab=attempts"
-                  className="flex h-10 w-full items-center justify-center rounded-lg border border-hairline bg-white px-4 text-sm font-bold text-ink-2 transition hover:bg-page"
-                >
-                  초기화
-                </Link>
-              </div>
-            </form>
-          </section>
-
-          <section className="chart-card overflow-hidden">
-            <div className="border-b border-hairline px-5 py-4">
-              <h2 className="text-sm font-semibold text-ink">응시 내역</h2>
-              <p className="mt-1 text-xs text-ink-3">
-                완료/미완료 응시 기록을 확인하고 필요 시 삭제합니다.
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="data-table min-w-[1180px] text-left text-[13px]">
-                <thead>
-                  <tr>
-                    <th className="whitespace-nowrap px-4 py-2.5 font-semibold first:rounded-tl-2xl">
-                      시작
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-2.5 font-semibold">
-                      사용자
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-2.5 font-semibold">
-                      시험
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold">
-                      상태
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold">
-                      점수
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold">
-                      소요시간
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold">
-                      완료
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold last:rounded-tr-2xl">
-                      관리
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAttempts.length ? (
-                    filteredAttempts.map((attempt) => (
-                      <tr key={attempt.id} className="align-top">
-                        <td className="whitespace-nowrap px-4 py-2.5 text-ink-3">
-                          {formatDate(attempt.startedAt)}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <p className="font-semibold text-ink">
-                            {attempt.name}
-                            {attempt.isAdmin && (
-                              <span className="ml-2 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-brand">
-                                관리자
-                              </span>
-                            )}
-                          </p>
-                          <p className="mt-1 text-[11px] text-ink-3">
-                            {attempt.nickname} · {attempt.campus} {attempt.classNumber}반
-                          </p>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <p className="max-w-[360px] truncate font-semibold text-ink" title={attempt.examTitle}>
-                            {attempt.examTitle}
-                          </p>
-                          <p className="mt-1 text-[11px] text-ink-3">
-                            attempt #{attempt.id}
-                          </p>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                          <span
-                            className={`rounded-full px-2 py-1 text-[11px] font-bold ${
-                              attempt.finishedAt
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-amber-50 text-amber-700"
-                            }`}
-                          >
-                            {attempt.status}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
-                          {attempt.finishedAt
-                            ? `${attempt.score}/${attempt.totalQuestions}`
-                            : "-"}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
-                          {formatMinutes(attempt.duration)}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-right text-ink-3">
-                          {formatDate(attempt.finishedAt)}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                          <form action={deleteAttemptRecord}>
-                            <input type="hidden" name="attemptId" value={attempt.id} />
-                            <button
-                              type="submit"
-                              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-brand transition hover:bg-red-100"
-                            >
-                              기록 삭제
-                            </button>
-                          </form>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-5 py-10 text-center text-sm text-ink-3"
-                      >
-                        조건에 맞는 응시 기록이 없습니다.
                       </td>
                     </tr>
                   )}

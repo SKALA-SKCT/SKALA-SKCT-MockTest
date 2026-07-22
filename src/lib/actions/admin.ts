@@ -3,19 +3,8 @@
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import {
-  attempts,
-  CAMPUSES,
-  maxClassForCampus,
-  responses,
-  users,
-  type Campus,
-} from "@/db/schema";
+import { users } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
-
-function validateEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 function normalizeId(formData: FormData, key: string) {
   const id = Number(formData.get(key));
@@ -54,91 +43,6 @@ export async function setUserAdminRole(formData: FormData) {
     .update(users)
     .set({ isAdmin: nextIsAdmin })
     .where(eq(users.id, targetUserId));
-
-  revalidatePath("/admin");
-}
-
-export async function updateUserInfo(formData: FormData) {
-  await requireAdmin();
-  const targetUserId = normalizeId(formData, "userId");
-  const nickname = String(formData.get("nickname") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const campus = String(formData.get("campus") ?? "").trim();
-  const classNumber = Number(formData.get("classNumber"));
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const emailVerified = formData.get("emailVerified") === "true";
-
-  if (nickname.length < 1 || nickname.length > 12) {
-    throw new Error("아이디는 1~12자로 입력해주세요.");
-  }
-  if (name.length < 1 || name.length > 20) {
-    throw new Error("이름은 1~20자로 입력해주세요.");
-  }
-  if (!CAMPUSES.includes(campus as Campus)) {
-    throw new Error("캠퍼스를 선택해주세요.");
-  }
-  const maxClass = maxClassForCampus(campus as Campus);
-  if (!Number.isInteger(classNumber) || classNumber < 1 || classNumber > maxClass) {
-    throw new Error(`${campus} 캠퍼스는 1~${maxClass}반까지 선택할 수 있습니다.`);
-  }
-  if (email && !validateEmail(email)) {
-    throw new Error("이메일을 올바르게 입력해주세요.");
-  }
-
-  const [target] = await db
-    .select({ id: users.id, emailVerifiedAt: users.emailVerifiedAt })
-    .from(users)
-    .where(eq(users.id, targetUserId));
-  if (!target) throw new Error("사용자를 찾을 수 없습니다.");
-
-  const [nicknameOwner] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.nickname, nickname));
-  if (nicknameOwner && nicknameOwner.id !== targetUserId) {
-    throw new Error("이미 사용 중인 아이디입니다.");
-  }
-
-  if (email) {
-    const [emailOwner] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, email));
-    if (emailOwner && emailOwner.id !== targetUserId) {
-      throw new Error("이미 사용 중인 이메일입니다.");
-    }
-  }
-
-  await db
-    .update(users)
-    .set({
-      nickname,
-      name,
-      campus: campus as Campus,
-      classNumber,
-      email: email || null,
-      emailVerifiedAt: email
-        ? emailVerified
-          ? (target.emailVerifiedAt ?? new Date())
-          : null
-        : null,
-    })
-    .where(eq(users.id, targetUserId));
-
-  revalidatePath("/admin");
-}
-
-export async function deleteAttemptRecord(formData: FormData) {
-  await requireAdmin();
-  const attemptId = normalizeId(formData, "attemptId");
-  const [target] = await db
-    .select({ id: attempts.id })
-    .from(attempts)
-    .where(eq(attempts.id, attemptId));
-  if (!target) throw new Error("응시 기록을 찾을 수 없습니다.");
-
-  await db.delete(responses).where(eq(responses.attemptId, attemptId));
-  await db.delete(attempts).where(eq(attempts.id, attemptId));
 
   revalidatePath("/admin");
 }
