@@ -260,22 +260,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     최고: scorePercent(row.bestScore, row.totalQuestions),
     최저: scorePercent(row.lowestScore, row.totalQuestions),
   }));
-  const subjectChartData = SUBJECTS.map((subject) => {
-    const totals = completedAttempts.reduce(
-      (acc, attempt) => {
-        const total = totalByExamSubject.get(`${attempt.examId}:${subject}`) ?? 0;
-        return {
-          correct: acc.correct + (correctOf.get(`${attempt.id}:${subject}`) ?? 0),
-          total: acc.total + total,
-        };
-      },
-      { correct: 0, total: 0 }
-    );
-    return {
-      subject,
-      평균정답률: totals.total ? Math.round((totals.correct / totals.total) * 100) : 0,
-    };
-  });
 
   const groupScores = completedAttempts.reduce<
     Record<string, { completed: number; scoreSum: number }>
@@ -528,9 +512,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
       <AdminCharts
         examData={examChartData}
-        subjectData={subjectChartData}
-        campusData={campusChartData}
-        classData={classChartData}
       />
 
       <section>
