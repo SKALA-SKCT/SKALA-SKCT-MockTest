@@ -25,7 +25,9 @@ export async function sendMail({ to, subject, text }: MailOptions) {
 
   if (!host || !user || !pass || !from) {
     if (process.env.NODE_ENV !== "production") {
-      console.log(`[mail:dev] to=${to}\nsubject=${subject}\n${text}`);
+      console.warn(
+        "[mail:dev] SMTP is not configured; email delivery was skipped."
+      );
       return;
     }
     throw new Error("메일 발송 설정이 필요합니다.");
