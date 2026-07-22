@@ -102,6 +102,7 @@ Security notes:
 - Admin role cannot be removed from yourself through the admin action.
 - The last admin cannot be demoted.
 - Never expose password hashes, auth tokens, verification codes, or reset links in logs or UI.
+- Supabase public schema tables must have RLS enabled. The app uses server-side Postgres access, so RLS is enabled without public anon/authenticated policies unless a future browser-side Supabase client is intentionally introduced.
 
 ## Exam Data
 
@@ -184,6 +185,7 @@ Always update this `AGENTS.md` when you change:
 
 - Routes or major UI behavior.
 - Data schema or migrations.
+- Supabase RLS status or database security posture.
 - Auth, email, security, or logging behavior.
 - Exam flow, scoring, attempts, responses, or import behavior.
 - Deployment URL, alias rules, or Vercel/Supabase process.

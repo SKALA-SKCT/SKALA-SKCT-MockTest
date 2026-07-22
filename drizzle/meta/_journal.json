@@ -43,6 +43,13 @@
       "when": 1784609616629,
       "tag": "0005_hesitant_midnight",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784684322030,
+      "tag": "0006_enable_public_rls",
+      "breakpoints": true
     }
   ]
 }
