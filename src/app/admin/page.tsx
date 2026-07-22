@@ -18,6 +18,7 @@ import {
   updateUserInfo,
 } from "@/lib/actions/admin";
 import AdminCharts from "@/components/AdminCharts";
+import AdminAnalytics from "@/components/AdminAnalytics";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,7 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 function normalizeTab(value: string | undefined) {
-  return value === "users" ? value : "stats";
+  return value === "users" || value === "analytics" ? value : "stats";
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -470,6 +471,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         >
           회원
         </Link>
+        <Link
+          href="/admin?tab=analytics"
+          className={`border-b-2 px-4 py-3 text-sm font-bold transition ${
+            activeTab === "analytics"
+              ? "border-brand text-brand"
+              : "border-transparent text-ink-3 hover:text-ink"
+          }`}
+        >
+          분석
+        </Link>
       </nav>
 
       {activeTab === "stats" ? (
@@ -671,6 +682,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
       </section>
         </>
+      ) : activeTab === "analytics" ? (
+        <AdminAnalytics />
       ) : (
         <>
           <section className="grid grid-cols-2 gap-4 xl:grid-cols-3">

@@ -52,6 +52,8 @@ Required variables are documented in `.env.example`.
 
 - `DATABASE_URL`: Postgres connection string.
 - `DATABASE_SSL`: `true` for Supabase/Vercel production connections.
+- `NEXT_PUBLIC_GTM_ID`: Google Tag Manager container ID; GA4 tracking is configured inside GTM.
+- `GA4_PROPERTY_ID`, `GA4_CLIENT_EMAIL`, `GA4_PRIVATE_KEY`: server-only Google service account settings used by the admin analytics tab.
 - `DB_POOL_MAX`: keep low on serverless, usually `2`.
 - `SESSION_SECRET`: long random secret for session cookies.
 - SMTP variables are needed for real email delivery.
