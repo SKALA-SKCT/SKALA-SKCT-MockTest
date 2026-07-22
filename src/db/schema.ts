@@ -140,6 +140,9 @@ export const responses = pgTable(
       .references(() => questions.id, { onDelete: "cascade" }),
     choice: integer("choice"), // 1-based, null = 무응답
     isCorrect: boolean("is_correct").notNull().default(false),
+    timeSpentSeconds: integer("time_spent_seconds").notNull().default(0),
+    questionStartedAt: timestamp("question_started_at", { withTimezone: true }),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
   },
   (t) => [
     uniqueIndex("uq_response").on(t.attemptId, t.questionId),

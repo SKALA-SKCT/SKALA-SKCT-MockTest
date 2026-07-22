@@ -113,6 +113,15 @@ body {
   border-radius: 14px;
 }
 
+.review-chevron {
+  display: inline-block;
+  transition: transform 160ms ease;
+}
+
+details[open] .review-chevron {
+  transform: rotate(90deg);
+}
+
 .data-table {
   width: 100%;
   border-collapse: separate;

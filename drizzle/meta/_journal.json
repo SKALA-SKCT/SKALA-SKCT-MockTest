@@ -50,6 +50,13 @@
       "when": 1784684322030,
       "tag": "0006_enable_public_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784710000000,
+      "tag": "0007_add_response_timing",
+      "breakpoints": true
     }
   ]
 }

@@ -137,10 +137,14 @@ Key components:
 - The account modal contains user info editing, campus/class edit, an `관리자 권한` row with a right-aligned oval toggle below the campus/class fields, a bottom-aligned info save button, and attempt record deletion. Email verification state is preserved when saving user info but is not edited in the modal UI.
 - The account modal's attempt table always renders all 12 exam rounds; rounds without a record show as not attempted and have no delete action.
 - Do not add a separate `응시 내역` admin tab unless explicitly requested.
+- The result page places a `ResultStrategyAnalysis` card below the score summary and automatically calls `/api/ai/result-analysis` once per result view using score, subject accuracy, unanswered count, easy-question mistakes, section/question elapsed time, and question difficulty data. The route requires the server-only `GEMINI_API_KEY`, calls `gemini-3-flash-preview` by default, validates the JSON response shape, retries Gemini once when malformed, and shows an error instead of mock data when Gemini remains unavailable.
+- The result page shows a Gemini strategy analysis at the top and displays each question's elapsed time in the review list, including time spent before leaving an unanswered question. It does not show separate section-time or 12-attempt trend cards. Review filters include easy-question mistakes and unanswered questions; there is no hard-question-success filter.
 
 ## Deployment
 
 The project is linked to Vercel project `skala-skct` under `pkm021118s-projects`.
+The only user-facing production URL is `https://skala-skct.vercel.app`.
+Never use, report, or link the generated Vercel URL `skct-mauve.vercel.app`.
 
 Preferred deployment flow:
 
@@ -154,7 +158,8 @@ vercel deploy --prod --yes --scope pkm021118s-projects
 vercel alias set <deployment-url> skala-skct.vercel.app --scope pkm021118s-projects
 ```
 
-After deployment, remove extra SKCT aliases if Vercel recreates them:
+After deployment, remove extra SKCT aliases if Vercel recreates them. The
+generated Vercel URL must not be presented as the production address:
 
 ```bash
 vercel alias rm skct-mauve.vercel.app --yes --scope pkm021118s-projects

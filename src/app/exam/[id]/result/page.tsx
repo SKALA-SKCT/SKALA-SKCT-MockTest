@@ -14,6 +14,9 @@ import { requireUser } from "@/lib/session";
 import SubjectRadar from "@/components/SubjectRadar";
 import ScoreDistributionChart from "@/components/ScoreDistributionChart";
 import ResultReview, { type ReviewQuestion } from "@/components/ResultReview";
+import ResultStrategyAnalysis, {
+  type StrategyAnalysisInput,
+} from "@/components/ResultStrategyAnalysis";
 
 export const dynamic = "force-dynamic";
 
@@ -212,6 +215,7 @@ export default async function ResultPage({
     .select()
     .from(responses)
     .where(eq(responses.attemptId, myAttempt.id));
+  const myResponseByQ = new Map(myResponses.map((r) => [r.questionId, r]));
   const myChoiceByQ = new Map(myResponses.map((r) => [r.questionId, r.choice]));
 
   // 레이더 데이터: 과목별 정답률(%) 나 vs 전체 평균
@@ -262,6 +266,19 @@ export default async function ResultPage({
 
   const reviewQuestions: ReviewQuestion[] = qs.map((q) => {
     const myChoice = myChoiceByQ.get(q.id) ?? null;
+    const response = myResponseByQ.get(q.id);
+    const elapsedSeconds = response
+      ? response.timeSpentSeconds +
+        (response.questionStartedAt && response.answeredAt
+          ? Math.max(
+              0,
+              Math.round(
+                (response.answeredAt.getTime() - response.questionStartedAt.getTime()) /
+                  1000
+              )
+            )
+          : 0)
+      : 0;
     const groupAccuracy = n
       ? Math.round(((correctCountByQ.get(q.id) ?? 0) / n) * 100)
       : 0;
@@ -280,6 +297,7 @@ export default async function ResultPage({
       answer: q.answer,
       explanation: q.explanation,
       myChoice,
+      elapsedSeconds,
       isCorrect: myChoice === q.answer,
       groupAccuracy,
       peerWrongRate,
@@ -296,12 +314,52 @@ export default async function ResultPage({
       subject,
       mine: myScore.bySubject.get(subject) ?? 0,
       total: totalBySubject.get(subject) ?? 0,
+      elapsedSeconds: subjectQuestions.reduce(
+        (sum, question) => sum + (question.elapsedSeconds ?? 0),
+        0
+      ),
       hardQuestions:
         [...subjectQuestions]
           .filter((q) => q.peerWrongRate != null)
           .sort((a, b) => (b.peerWrongRate ?? 0) - (a.peerWrongRate ?? 0)),
     };
   });
+
+  const strategyInput: StrategyAnalysisInput = {
+    examTitle: exam.title,
+    score: myScore.total,
+    total: totalQuestions,
+    rank,
+    participants: n,
+    unanswered: reviewQuestions.filter((q) => q.myChoice == null).length,
+    easyMistakes: reviewQuestions.filter(
+      (q) => !q.isCorrect && q.myChoice != null && q.groupAccuracy >= 70
+    ).length,
+    subjects: radarData.map((subject) => ({
+      subject: subject.subject,
+      score: myScore.bySubject.get(subject.subject) ?? 0,
+      total: totalBySubject.get(subject.subject) ?? 0,
+      accuracy: subject.나,
+      averageAccuracy: subject.그룹평균,
+      elapsedSeconds:
+        reviewQuestions
+          .filter((q) => q.subject === subject.subject)
+          .reduce((sum, q) => sum + (q.elapsedSeconds ?? 0), 0),
+    })),
+    questions: reviewQuestions.map((q) => ({
+      subject: q.subject,
+      number: q.number,
+      status: q.myChoice == null ? "미응답" : q.isCorrect ? "정답" : "오답",
+      elapsedSeconds: q.elapsedSeconds ?? 0,
+      peerWrongRate: q.peerWrongRate,
+      difficulty:
+        q.peerWrongRate == null
+          ? "분석 불가"
+          : q.peerWrongRate >= 50
+            ? "고오답률"
+            : "저오답률",
+    })),
+  };
 
   return (
     <div>
@@ -370,6 +428,8 @@ export default async function ResultPage({
           </p>
         </div>
       </div>
+
+      <ResultStrategyAnalysis input={strategyInput} />
 
       <div className="chart-card mb-6 p-5">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">

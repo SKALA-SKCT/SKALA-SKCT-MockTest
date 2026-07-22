@@ -103,7 +103,14 @@ export default function AuthForm({
   };
 
   return (
-    <div className="relative mx-auto mt-24 w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
+    <div
+      className={
+        isRegister
+          ? ""
+          : "flex min-h-[calc(100vh-10rem)] items-center justify-center"
+      }
+    >
+      <div className="relative mx-auto mt-24 w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
       {isRegister && (
         <button
           type="button"
@@ -333,6 +340,7 @@ export default function AuthForm({
           {altLabel}
         </Link>
       </p>
+      </div>
     </div>
   );
 }

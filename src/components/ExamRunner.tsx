@@ -11,6 +11,7 @@ import {
   abandonAttempt,
   finishSection,
   saveAnswer,
+  startQuestion,
   startSection,
 } from "@/lib/actions/exam";
 import Calculator from "@/components/exam/Calculator";
@@ -202,6 +203,12 @@ export default function ExamRunner({
       window.removeEventListener("beforeunload", cleanupAttempt);
     };
   }, [examId]);
+
+  const activeQuestionId = section ? sectionQuestions[idx]?.id ?? null : null;
+  useEffect(() => {
+    if (!activeQuestionId) return;
+    void startQuestion(examId, activeQuestionId);
+  }, [activeQuestionId, examId]);
 
   if (!currentSubject) {
     return (

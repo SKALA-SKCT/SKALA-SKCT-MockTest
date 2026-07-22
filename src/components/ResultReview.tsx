@@ -11,7 +11,12 @@ import {
 } from "@/lib/question-text";
 
 const CIRCLED = ["①", "②", "③", "④", "⑤"];
-type ReviewFilter = "all" | "wrong" | "correct";
+type ReviewFilter =
+  | "all"
+  | "wrong"
+  | "correct"
+  | "easy-mistake"
+  | "unanswered";
 
 export type ReviewQuestion = {
   id: number;
@@ -25,6 +30,7 @@ export type ReviewQuestion = {
   explanation: string | null;
   myChoice: number | null;
   isCorrect: boolean;
+  elapsedSeconds: number | null;
   groupAccuracy: number;
   peerWrongRate: number | null;
   choiceRates: number[] | null;
@@ -34,6 +40,7 @@ type SubjectSummary = {
   subject: string;
   mine: number;
   total: number;
+  elapsedSeconds: number;
   hardQuestions: ReviewQuestion[];
 };
 
@@ -43,6 +50,7 @@ type HardQuestionPreview = {
   subject: string;
   wrongRate: number;
   note: string;
+  elapsedSeconds: number | null;
   isSample: boolean;
 };
 
@@ -60,10 +68,23 @@ function ResultPill({ question }: { question: ReviewQuestion }) {
   );
 }
 
+function formatElapsedSeconds(value: number | null) {
+  if (value == null) return "풀이 0초";
+  const minutes = Math.floor(value / 60);
+  const seconds = value % 60;
+  return `풀이 ${minutes > 0 ? `${minutes}분 ` : ""}${String(seconds).padStart(2, "0")}초`;
+}
+
+function formatSubjectElapsedSeconds(value: number) {
+  const minutes = Math.floor(value / 60);
+  const seconds = value % 60;
+  return `풀이 ${minutes}분 ${String(seconds).padStart(2, "0")}초`;
+}
+
 function WrongRate({ value }: { value: number | null }) {
   return (
     <span className={value != null && value >= 50 ? "text-red-500" : "text-zinc-400"}>
-      기준 오답률 {value == null ? "-" : `${value}%`}
+      응시자 오답률 {value == null ? "-" : `${value}%`}
     </span>
   );
 }
@@ -134,10 +155,10 @@ function QuestionCard({
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
         <ResultPill question={question} />
         <span className="font-medium text-zinc-500">문제 {question.number}</span>
-        <span className="ml-auto font-medium text-zinc-400">
-          전체 정답 점수 {question.groupAccuracy}점
+        <span className="font-semibold text-zinc-500">
+          {formatElapsedSeconds(question.elapsedSeconds)}
         </span>
-        <span className="font-medium">
+        <span className="ml-auto font-medium">
           <WrongRate value={question.peerWrongRate} />
         </span>
       </div>
@@ -277,7 +298,9 @@ export default function ResultReview({
             q.subject === subject.subject &&
             (reviewFilter === "all" ||
               (reviewFilter === "wrong" && !q.isCorrect) ||
-              (reviewFilter === "correct" && q.isCorrect))
+              (reviewFilter === "correct" && q.isCorrect) ||
+              (reviewFilter === "easy-mistake" && !q.isCorrect && q.myChoice != null && q.groupAccuracy >= 70) ||
+              (reviewFilter === "unanswered" && q.myChoice == null))
         ),
       })),
     [questions, subjects, reviewFilter]
@@ -292,6 +315,7 @@ export default function ResultReview({
         subject: question.subject,
         wrongRate: question.peerWrongRate ?? 0,
         note: question.isCorrect ? "정답 문항" : question.myChoice == null ? "무응답 문항" : "오답 문항",
+        elapsedSeconds: question.elapsedSeconds,
         isSample: false,
       }));
       map.set(subject.subject, actual);
@@ -301,6 +325,10 @@ export default function ResultReview({
 
   const wrongCount = questions.filter((q) => !q.isCorrect).length;
   const correctCount = questions.length - wrongCount;
+  const easyMistakeCount = questions.filter(
+    (q) => !q.isCorrect && q.myChoice != null && q.groupAccuracy >= 70
+  ).length;
+  const unansweredCount = questions.filter((q) => q.myChoice == null).length;
 
   const jumpToQuestion = (question: HardQuestionPreview) => {
     setReviewFilter("all");
@@ -347,7 +375,7 @@ export default function ResultReview({
                       <li
                         key={`${q.id}-${index}`}
                       >
-                        <button
+                      <button
                           type="button"
                           onClick={() => jumpToQuestion(q)}
                           className="w-full rounded-xl border border-white bg-white px-3 py-2 text-left text-xs shadow-sm transition hover:border-[#f4d4ce] hover:bg-[#fff7f5]"
@@ -360,7 +388,9 @@ export default function ResultReview({
                               {q.wrongRate}%
                             </span>
                           </div>
-                          <p className="mt-1 leading-4 text-zinc-400">{q.note}</p>
+                          <p className="mt-1 leading-4 text-zinc-400">
+                            {q.note} · {formatElapsedSeconds(q.elapsedSeconds)}
+                          </p>
                         </button>
                       </li>
                     ))}
@@ -384,7 +414,7 @@ export default function ResultReview({
               문제 원문, 자료, 보기, 해설을 함께 확인합니다.
             </p>
           </div>
-          <div className="rounded-xl border border-hairline bg-white p-1 text-xs font-semibold shadow-sm">
+          <div className="flex flex-wrap rounded-xl border border-hairline bg-white p-1 text-xs font-semibold shadow-sm">
             <button
               type="button"
               onClick={() => setReviewFilter("all")}
@@ -412,6 +442,24 @@ export default function ResultReview({
             >
               맞춘 문제 {correctCount}
             </button>
+            <button
+              type="button"
+              onClick={() => setReviewFilter("easy-mistake")}
+              className={`rounded-lg px-3 py-1.5 ${
+                reviewFilter === "easy-mistake" ? "bg-brand text-white" : "text-zinc-500"
+              }`}
+            >
+              쉬운 문제 실수 {easyMistakeCount}
+            </button>
+            <button
+              type="button"
+              onClick={() => setReviewFilter("unanswered")}
+              className={`rounded-lg px-3 py-1.5 ${
+                reviewFilter === "unanswered" ? "bg-[#8f7d73] text-white" : "text-zinc-500"
+              }`}
+            >
+              미응답 {unansweredCount}
+            </button>
           </div>
         </div>
 
@@ -433,11 +481,19 @@ export default function ResultReview({
               }}
               className="chart-card"
             >
-              <summary className="cursor-pointer select-none px-5 py-4 font-semibold">
-                {subject.subject}{" "}
-                <span className="ml-1 text-sm font-normal text-zinc-400">
+              <summary className="flex cursor-pointer select-none items-center px-5 py-4 font-semibold">
+                <span aria-hidden="true" className="review-chevron mr-3 text-lg font-bold leading-none text-ink-2">
+                  ▸
+                </span>
+                <span>
+                  {subject.subject}{" "}
+                  <span className="ml-1 text-sm font-normal text-zinc-400">
                   {subject.mine}/{subject.total}
                   {reviewFilter !== "all" && ` · 표시 ${subject.questions.length}문항`}
+                  </span>
+                </span>
+                <span className="ml-auto text-sm font-normal text-zinc-400">
+                  {formatSubjectElapsedSeconds(subject.elapsedSeconds)}
                 </span>
               </summary>
               <div className="divide-y divide-zinc-100 border-t border-zinc-100">

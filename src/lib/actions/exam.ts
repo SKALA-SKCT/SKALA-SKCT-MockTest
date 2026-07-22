@@ -132,6 +132,71 @@ function sectionActive(state: SectionState, subject: Subject): boolean {
   return Date.now() < endsAt;
 }
 
+async function closeOpenQuestionTimers(attemptId: number) {
+  const now = new Date();
+  const openResponses = await db
+    .select({
+      id: responses.id,
+      startedAt: responses.questionStartedAt,
+      timeSpentSeconds: responses.timeSpentSeconds,
+    })
+    .from(responses)
+    .where(
+      and(
+        eq(responses.attemptId, attemptId),
+        isNotNull(responses.questionStartedAt)
+      )
+    );
+
+  for (const response of openResponses) {
+    const additionalSeconds = response.startedAt
+      ? Math.max(0, Math.round((now.getTime() - response.startedAt.getTime()) / 1000))
+      : 0;
+    await db
+      .update(responses)
+      .set({
+        timeSpentSeconds: response.timeSpentSeconds + additionalSeconds,
+        questionStartedAt: null,
+        answeredAt: now,
+      })
+      .where(eq(responses.id, response.id));
+  }
+}
+
+/** 문항을 처음 열었을 때 시작 시각 저장 */
+export async function startQuestion(examId: number, questionId: number) {
+  if (!isValidId(examId) || !isValidId(questionId)) return { ok: false };
+  const user = await requireUser();
+  const attempt = await getMyAttempt(user.id, examId);
+  if (!attempt || attempt.finishedAt) return { ok: false };
+
+  const [q] = await db
+    .select()
+    .from(questions)
+    .where(and(eq(questions.id, questionId), eq(questions.examId, examId)));
+  if (!q || !sectionActive(attempt.sectionState, q.subject)) return { ok: false };
+
+  // 자유 이동 시 현재까지의 각 문항 체류 구간을 닫고 다음 문항을 시작한다.
+  await closeOpenQuestionTimers(attempt.id);
+
+  const startedAt = new Date();
+  await db
+    .insert(responses)
+    .values({
+      attemptId: attempt.id,
+      questionId,
+      choice: null,
+      isCorrect: false,
+      timeSpentSeconds: 0,
+      questionStartedAt: startedAt,
+    })
+    .onConflictDoUpdate({
+      target: [responses.attemptId, responses.questionId],
+      set: { questionStartedAt: startedAt, answeredAt: null },
+    });
+  return { ok: true };
+}
+
 /** 답안 저장(문항 단위 즉시 저장) */
 export async function saveAnswer(
   examId: number,
@@ -159,7 +224,13 @@ export async function saveAnswer(
   const isCorrect = choice != null && choice === q.answer;
   await db
     .insert(responses)
-    .values({ attemptId: attempt.id, questionId, choice, isCorrect })
+    .values({
+      attemptId: attempt.id,
+      questionId,
+      choice,
+      isCorrect,
+      timeSpentSeconds: 0,
+    })
     .onConflictDoUpdate({
       target: [responses.attemptId, responses.questionId],
       set: { choice, isCorrect },
@@ -183,6 +254,8 @@ export async function finishSection(examId: number, subject: Subject) {
   if (s && !s.finishedAt) {
     state[subject] = { ...s, finishedAt: new Date().toISOString() };
   }
+
+  await closeOpenQuestionTimers(attempt.id);
 
   // 이 시험에 실제로 존재하는 과목들 기준으로 완주 여부 판단
   const examSubjects = await db
