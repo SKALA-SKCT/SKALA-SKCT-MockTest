@@ -131,10 +131,11 @@ Key components:
 ## Admin Page Current Behavior
 
 - `통계`: overall exam/user/completion statistics.
-- `회원`: member list, filters, email verification status display, and attempt summary.
+- `회원`: member list, filters, and attempt summary.
 - The member list table should keep aligned fixed columns. Account names are clickable.
 - Clicking an account opens a server-rendered modal via the `userId` query param.
-- The account modal contains user info editing, email verification toggle, campus/class edit, admin role grant/revoke, and attempt record deletion.
+- The account modal contains user info editing, campus/class edit, an `관리자 권한` row with a right-aligned oval toggle below the campus/class fields, a bottom-aligned info save button, and attempt record deletion. Email verification state is preserved when saving user info but is not edited in the modal UI.
+- The account modal's attempt table always renders all 12 exam rounds; rounds without a record show as not attempted and have no delete action.
 - Do not add a separate `응시 내역` admin tab unless explicitly requested.
 
 ## Deployment

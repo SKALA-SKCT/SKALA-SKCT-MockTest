@@ -85,7 +85,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const userQuery = (firstParam(params.q) ?? "").trim();
   const campusFilter = firstParam(params.campus) ?? "all";
   const classFilter = firstParam(params.classNumber) ?? "all";
-  const verifyFilter = firstParam(params.verified) ?? "all";
   const roleFilter = firstParam(params.role) ?? "all";
   const selectedUserId = Number(firstParam(params.userId) ?? "");
 
@@ -375,8 +374,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       if (normalizedQuery && !searchable.includes(normalizedQuery)) return false;
       if (campusFilter !== "all" && user.campus !== campusFilter) return false;
       if (classFilter !== "all" && user.classNumber !== Number(classFilter)) return false;
-      if (verifyFilter === "verified" && !user.emailVerifiedAt) return false;
-      if (verifyFilter === "unverified" && user.emailVerifiedAt) return false;
       if (roleFilter === "admin" && !user.isAdmin) return false;
       if (roleFilter === "user" && user.isAdmin) return false;
       return true;
@@ -408,13 +405,26 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           };
         })
     : [];
+  const selectedUserExamRows = selectedUser
+    ? examList.map((exam) =>
+        selectedUserAttempts.find((attempt) => attempt.examId === exam.id) ?? {
+          id: null,
+          examId: exam.id,
+          examTitle: exam.title,
+          startedAt: null,
+          finishedAt: null,
+          score: 0,
+          totalQuestions: totalByExam.get(exam.id) ?? 0,
+          duration: 0,
+        }
+      )
+    : [];
 
   const userTabParams = new URLSearchParams();
   userTabParams.set("tab", "users");
   if (userQuery) userTabParams.set("q", userQuery);
   if (campusFilter !== "all") userTabParams.set("campus", campusFilter);
   if (classFilter !== "all") userTabParams.set("classNumber", classFilter);
-  if (verifyFilter !== "all") userTabParams.set("verified", verifyFilter);
   if (roleFilter !== "all") userTabParams.set("role", roleFilter);
   const userTabHref = `/admin?${userTabParams.toString()}`;
   const userModalHref = (userId: number) => {
@@ -663,7 +673,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </>
       ) : (
         <>
-          <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <section className="grid grid-cols-2 gap-4 xl:grid-cols-3">
             <div className="metric-card px-5 py-4">
               <p className="text-xs font-medium text-ink-3">전체 회원</p>
               <p className="mt-1.5 text-3xl font-bold tracking-tight text-ink">
@@ -679,13 +689,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <p className="mt-1 text-xs text-ink-3">현재 필터 적용</p>
             </div>
             <div className="metric-card px-5 py-4">
-              <p className="text-xs font-medium text-ink-3">이메일 인증</p>
-              <p className="mt-1.5 text-3xl font-bold tracking-tight text-ink">
-                {userRows.filter((user) => user.emailVerifiedAt).length}명
-              </p>
-              <p className="mt-1 text-xs text-ink-3">인증 완료 계정</p>
-            </div>
-            <div className="metric-card px-5 py-4">
               <p className="text-xs font-medium text-ink-3">관리자</p>
               <p className="mt-1.5 text-3xl font-bold tracking-tight text-ink">
                 {userRows.filter((user) => user.isAdmin).length}명
@@ -695,7 +698,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </section>
 
           <section className="chart-card p-5">
-            <form className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_140px_120px_140px_140px_auto_auto]">
+            <form className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_150px_130px_150px_auto_auto]">
               <input type="hidden" name="tab" value="users" />
               <label className="block">
                 <span className="mb-1.5 block text-xs font-semibold text-ink-3">
@@ -715,7 +718,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <select
                   name="campus"
                   defaultValue={campusFilter}
-                  className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
+                  className="select-control h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
                 >
                   <option value="all">전체</option>
                   {CAMPUSES.map((campus) => (
@@ -732,7 +735,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <select
                   name="classNumber"
                   defaultValue={classFilter}
-                  className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
+                  className="select-control h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
                 >
                   <option value="all">전체</option>
                   {classOptions.map((classNumber) => (
@@ -744,26 +747,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                  이메일
-                </span>
-                <select
-                  name="verified"
-                  defaultValue={verifyFilter}
-                  className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                >
-                  <option value="all">전체</option>
-                  <option value="verified">인증 완료</option>
-                  <option value="unverified">미인증</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-semibold text-ink-3">
                   권한
                 </span>
                 <select
                   name="role"
                   defaultValue={roleFilter}
-                  className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
+                  className="select-control h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
                 >
                   <option value="all">전체</option>
                   <option value="admin">관리자</option>
@@ -796,32 +785,35 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 가입 정보와 응시 요약을 함께 확인합니다.
               </p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="data-table min-w-[1120px] table-fixed text-left text-[13px]">
+            <div>
+              <table className="data-table table-fixed text-left text-[13px]">
                 <thead>
                   <tr>
-                    <th className="w-[13%] whitespace-nowrap px-4 py-2.5 font-semibold first:rounded-tl-2xl">
+                    <th className="w-[12%] whitespace-nowrap px-4 py-2.5 font-semibold first:rounded-tl-2xl">
                       가입일
                     </th>
-                    <th className="w-[15%] whitespace-nowrap px-4 py-2.5 font-semibold">
+                    <th className="w-[12%] whitespace-nowrap px-4 py-2.5 font-semibold">
                       계정
                     </th>
-                    <th className="w-[13%] whitespace-nowrap px-4 py-2.5 font-semibold">
+                    <th className="w-[11%] whitespace-nowrap px-4 py-2.5 font-semibold">
                       아이디
                     </th>
-                    <th className="w-[23%] whitespace-nowrap px-4 py-2.5 font-semibold">
+                    <th className="w-[20%] whitespace-nowrap px-4 py-2.5 font-semibold">
                       이메일
                     </th>
-                    <th className="w-[13%] whitespace-nowrap px-4 py-2.5 font-semibold">
+                    <th className="w-[11%] whitespace-nowrap px-4 py-2.5 font-semibold">
                       캠퍼스/반
                     </th>
-                    <th className="w-[8%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">
+                    <th className="w-[7%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">
                       응시
                     </th>
-                    <th className="w-[8%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">
+                    <th className="w-[7%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">
+                      완료
+                    </th>
+                    <th className="w-[6%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">
                       평균
                     </th>
-                    <th className="w-[15%] whitespace-nowrap px-4 py-2.5 text-right font-semibold last:rounded-tr-2xl">
+                    <th className="w-[14%] whitespace-nowrap px-4 py-2.5 text-right font-semibold last:rounded-tr-2xl">
                       최근응시
                     </th>
                   </tr>
@@ -853,9 +845,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           <p className="max-w-[260px] truncate text-ink" title={user.email ?? ""}>
                             {user.email ?? "-"}
                           </p>
-                          <p className="mt-1 text-[11px] text-ink-3">
-                            {user.emailVerifiedAt ? "인증 완료" : "미인증"}
-                          </p>
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5 text-ink">
                           {user.campus} {user.classNumber}반
@@ -882,7 +871,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   ) : (
                     <tr>
                       <td
-                        colSpan={8}
+                        colSpan={9}
                         className="px-5 py-10 text-center text-sm text-ink-3"
                       >
                         조건에 맞는 회원이 없습니다.
@@ -894,14 +883,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </div>
           </section>
           {selectedUser && (
-            <div className="fixed inset-0 z-50 overflow-y-auto bg-black/35 px-4 py-8">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-6">
               <Link
                 href={userTabHref}
                 aria-label="닫기"
                 className="fixed inset-0 cursor-default"
               />
-              <div className="relative mx-auto max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-                <div className="flex items-start justify-between gap-4 border-b border-hairline px-6 py-5">
+              <div className="relative w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                <div className="flex items-start justify-between gap-4 border-b border-hairline px-5 py-4">
                   <div>
                     <p className="text-xs font-bold uppercase text-brand">
                       Account
@@ -909,10 +898,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <h2 className="mt-1 text-2xl font-black text-ink">
                       {selectedUser.name}
                     </h2>
-                    <p className="mt-1 text-sm text-ink-3">
-                      {selectedUser.nickname} · {selectedUser.campus}{" "}
-                      {selectedUser.classNumber}반
-                    </p>
                   </div>
                   <Link
                     href={userTabHref}
@@ -922,16 +907,19 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   </Link>
                 </div>
 
-                <div className="grid gap-6 p-6 lg:grid-cols-[1fr_1.4fr]">
-                  <section className="space-y-4">
-                    <div>
-                      <h3 className="text-sm font-bold text-ink">사용자 정보</h3>
-                      <p className="mt-1 text-xs text-ink-3">
-                        계정 기본 정보와 이메일 인증 상태를 수정합니다.
-                      </p>
-                    </div>
-                    <form action={updateUserInfo} className="grid gap-3">
+                <div className="grid items-start gap-5 p-5 lg:grid-cols-[0.9fr_1.6fr]">
+                  <section className="flex h-full min-h-full flex-col">
+                    <form
+                      id="update-user-info"
+                      action={updateUserInfo}
+                      className="grid gap-2.5"
+                    >
                       <input type="hidden" name="userId" value={selectedUser.id} />
+                      <input
+                        type="hidden"
+                        name="emailVerified"
+                        value={selectedUser.emailVerifiedAt ? "true" : "false"}
+                      />
                       <label className="block">
                         <span className="mb-1.5 block text-xs font-semibold text-ink-3">
                           이름
@@ -964,16 +952,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
                         />
                       </label>
-                      <label className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
-                        <input
-                          type="checkbox"
-                          name="emailVerified"
-                          value="true"
-                          defaultChecked={Boolean(selectedUser.emailVerifiedAt)}
-                          className="h-4 w-4 accent-red-500"
-                        />
-                        이메일 인증 완료
-                      </label>
                       <div className="grid grid-cols-2 gap-3">
                         <label className="block">
                           <span className="mb-1.5 block text-xs font-semibold text-ink-3">
@@ -982,7 +960,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           <select
                             name="campus"
                             defaultValue={selectedUser.campus}
-                            className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
+                            className="select-control h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
                           >
                             {CAMPUSES.map((campus) => (
                               <option key={campus} value={campus}>
@@ -998,7 +976,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           <select
                             name="classNumber"
                             defaultValue={selectedUser.classNumber}
-                            className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
+                            className="select-control h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
                           >
                             {allClassNumbers.map((classNumber) => (
                               <option key={classNumber} value={classNumber}>
@@ -1008,139 +986,142 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           </select>
                         </label>
                       </div>
-                      <button
-                        type="submit"
-                        className="mt-1 h-10 rounded-lg bg-ink px-4 text-sm font-bold text-white transition hover:bg-black"
-                      >
-                        정보 저장
-                      </button>
                     </form>
-
-                    <div className="rounded-xl border border-hairline bg-page p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-bold text-ink">관리자 권한</p>
-                          <p className="mt-1 text-xs text-ink-3">
-                            {selectedUser.isAdmin ? "권한 보유" : "일반 사용자"}
-                          </p>
-                        </div>
-                        <form action={setUserAdminRole}>
-                          <input type="hidden" name="userId" value={selectedUser.id} />
-                          <input
-                            type="hidden"
-                            name="isAdmin"
-                            value={selectedUser.isAdmin ? "false" : "true"}
-                          />
-                          <button
-                            type="submit"
-                            disabled={
-                              selectedUser.id === currentAdmin.id &&
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <span className="text-sm font-bold text-ink">
+                        관리자 권한
+                      </span>
+                      <form action={setUserAdminRole}>
+                        <input
+                          type="hidden"
+                          name="userId"
+                          value={selectedUser.id}
+                        />
+                        <input
+                          type="hidden"
+                          name="isAdmin"
+                          value={selectedUser.isAdmin ? "false" : "true"}
+                        />
+                        <button
+                          type="submit"
+                          disabled={
+                            selectedUser.id === currentAdmin.id &&
+                            selectedUser.isAdmin
+                          }
+                          role="switch"
+                          aria-checked={selectedUser.isAdmin}
+                          aria-label={
+                            selectedUser.isAdmin
+                              ? "관리자 권한 회수"
+                              : "관리자 권한 부여"
+                          }
+                          title={
+                            selectedUser.isAdmin
+                              ? "관리자 권한 회수"
+                              : "관리자 권한 부여"
+                          }
+                          className={`relative h-8 w-14 shrink-0 rounded-full p-1 transition ${
+                            selectedUser.isAdmin ? "bg-brand" : "bg-zinc-200"
+                          } ${
+                            selectedUser.id === currentAdmin.id &&
+                            selectedUser.isAdmin
+                              ? "cursor-not-allowed opacity-60"
+                              : "hover:opacity-90"
+                          }`}
+                        >
+                          <span
+                            className={`block h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
                               selectedUser.isAdmin
-                            }
-                            className={`rounded-lg px-3 py-2 text-xs font-bold transition ${
-                              selectedUser.id === currentAdmin.id &&
-                              selectedUser.isAdmin
-                                ? "cursor-not-allowed border border-hairline bg-white text-ink-4"
-                                : selectedUser.isAdmin
-                                  ? "border border-hairline bg-white text-ink-2 hover:bg-page"
-                                  : "bg-brand text-white hover:bg-red-600"
+                                ? "translate-x-6"
+                                : "translate-x-0"
                             }`}
-                          >
-                            {selectedUser.isAdmin
-                              ? selectedUser.id === currentAdmin.id
-                                ? "본인"
-                                : "권한 회수"
-                              : "관리자 부여"}
-                          </button>
-                        </form>
-                      </div>
+                          />
+                        </button>
+                      </form>
                     </div>
+                    <button
+                      type="submit"
+                      form="update-user-info"
+                      className="mt-auto h-10 w-full rounded-lg bg-ink px-4 text-sm font-bold text-white transition hover:bg-black"
+                    >
+                      정보 저장
+                    </button>
                   </section>
 
                   <section className="min-w-0">
-                    <div className="mb-4">
-                      <h3 className="text-sm font-bold text-ink">응시 내역</h3>
-                      <p className="mt-1 text-xs text-ink-3">
-                        기록 삭제 시 저장 답안도 함께 삭제됩니다.
-                      </p>
-                    </div>
-                    <div className="overflow-x-auto rounded-xl border border-hairline">
-                      <table className="data-table min-w-[720px] text-left text-[13px]">
+                    <div className="overflow-hidden rounded-xl border border-[#e1d8d3] bg-white">
+                      <table className="data-table table-fixed text-left text-xs">
                         <thead>
                           <tr>
-                            <th className="whitespace-nowrap px-4 py-2.5 font-semibold">
+                            <th className="w-[43%] whitespace-nowrap px-3 py-2 font-semibold">
                               시험
                             </th>
-                            <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold">
-                              상태
+                            <th className="w-[16%] whitespace-nowrap px-3 py-2 text-right font-semibold">
+                              상태/점수
                             </th>
-                            <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold">
-                              점수
-                            </th>
-                            <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold">
+                            <th className="w-[28%] whitespace-nowrap px-3 py-2 text-right font-semibold">
                               시작
                             </th>
-                            <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold">
+                            <th className="w-[13%] whitespace-nowrap px-3 py-2 text-right font-semibold">
                               관리
                             </th>
                           </tr>
                         </thead>
                         <tbody>
-                          {selectedUserAttempts.length ? (
-                            selectedUserAttempts.map((attempt) => (
-                              <tr key={attempt.id} className="align-top">
-                                <td className="px-4 py-2.5">
+                          {selectedUserExamRows.map((attempt) => (
+                              <tr key={attempt.id ?? `exam-${attempt.examId}`} className="align-top">
+                                <td className="px-3 py-2">
                                   <p
-                                    className="max-w-[260px] truncate font-semibold text-ink"
+                                    className="truncate font-semibold text-ink"
                                     title={attempt.examTitle}
                                   >
                                     {attempt.examTitle}
                                   </p>
-                                  <p className="mt-1 text-[11px] text-ink-3">
-                                    attempt #{attempt.id}
+                                  <p className="mt-0.5 text-[11px] text-ink-3">
+                                    {attempt.id
+                                      ? `attempt #${attempt.id}`
+                                      : "기록 없음"}
                                   </p>
                                 </td>
-                                <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                                  {attempt.finishedAt ? "완료" : "진행/이탈"}
+                                <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                                  <p>
+                                    {!attempt.id
+                                      ? "미응시"
+                                      : attempt.finishedAt
+                                        ? "완료"
+                                        : "진행"}
+                                  </p>
+                                  <p className="mt-0.5 text-[11px] text-ink-3">
+                                    {attempt.id && attempt.finishedAt
+                                      ? `${attempt.score}/${attempt.totalQuestions}`
+                                      : "-"}
+                                  </p>
                                 </td>
-                                <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
-                                  {attempt.finishedAt
-                                    ? `${attempt.score}/${attempt.totalQuestions}`
-                                    : "-"}
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-2.5 text-right text-ink-3">
+                                <td className="whitespace-nowrap px-3 py-2 text-right text-ink-3">
                                   {formatDate(attempt.startedAt)}
-                                  <p className="mt-1 text-[11px]">
+                                  <p className="mt-0.5 text-[11px]">
                                     {formatMinutes(attempt.duration)}
                                   </p>
                                 </td>
-                                <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                                  <form action={deleteAttemptRecord}>
-                                    <input
-                                      type="hidden"
-                                      name="attemptId"
-                                      value={attempt.id}
-                                    />
-                                    <button
-                                      type="submit"
-                                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-brand transition hover:bg-red-100"
-                                    >
-                                      삭제
-                                    </button>
-                                  </form>
+                                <td className="whitespace-nowrap px-3 py-2 text-right">
+                                  {attempt.id && (
+                                    <form action={deleteAttemptRecord}>
+                                      <input
+                                        type="hidden"
+                                        name="attemptId"
+                                        value={attempt.id}
+                                      />
+                                      <button
+                                        type="submit"
+                                        className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-bold text-brand transition hover:bg-red-100"
+                                      >
+                                        삭제
+                                      </button>
+                                    </form>
+                                  )}
                                 </td>
                               </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td
-                                colSpan={5}
-                                className="px-5 py-10 text-center text-sm text-ink-3"
-                              >
-                                응시 기록이 없습니다.
-                              </td>
-                            </tr>
-                          )}
+                            ))}
                         </tbody>
                       </table>
                     </div>
