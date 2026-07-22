@@ -15,6 +15,7 @@ type StrategyQuestion = {
   subject: string;
   number: number;
   status: "정답" | "오답" | "미응답";
+  isEasyMistake: boolean;
   elapsedSeconds: number;
   peerWrongRate: number | null;
   difficulty: "고오답률" | "저오답률" | "분석 불가";

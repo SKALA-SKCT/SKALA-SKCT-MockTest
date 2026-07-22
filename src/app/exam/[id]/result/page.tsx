@@ -350,6 +350,7 @@ export default async function ResultPage({
       subject: q.subject,
       number: q.number,
       status: q.myChoice == null ? "미응답" : q.isCorrect ? "정답" : "오답",
+      isEasyMistake: !q.isCorrect && q.myChoice != null && q.groupAccuracy >= 70,
       elapsedSeconds: q.elapsedSeconds ?? 0,
       peerWrongRate: q.peerWrongRate,
       difficulty:
