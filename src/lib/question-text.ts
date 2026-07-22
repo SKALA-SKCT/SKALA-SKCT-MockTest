@@ -230,6 +230,11 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/의료기기\s+를/g, "의료기기를")
     .replace(/우울\s+증/g, "우울증")
     .replace(/디지실털/g, "디지털")
+    .replace(/근지로/g, "근거로")
+    .replace(/동과해야/g, "통과해야")
+    .replace(/\bAGDs\b/g, "AGEs")
+    .replace(/\bAGBs\b/g, "AGEs")
+    .replace(/\bB2F\b/g, "B2B")
     .replace(/하지만이/g, "하지만 이")
     .replace(/때는도/g, "때는 도")
     .replace(/비트코인\s+\(bitcoin\)\s*란/g, "비트코인(bitcoin)이란")
@@ -275,6 +280,7 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/하지않은/g, "하지 않은")
     .replace(/않았\s+어/g, "않았어")
     .replace(/해야한다/g, "해야 한다")
+    .replace(/하지\s*않은것/g, "하지 않은 것은")
     .replace(/되어있/g, "되어 있")
     .replace(/항상참인/g, "항상 참인")
     .replace(/항상거짓인/g, "항상 거짓인")
@@ -415,11 +421,25 @@ function normalizeKoreanSpacing(value: string) {
     .replace(/연구진들은이/g, "연구진들은 이")
     .replace(/않았\s+다/g, "않았다")
     .replace(/그런데이/g, "그런데 이")
+    .replace(/영향을미친다/g, "영향을 미친다")
+    .replace(/영향을미친/g, "영향을 미친")
+    .replace(/항우울\s*제/g, "항우울제")
+    .replace(/신경계\s*에서/g, "신경계에서")
+    .replace(/전달\s*물질/g, "전달 물질")
+    .replace(/적절\s*하\s*다/g, "적절하다")
     .trim();
 }
 
 function hasFinalAnswer(text: string) {
   return /정답\s*은?\s*[①②③④⑤1-5]/.test(text.slice(-100));
+}
+
+function buildAnswerExplanation(answer: number, answerChoice?: string) {
+  const circled = ["①", "②", "③", "④", "⑤"][answer - 1] ?? `${answer}번`;
+  const normalizedChoice = normalizeQuestionText(answerChoice).replace(/\s+/g, " ").trim();
+  return normalizedChoice
+    ? `정답은 ${circled} '${normalizedChoice}'이다.`
+    : `정답은 ${circled}이다.`;
 }
 
 function isDanglingExplanationTail(text: string) {
@@ -480,11 +500,7 @@ export function formatReviewExplanation(
   answer: number,
   answerChoice?: string
 ) {
-  const circled = ["①", "②", "③", "④", "⑤"][answer - 1] ?? `${answer}번`;
-  const normalizedChoice = normalizeQuestionText(answerChoice).replace(/\s+/g, " ").trim();
-  const answerText = normalizedChoice
-    ? `정답은 ${circled} '${normalizedChoice}'이다.`
-    : `정답은 ${circled}이다.`;
+  const answerText = buildAnswerExplanation(answer, answerChoice);
 
   let text = normalizeKoreanSpacing(String(value ?? ""));
   if (!text) return answerText;
@@ -501,6 +517,8 @@ export function formatReviewExplanation(
   if (isDanglingExplanationTail(text)) {
     text = dropDanglingTail(text);
   }
+
+  if (!text || text.length < 18) return answerText;
 
   return `${text}\n${answerText}`.trim();
 }

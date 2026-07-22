@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 type SubjectInfo = {
   subject: string;
@@ -40,21 +41,15 @@ export default function ExamStartButton({
         {label}
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+      {open &&
+        createPortal(
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-zinc-950/45 px-4 backdrop-blur-[1px]">
           <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl">
-            <div className="flex items-start justify-between gap-4">
+            <div>
               <div>
                 <p className="text-xs font-medium text-brand">모의고사 안내</p>
                 <h2 className="mt-1 text-xl font-bold text-ink">{title}</h2>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-2 py-1 text-sm font-semibold text-zinc-400 hover:bg-zinc-50 hover:text-zinc-600"
-              >
-                닫기
-              </button>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
@@ -101,7 +96,8 @@ export default function ExamStartButton({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

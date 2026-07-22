@@ -61,7 +61,25 @@ async function assertExamOrderAllowed(userId: number, examId: number) {
   }
 }
 
-/** 응시 시작(없으면 생성). take 페이지 진입 시 호출 */
+export async function deleteUnfinishedAttempts(userId: number, examId: number) {
+  const unfinishedAttempts = await db
+    .select({ id: attempts.id })
+    .from(attempts)
+    .where(
+      and(
+        eq(attempts.userId, userId),
+        eq(attempts.examId, examId),
+        isNull(attempts.finishedAt)
+      )
+    );
+  const attemptIds = unfinishedAttempts.map((attempt) => attempt.id);
+  if (attemptIds.length === 0) return;
+
+  await db.delete(responses).where(inArray(responses.attemptId, attemptIds));
+  await db.delete(attempts).where(inArray(attempts.id, attemptIds));
+}
+
+/** 응시 시작. 기존 미완료 기록은 버리고 항상 새로 시작한다. */
 export async function startAttempt(examId: number) {
   const user = await requireUser();
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
@@ -69,8 +87,7 @@ export async function startAttempt(examId: number) {
 
   await assertExamOrderAllowed(user.id, examId);
 
-  const existing = await getMyAttempt(user.id, examId);
-  if (existing) return { attemptId: existing.id };
+  await deleteUnfinishedAttempts(user.id, examId);
 
   const [created] = await db
     .insert(attempts)
@@ -187,22 +204,7 @@ export async function finishSection(examId: number, subject: Subject) {
 /** 미완료 응시 중단. 나가기를 확정하면 답안과 진행 상태를 모두 초기화한다. */
 export async function abandonAttempt(examId: number) {
   const user = await requireUser();
-  const unfinishedAttempts = await db
-    .select({ id: attempts.id })
-    .from(attempts)
-    .where(
-      and(
-        eq(attempts.userId, user.id),
-        eq(attempts.examId, examId),
-        isNull(attempts.finishedAt)
-      )
-    );
-  const attemptIds = unfinishedAttempts.map((attempt) => attempt.id);
-  if (attemptIds.length === 0) return { ok: true };
-
-  await db.delete(responses).where(inArray(responses.attemptId, attemptIds));
-  await db.delete(attempts).where(inArray(attempts.id, attemptIds));
-
+  await deleteUnfinishedAttempts(user.id, examId);
   return { ok: true };
 }
 

@@ -151,7 +151,7 @@ export async function requestRegistrationEmailCode(email: string) {
   try {
     await sendMail({
       to: trimmed,
-      subject: "[SKCT 스터디] 회원가입 인증번호",
+      subject: "[SKCT 모의고사] 회원가입 인증번호",
       text: `회원가입 인증번호는 ${code} 입니다.\n\n이 인증번호는 10분 동안 유효합니다.`,
     });
   } catch {
@@ -294,7 +294,7 @@ export async function login(
 
 export async function logout() {
   await destroySession();
-  redirect("/login");
+  redirect("/");
 }
 
 export async function logoutOnly() {
@@ -375,7 +375,7 @@ export async function requestMyPasswordChangeCode() {
   try {
     await sendMail({
       to: user.email,
-      subject: "[SKCT 스터디] 비밀번호 변경 인증번호",
+      subject: "[SKCT 모의고사] 비밀번호 변경 인증번호",
       text: `비밀번호 변경 인증번호는 ${code} 입니다.\n\n이 인증번호는 10분 동안 유효합니다.`,
     });
   } catch {
@@ -488,7 +488,7 @@ export async function requestFindId(
     try {
       await sendMail({
         to: email,
-        subject: "[SKCT 스터디] 아이디 찾기",
+        subject: "[SKCT 모의고사] 아이디 찾기",
         text: `아래 링크에서 가입된 아이디를 확인할 수 있습니다.\n\n${url}\n\n이 링크는 30분 동안 유효합니다.`,
       });
     } catch {
@@ -525,7 +525,7 @@ export async function requestPasswordReset(
   try {
     await sendMail({
       to: email,
-      subject: "[SKCT 스터디] 비밀번호 재설정",
+      subject: "[SKCT 모의고사] 비밀번호 재설정",
       text: `아래 링크에서 비밀번호를 재설정할 수 있습니다.\n\n${url}\n\n이 링크는 30분 동안 유효합니다.`,
     });
   } catch {

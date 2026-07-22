@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import Image from "next/image";
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
+  chatMessages,
   exams,
   questions,
   responses,
@@ -10,15 +12,257 @@ import {
   SUBJECTS,
   users,
 } from "@/db/schema";
-import { requireUser } from "@/lib/session";
+import { getCurrentUser } from "@/lib/session";
 import SubjectRadar from "@/components/SubjectRadar";
 import TrendChart from "@/components/TrendChart";
 import ExamStartButton from "@/components/ExamStartButton";
+import PublicChat from "@/components/PublicChat";
 
 export const dynamic = "force-dynamic";
 
+const landingGuideSections = [
+  {
+    eyebrow: "Start",
+    title: "1회차부터 순서대로 응시",
+    body: "처음 접속하면 모의고사 목록에서 1회차만 응시할 수 있습니다. 한 회차를 완료해야 다음 회차가 열립니다.",
+    image: "/help/empty-dashboard.png",
+    imageWidth: 2602,
+    imageHeight: 1750,
+    tone: "bg-red-50 text-brand",
+    hideBottomShadow: true,
+  },
+  {
+    eyebrow: "Exam Info",
+    title: "시험 구성 확인 후 시작",
+    body: "응시 버튼을 누르면 유형 수, 총 시간, 유형별 문항 수와 시간을 확인할 수 있습니다. 시작 후에는 재응시할 수 없습니다.",
+    image: "/help/exam-intro.png",
+    imageWidth: 2598,
+    imageHeight: 1760,
+    tone: "bg-zinc-100 text-ink",
+  },
+  {
+    eyebrow: "Section",
+    title: "유형별 안내 확인",
+    body: "각 유형은 20문항, 15분으로 진행됩니다. 유형 안에서는 문항 번호를 눌러 자유롭게 이동할 수 있습니다.",
+    image: "/help/section-start.png",
+    imageWidth: 2594,
+    imageHeight: 1770,
+    tone: "bg-amber-50 text-amber-700",
+    hideBottomShadow: true,
+  },
+  {
+    eyebrow: "Solving",
+    title: "메모장, 그림판, 계산기와 함께 풀이",
+    body: "풀이 화면에서는 메모장과 그림판을 사용할 수 있고, 수열추리 등 계산이 필요한 유형에서는 계산기도 함께 제공합니다.",
+    image: "/help/exam-taking.png",
+    imageWidth: 2640,
+    imageHeight: 1492,
+    tone: "bg-emerald-50 text-emerald-700",
+  },
+  {
+    eyebrow: "Submit",
+    title: "미응답이 있어도 유형 제출 가능",
+    body: "다음 유형으로 넘어갈 때 미응답 문항 수를 확인한 뒤 제출할 수 있습니다. 제출한 유형은 다시 풀 수 없습니다.",
+    image: "/help/submit-confirm.png",
+    imageWidth: 2320,
+    imageHeight: 1760,
+    tone: "bg-red-50 text-brand",
+  },
+  {
+    eyebrow: "Exit",
+    title: "응시 중단 시 기록 초기화",
+    body: "응시 도중 나가기를 선택하면 이번 응시 기록과 저장된 답안이 모두 초기화됩니다.",
+    image: "/help/exit-confirm.png",
+    imageWidth: 2322,
+    imageHeight: 1754,
+    tone: "bg-zinc-100 text-ink",
+    hideBottomShadow: true,
+  },
+  {
+    eyebrow: "Dashboard",
+    title: "완료 후 누적 분석 확인",
+    body: "완료한 회차의 점수 추이와 유형별 누적 점수를 전체, 캠퍼스, 분반 평균과 비교합니다.",
+    image: "/help/dashboard.png",
+    imageWidth: 1297,
+    imageHeight: 886,
+    tone: "bg-amber-50 text-amber-700",
+    hideBottomShadow: true,
+  },
+  {
+    eyebrow: "Result",
+    title: "전체 시험자 점수 분포 확인",
+    body: "응시 완료 후 내 점수대, 전체 평균, 최고점을 한 화면에서 확인해 현재 위치를 빠르게 파악할 수 있습니다.",
+    image: "/help/result-distribution.png",
+    imageWidth: 1304,
+    imageHeight: 833,
+    tone: "bg-red-50 text-brand",
+  },
+  {
+    eyebrow: "Compare",
+    title: "과목별 점수와 랭킹 비교",
+    body: "과목별 점수, 평균 대비 차이, 랭킹을 함께 보며 강점과 약한 유형을 구분합니다.",
+    image: "/help/result-detail.png",
+    imageWidth: 2556,
+    imageHeight: 1406,
+    tone: "bg-emerald-50 text-emerald-700",
+  },
+  {
+    eyebrow: "Weak Points",
+    title: "유형별 고오답률 문항 분석",
+    body: "내 응시를 제외한 전체 응시자 기준으로 많이 틀린 문항을 모아, 복습 우선순위를 정할 수 있습니다.",
+    image: "/help/hard-questions.png",
+    imageWidth: 2588,
+    imageHeight: 990,
+    tone: "bg-amber-50 text-amber-700",
+  },
+  {
+    eyebrow: "Review",
+    title: "문항별 리뷰와 해설 확인",
+    body: "문제 원문, 자료, 보기, 정답, 내 답, 해설을 한 번에 확인하며 틀린 문제와 맞춘 문제를 필터링할 수 있습니다.",
+    image: "/help/review.png",
+    imageWidth: 2062,
+    imageHeight: 1594,
+    tone: "bg-zinc-100 text-ink",
+  },
+];
+
+function LandingPage() {
+  return (
+    <div className="relative left-1/2 -ml-[50vw] -my-10 min-h-screen w-screen bg-white">
+      <header className="sticky top-0 z-50 border-b border-hairline bg-white/95 backdrop-blur">
+        <nav className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-6">
+          <Link href="/" className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black tracking-tight text-brand">
+              SKCT
+            </span>
+            <span className="text-sm font-semibold text-ink-2">모의고사</span>
+          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              href="/login"
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-red-600"
+            >
+              로그인
+            </Link>
+          </div>
+        </nav>
+      </header>
+
+      <section className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl content-center gap-10 px-6 py-12">
+        <div className="relative overflow-hidden rounded-2xl border border-hairline bg-zinc-950 shadow-2xl">
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-55"
+            style={{ backgroundImage: "url('/help/dashboard.png')" }}
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/88 via-black/58 to-black/16" />
+          <div className="relative flex min-h-[520px] max-w-4xl flex-col justify-center px-10 py-16 text-white [word-break:keep-all]">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-red-200">
+              SKALA SKCT Practice
+            </p>
+            <h1 className="mt-4 text-5xl font-black tracking-tight">
+              SKCT 모의고사
+            </h1>
+            <p className="mt-5 max-w-3xl text-lg leading-8 text-white/82">
+              SKALA 내에서 SKCT 모의고사를 응시하고,
+              <br />
+              결과를 전체, 캠퍼스, 분반 평균과 비교해 취약 유형과 문항을 복습하는 분석 서비스입니다.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-2">
+              {["12회차 모의고사", "5개 유형 분석", "문항별 리뷰"].map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white/88"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+            <div className="mt-9 flex items-center gap-3">
+              <Link
+                href="/login"
+                className="rounded-lg bg-brand px-6 py-3 text-sm font-black text-white shadow-lg transition hover:bg-red-600"
+              >
+                로그인하고 시작
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <section className="grid gap-10 pt-4">
+          <div className="max-w-4xl border-l-4 border-brand pl-5 [word-break:keep-all]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-brand">
+              Service Guide
+            </p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-ink">
+              응시부터 복습까지, 전체 이용 흐름
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-ink-3">
+              SKCT 모의고사는 단순히 문제를 푸는 화면에서 끝나지 않습니다.
+              <br />
+              응시 전 구성 확인, 유형별 풀이, 제출, 결과 비교, 고오답률 문항 분석, 문항별 리뷰까지 한 번의 학습 흐름으로 이어집니다.
+            </p>
+          </div>
+          <div className="grid gap-0">
+            {landingGuideSections.map((item, index) => {
+              const reversed = index % 2 === 1;
+              return (
+                <article
+                  key={item.title}
+                  className={`grid items-center gap-8 py-12 ${
+                    reversed
+                      ? "lg:grid-cols-[minmax(0,1fr)_420px]"
+                      : "lg:grid-cols-[420px_minmax(0,1fr)]"
+                  }`}
+                >
+                  <div className={reversed ? "lg:order-2" : ""}>
+                    <div className="[word-break:keep-all]">
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-brand">
+                        {item.eyebrow}
+                      </p>
+                      <h3 className="mt-2 text-2xl font-black tracking-tight text-ink">
+                        {item.title}
+                      </h3>
+                      <p className="mt-4 text-base leading-8 text-ink-3 [overflow-wrap:normal]">
+                        {item.body}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className={`rounded-2xl border border-red-100 bg-white p-5 shadow-[0_24px_70px_rgba(20,20,20,0.08)] ${
+                      reversed ? "lg:order-1" : ""
+                    }`}
+                  >
+                    <div className="relative overflow-hidden rounded-xl">
+                      <Image
+                        src={item.image}
+                        alt={item.title}
+                        width={item.imageWidth}
+                        height={item.imageHeight}
+                        sizes="(min-width: 1280px) 820px, 100vw"
+                        className="h-auto w-full"
+                      />
+                      {item.hideBottomShadow && (
+                        <div
+                          className="pointer-events-none absolute inset-x-0 bottom-0 h-[9%] bg-gradient-to-t from-white via-white/95 to-transparent"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      </section>
+    </div>
+  );
+}
+
 export default async function Dashboard() {
-  const user = await requireUser();
+  const user = await getCurrentUser();
+  if (!user) return <LandingPage />;
 
   const examList = await db
     .select()
@@ -27,6 +271,30 @@ export default async function Dashboard() {
     .orderBy(asc(exams.createdAt));
 
   const publishedExamIds = examList.map((exam) => exam.id);
+  const initialChatRows = await db
+    .select({
+      id: chatMessages.id,
+      userId: chatMessages.userId,
+      body: chatMessages.body,
+      isAnonymous: chatMessages.isAnonymous,
+      createdAt: chatMessages.createdAt,
+      name: users.name,
+      campus: users.campus,
+      classNumber: users.classNumber,
+    })
+    .from(chatMessages)
+    .innerJoin(users, eq(users.id, chatMessages.userId))
+    .orderBy(desc(chatMessages.createdAt))
+    .limit(80);
+  const initialChatMessages = initialChatRows.reverse().map((row) => ({
+    id: row.id,
+    body: row.body,
+    isAnonymous: row.isAnonymous,
+    mine: row.userId === user.id,
+    author: row.isAnonymous ? "익명" : row.name,
+    meta: row.isAnonymous ? null : `${row.campus} ${row.classNumber}반`,
+    createdAt: row.createdAt.toISOString(),
+  }));
 
   // 통계는 유저·시험별 가장 최근 '완료' 응시 1개만 사용
   const finishedRows = publishedExamIds.length
@@ -58,22 +326,6 @@ export default async function Dashboard() {
   const myFinished = finished.filter((a) => a.userId === user.id);
   const myFinishedByExam = new Map(myFinished.map((attempt) => [attempt.examId, attempt]));
   const myFinishedExamIds = new Set(myFinished.map((a) => a.examId));
-  const myUnfinished = publishedExamIds.length
-    ? await db
-        .select({
-          id: attempts.id,
-          examId: attempts.examId,
-        })
-        .from(attempts)
-        .where(
-          and(
-            eq(attempts.userId, user.id),
-            isNull(attempts.finishedAt),
-            inArray(attempts.examId, publishedExamIds)
-          )
-        )
-    : [];
-  const myUnfinishedExamIds = new Set(myUnfinished.map((a) => a.examId));
   const attemptIds = finished.map((a) => a.id);
   const attemptsByExam = new Map<number, typeof finished>();
   for (const attempt of finished) {
@@ -191,7 +443,7 @@ export default async function Dashboard() {
         sub: `${myFinished.length}회 평균`,
       },
       {
-        label: "그룹 평균과 차이",
+        label: "전체 평균과 차이",
         value: `${diff > 0 ? "+" : ""}${diff}`,
         sub: "점 (내 점수-평균)",
         accent: diff >= 0 ? "up" : "down",
@@ -242,7 +494,7 @@ export default async function Dashboard() {
     };
   });
 
-  // ── 레이더: 과목별 누적 정답률 나 vs 그룹
+  // ── 레이더: 과목별 누적 정답률 나 vs 전체
   const radarData = SUBJECTS.map((s) => {
     let myC = 0,
       myT = 0,
@@ -284,37 +536,40 @@ export default async function Dashboard() {
     no: number;
     exam: (typeof examList)[number] | undefined;
     done: boolean;
-    inProgress: boolean;
     locked: boolean;
   }[] = [];
+  const examListTitle = (title: string | undefined, round: number) =>
+    (title ?? `${round}회차 모의고사`).replace(/^SK\s+/i, "");
   let allPreviousDone = true;
   for (let no = 1; no <= ROUNDS; no += 1) {
     const exam = examByRound.get(no);
     const done = exam ? myFinishedExamIds.has(exam.id) : false;
-    const inProgress = exam ? myUnfinishedExamIds.has(exam.id) : false;
     rounds.push({
       no,
       exam,
       done,
-      inProgress,
       locked: Boolean(exam) && !done && !allPreviousDone,
     });
     if (exam && !done) allPreviousDone = false;
   }
 
   return (
-    <div className="flex flex-col gap-6 md:flex-row md:items-start">
-      {/* ── 좌측: 분석 대시보드 */}
-      <div className="flex min-w-0 flex-1 flex-col gap-5">
+    <div className="grid gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[280px_minmax(0,1fr)_280px] xl:items-stretch">
+      <aside className="min-h-0 xl:flex xl:h-full">
+        <PublicChat initialMessages={initialChatMessages} />
+      </aside>
+
+      {/* ── 중앙: 분석 대시보드 */}
+      <div className="flex min-w-0 flex-1 flex-col gap-4 xl:h-full xl:min-h-0">
         {/* 스탯 타일 */}
         {tiles.length > 0 && (
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
             {tiles.map((t) => (
-              <div key={t.label} className="metric-card px-5 py-4">
+              <div key={t.label} className="metric-card px-4 py-3">
                 <p className="text-xs font-medium text-ink-3">{t.label}</p>
                 <p className="mt-1.5">
                   <span
-                    className={`text-3xl font-bold tracking-tight ${
+                    className={`text-2xl font-bold tracking-tight ${
                       t.accent === "up"
                         ? "text-[#b98328]"
                         : t.accent === "down"
@@ -335,22 +590,22 @@ export default async function Dashboard() {
 
         {/* 차트 */}
         {myFinished.length > 0 ? (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-            <div className="chart-card flex min-h-[360px] flex-col p-4">
+          <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
+            <div className="chart-card flex min-h-0 flex-col p-3.5">
               <h2 className="text-sm font-semibold text-ink">
                 회차별 점수 추이
               </h2>
               <p className="mb-2 text-xs text-ink-3">완료한 회차 기준, 100점 만점</p>
               <TrendChart data={trendData} className="min-h-0 flex-1" />
             </div>
-            <div className="chart-card flex min-h-[360px] flex-col p-4">
+            <div className="chart-card flex min-h-0 flex-col p-3.5">
               <h2 className="text-sm font-semibold text-ink">유형별 점수</h2>
               <p className="mb-2 text-xs text-ink-3">전체 회차 누적, 100점 만점</p>
               <SubjectRadar data={radarData} className="min-h-0 flex-1" />
             </div>
           </div>
         ) : (
-          <div className="card flex min-h-[460px] items-center justify-center px-6 py-12 text-center md:min-h-[640px]">
+          <div className="card flex h-full min-h-[500px] items-center justify-center px-6 py-10 text-center xl:min-h-0">
             <div className="mx-auto max-w-lg">
               <p className="text-xs font-semibold text-brand">
                 첫 모의고사를 기다리는 중
@@ -371,7 +626,7 @@ export default async function Dashboard() {
         {/* 유형별 상세 */}
         {myFinished.length > 0 && radarData.length > 0 && (
           <section>
-            <div className="grid grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-5 gap-2">
               {radarData.map((r) => {
                 const diff = r.나 - r.그룹평균;
                 const campusDiff = r.나 - (r.캠퍼스평균 ?? 0);
@@ -379,17 +634,17 @@ export default async function Dashboard() {
                 return (
                   <div
                     key={r.subject}
-                    className="metric-card flex min-h-[142px] flex-col justify-between px-4 py-3"
+                    className="metric-card flex min-h-[108px] flex-col justify-between px-3.5 py-2.5"
                   >
                     <div>
                       <p className="truncate text-sm font-semibold text-ink-3">
                         {r.subject}
                       </p>
-                      <p className="mt-1.5 text-2xl font-extrabold tracking-tight text-ink">
+                      <p className="mt-1 text-xl font-extrabold tracking-tight text-ink">
                         {r.나}점
                       </p>
                     </div>
-                    <div className="grid gap-0.5 text-sm leading-5">
+                    <div className="grid gap-0.5 text-xs leading-4">
                       <p
                         className={`font-semibold ${
                           diff > 0
@@ -399,7 +654,7 @@ export default async function Dashboard() {
                               : "text-ink-3"
                         }`}
                       >
-                        그룹 {diff > 0 ? "+" : ""}
+                        전체 {diff > 0 ? "+" : ""}
                         {diff}점
                       </p>
                       <p className="text-ink-3">
@@ -420,9 +675,9 @@ export default async function Dashboard() {
       </div>
 
       {/* ── 우측: 모의고사 회차 패널 */}
-      <aside className="w-full shrink-0 md:sticky md:top-24 md:w-72 lg:w-80">
-        <div className="card flex flex-col">
-          <div className="border-b border-hairline px-5 py-4">
+      <aside className="min-h-0 w-full shrink-0 xl:flex xl:h-full">
+        <div className="card flex h-full min-h-[500px] w-full flex-col overflow-hidden xl:min-h-0">
+          <div className="border-b border-hairline px-4 py-3.5">
             <h2 className="text-sm font-semibold text-ink">모의고사</h2>
             <p className="mt-1 text-xs text-ink-3">
               모의고사는 재응시할 수 없습니다.
@@ -431,9 +686,9 @@ export default async function Dashboard() {
               1회차부터 순서대로 완료해야 다음 회차가 열립니다.
             </p>
           </div>
-          <ul className="flex flex-1 flex-col divide-y divide-[var(--grid)] px-4">
+          <ul className="soft-scrollbar flex min-h-0 flex-1 flex-col divide-y divide-[var(--grid)] overflow-y-auto px-3.5">
             {rounds.map((r) => (
-              <li key={r.no} className="flex flex-1 items-center gap-3 py-2.5">
+              <li key={r.no} className="flex flex-1 items-center gap-2.5 py-2">
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                     r.done
@@ -451,13 +706,10 @@ export default async function Dashboard() {
                       r.exam ? "text-ink" : "text-ink-3/60"
                     }`}
                   >
-                    {r.exam?.title ?? `${r.no}회차 모의고사`}
+                    {examListTitle(r.exam?.title, r.no)}
                   </p>
                   {r.done && (
                     <p className="text-[10px] font-medium text-[#b76458]">응시 완료</p>
-                  )}
-                  {r.inProgress && !r.done && (
-                    <p className="text-[10px] text-brand">진행 중</p>
                   )}
                 </div>
                 {r.exam ? (
@@ -467,13 +719,6 @@ export default async function Dashboard() {
                       className="rounded-lg border border-hairline px-2.5 py-1.5 text-[11px] font-semibold text-ink-2 transition hover:bg-page"
                     >
                       결과
-                    </Link>
-                  ) : r.inProgress ? (
-                    <Link
-                      href={`/exam/${r.exam.id}/take`}
-                      className="rounded-lg bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:opacity-90"
-                    >
-                      이어가기
                     </Link>
                   ) : r.locked ? (
                     <span className="rounded-lg bg-page px-2.5 py-1.5 text-[11px] font-medium text-ink-3">

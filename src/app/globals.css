@@ -84,6 +84,29 @@ body {
     0 2px 6px rgba(60, 40, 40, 0.025);
 }
 
+.soft-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(80, 80, 80, 0.12) transparent;
+}
+
+.soft-scrollbar::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
+}
+
+.soft-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.soft-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(80, 80, 80, 0.1);
+  border-radius: 999px;
+}
+
+.soft-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(80, 80, 80, 0.18);
+}
+
 .soft-panel {
   background: var(--surface-soft);
   border: 1px solid rgba(76, 54, 54, 0.08);

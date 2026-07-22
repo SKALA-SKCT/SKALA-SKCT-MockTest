@@ -161,7 +161,7 @@ export default async function ResultPage({
       percent: n ? Math.round((count / n) * 100) : 0,
     };
   });
-  // 문항별 그룹 정답률 (무응답/미기록은 오답 처리: 분모 = 완료 인원)
+  // 문항별 전체 정답률 (무응답/미기록은 오답 처리: 분모 = 완료 인원)
   const qAccuracyRows = await db
     .select({
       questionId: responses.questionId,
@@ -214,7 +214,7 @@ export default async function ResultPage({
     .where(eq(responses.attemptId, myAttempt.id));
   const myChoiceByQ = new Map(myResponses.map((r) => [r.questionId, r.choice]));
 
-  // 레이더 데이터: 과목별 정답률(%) 나 vs 그룹평균
+  // 레이더 데이터: 과목별 정답률(%) 나 vs 전체 평균
   const radarData = examSubjects.map((s) => {
     const total = totalBySubject.get(s) ?? 0;
     const mine = myScore.bySubject.get(s) ?? 0;
@@ -242,7 +242,7 @@ export default async function ResultPage({
         total && classAttempts.length
           ? Math.round((classSum / classAttempts.length / total) * 100)
           : 0,
-      avgScore: n ? groupSum / n : 0, // 그룹 평균 정답 수 (문항)
+      avgScore: n ? groupSum / n : 0, // 전체 평균 정답 수 (문항)
       campusAvgScore: campusAttempts.length
         ? campusSum / campusAttempts.length
         : 0,

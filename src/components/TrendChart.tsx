@@ -21,7 +21,7 @@ export type TrendDatum = {
 
 const legendItems = [
   { key: "나", label: "나", color: "#e94343" },
-  { key: "그룹평균", label: "그룹 평균", color: "#c8755a" },
+  { key: "그룹평균", label: "전체 평균", color: "#c8755a" },
   { key: "분반평균", label: "분반 평균", color: "#5f8f6b" },
   { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#d8a12d" },
 ] as const;
@@ -93,7 +93,7 @@ export default function TrendChart({
             )}
             {visible.그룹평균 && (
               <Line
-                name="그룹 평균"
+                name="전체 평균"
                 dataKey="그룹평균"
                 type="monotone"
                 stroke="#c8755a"
@@ -139,9 +139,18 @@ export default function TrendChart({
               type="checkbox"
               checked={visible[item.key]}
               onChange={() => toggleSeries(item.key)}
-              className="h-3.5 w-3.5 rounded border-[var(--border)]"
-              style={{ accentColor: item.color }}
+              className="peer sr-only"
             />
+            <span
+              className="flex h-3.5 w-3.5 items-center justify-center rounded border text-[10px] font-black leading-none text-white peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2"
+              style={{
+                backgroundColor: visible[item.key] ? item.color : "#fff",
+                borderColor: visible[item.key] ? item.color : "var(--border)",
+                outlineColor: item.color,
+              }}
+            >
+              {visible[item.key] ? "✓" : ""}
+            </span>
             <span style={{ color: item.color }}>{item.label}</span>
           </label>
         ))}

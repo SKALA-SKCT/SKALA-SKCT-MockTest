@@ -146,3 +146,22 @@ export const responses = pgTable(
     index("idx_response_question").on(t.questionId),
   ]
 );
+
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    isAnonymous: boolean("is_anonymous").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_chat_messages_created").on(t.createdAt),
+    index("idx_chat_messages_user").on(t.userId),
+  ]
+);

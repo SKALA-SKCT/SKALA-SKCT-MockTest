@@ -86,6 +86,7 @@ export default function ExamRunner({
   const pendingSavesRef = useRef<Set<Promise<unknown>>>(new Set());
   const [notice, setNotice] = useState<string | null>(null);
   const restoredSubjectRef = useRef<string | null>(null);
+  const shouldCleanupOnUnloadRef = useRef(true);
 
   const currentSubject = subjects.find((s) => !sectionState[s]?.finishedAt);
   const section = currentSubject ? sectionState[currentSubject] : undefined;
@@ -148,6 +149,7 @@ export default function ExamRunner({
         setIdx(0);
         restoredSubjectRef.current = null;
         if (res.finished) {
+          shouldCleanupOnUnloadRef.current = false;
           router.replace(`/exam/${examId}/result`);
         } else if (typeof window !== "undefined") {
           const url = new URL(window.location.href);
@@ -178,6 +180,29 @@ export default function ExamRunner({
     return () => clearInterval(t);
   }, [endsAtMs, currentSubject, handleFinishSection]);
 
+  useEffect(() => {
+    const cleanupAttempt = () => {
+      if (!shouldCleanupOnUnloadRef.current) return;
+      const url = `/api/exam/${examId}/abandon`;
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, new Blob([], { type: "application/octet-stream" }));
+        return;
+      }
+      void fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        keepalive: true,
+      }).catch(() => {});
+    };
+
+    window.addEventListener("pagehide", cleanupAttempt);
+    window.addEventListener("beforeunload", cleanupAttempt);
+    return () => {
+      window.removeEventListener("pagehide", cleanupAttempt);
+      window.removeEventListener("beforeunload", cleanupAttempt);
+    };
+  }, [examId]);
+
   if (!currentSubject) {
     return (
       <div className="mx-auto mt-24 max-w-md text-center">
@@ -202,6 +227,7 @@ export default function ExamRunner({
       onConfirm: async () => {
         await Promise.allSettled([...pendingSavesRef.current]);
         await abandonAttempt(examId);
+        shouldCleanupOnUnloadRef.current = false;
         router.replace("/");
       },
     });
@@ -209,15 +235,15 @@ export default function ExamRunner({
 
   const moveToNextSubject = () => {
     if (!currentSubject) return;
-    const firstUnansweredIndex = sectionQuestions.findIndex((qq) => answers[qq.id] == null);
-    if (firstUnansweredIndex >= 0) {
-      setIdx(firstUnansweredIndex);
-      setNotice(`미응답 ${sectionQuestions.filter((qq) => answers[qq.id] == null).length}문항이 남아 있습니다.`);
-      return;
-    }
+    const unansweredCount = sectionQuestions.filter(
+      (qq) => answers[qq.id] == null
+    ).length;
     setConfirmRequest({
       title: "유형을 제출할까요?",
-      message: `${currentSubject} 유형을 제출하면 이 유형은 다시 풀 수 없습니다.`,
+      message:
+        unansweredCount > 0
+          ? `${currentSubject} 유형에 미응답 ${unansweredCount}문항이 있습니다. 제출하면 이 유형은 다시 풀 수 없습니다.`
+          : `${currentSubject} 유형을 제출하면 이 유형은 다시 풀 수 없습니다.`,
       confirmText: "제출하기",
       onConfirm: () => handleFinishSection(currentSubject),
     });
@@ -225,9 +251,9 @@ export default function ExamRunner({
 
   const confirmModal = confirmRequest ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
         <p className="text-lg font-bold text-zinc-900">{confirmRequest.title}</p>
-        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-zinc-600">
+        <p className="mt-3 text-sm leading-6 text-zinc-600">
           {confirmRequest.message}
         </p>
         <div className="mt-6 flex justify-end gap-2">

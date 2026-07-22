@@ -135,7 +135,7 @@ function QuestionCard({
         <ResultPill question={question} />
         <span className="font-medium text-zinc-500">문제 {question.number}</span>
         <span className="ml-auto font-medium text-zinc-400">
-          그룹 정답 점수 {question.groupAccuracy}점
+          전체 정답 점수 {question.groupAccuracy}점
         </span>
         <span className="font-medium">
           <WrongRate value={question.peerWrongRate} />
@@ -327,7 +327,7 @@ export default function ResultReview({
             </p>
           </div>
           <span className="rounded-full bg-zinc-50 px-3 py-1 text-xs font-bold text-zinc-500">
-            {peerCount > 0 ? "그룹 기준" : "내 기록 기준"}
+            {peerCount > 0 ? "전체 기준" : "내 기록 기준"}
           </span>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">

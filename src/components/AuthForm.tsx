@@ -114,7 +114,7 @@ export default function AuthForm({
         </button>
       )}
       <h1 className="mb-1 mt-2 text-center text-2xl font-bold text-zinc-900">
-        SKCT 스터디
+        SKCT 모의고사
       </h1>
       <p className="mb-6 text-center text-sm text-zinc-500">{title}</p>
       <form action={formAction} className="flex flex-col gap-3">
