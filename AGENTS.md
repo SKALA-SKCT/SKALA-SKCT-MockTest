@@ -96,7 +96,7 @@ Important App Router files:
 
 - `src/lib/actions/auth.ts`: registration, login, logout, email verification, ID/password recovery.
 - `src/lib/actions/exam.ts`: start attempt, start/finish section, save answer, abandon unfinished attempts.
-- `src/lib/actions/admin.ts`: admin role grant/revoke, user info edit, and attempt record deletion for the account modal.
+- `src/lib/actions/admin.ts`: user info edit (including admin role grant/revoke, saved together via `updateUserInfo`) and attempt record deletion for the account modal.
 
 Security notes:
 
@@ -137,6 +137,8 @@ Key components:
 - The member list table should keep aligned fixed columns. Account names are clickable.
 - Clicking an account opens a server-rendered modal via the `userId` query param.
 - The account modal contains user info editing, campus/class edit, an `관리자 권한` row with a right-aligned oval toggle below the campus/class fields, a bottom-aligned info save button, and attempt record deletion. Email verification state is preserved when saving user info but is not edited in the modal UI.
+- The info save form is `src/components/AccountInfoForm.tsx` (client component using `useActionState`, controlled inputs keyed by `userId`). `updateUserInfo` in `src/lib/actions/admin.ts` takes `(prevState, formData)` and returns `{ ok, error? }` instead of throwing. The save button is disabled until a field changes (dirty tracking), shows `저장 중…` while pending, and renders a success/error message. Inputs are controlled so values persist after save (no reset to defaults).
+- The `관리자 권한` toggle is part of this same form: it only flips local state and is saved together when `정보 저장` is clicked (there is no separate immediate-submit action). `updateUserInfo` writes `isAdmin` and enforces the self/last-admin protections (previously in the removed `setUserAdminRole` action). The toggle is locked when editing your own account while you are admin.
 - The account modal's attempt table always renders all 12 exam rounds; rounds without a record show as not attempted and have no delete action.
 - Do not add a separate `응시 내역` admin tab unless explicitly requested.
 - The result page places a `ResultStrategyAnalysis` card below the score summary and automatically calls `/api/ai/result-analysis` once per result view using score, subject accuracy, unanswered count, easy-question mistakes, section/question elapsed time, and question difficulty data. The route requires the server-only `GEMINI_API_KEY`, calls `gemini-3-flash-preview` by default, validates the JSON response shape, retries Gemini once when malformed, and shows an error instead of mock data when Gemini remains unavailable.

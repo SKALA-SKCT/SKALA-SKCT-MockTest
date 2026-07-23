@@ -25,107 +25,109 @@ function normalizeId(formData: FormData, key: string) {
   return id;
 }
 
-export async function setUserAdminRole(formData: FormData) {
+export type UserInfoState = { ok: boolean; error?: string };
+
+export async function updateUserInfo(
+  _prevState: UserInfoState,
+  formData: FormData
+): Promise<UserInfoState> {
   const admin = await requireAdmin();
-  const targetUserId = normalizeId(formData, "userId");
-  const nextIsAdmin = formData.get("isAdmin") === "true";
+  try {
+    const targetUserId = normalizeId(formData, "userId");
+    const nickname = String(formData.get("nickname") ?? "").trim();
+    const name = String(formData.get("name") ?? "").trim();
+    const campus = String(formData.get("campus") ?? "").trim();
+    const classNumber = Number(formData.get("classNumber"));
+    const email = String(formData.get("email") ?? "").trim().toLowerCase();
+    const emailVerified = formData.get("emailVerified") === "true";
+    const nextIsAdmin = formData.get("isAdmin") === "true";
 
-  if (targetUserId === admin.id && !nextIsAdmin) {
-    throw new Error("본인 관리자 권한은 회수할 수 없습니다.");
-  }
-
-  const [target] = await db
-    .select({ id: users.id, isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, targetUserId));
-  if (!target) throw new Error("사용자를 찾을 수 없습니다.");
-
-  if (!nextIsAdmin && target.isAdmin) {
-    const [adminCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(users)
-      .where(eq(users.isAdmin, true));
-    if ((adminCount?.count ?? 0) <= 1) {
-      throw new Error("마지막 관리자 권한은 회수할 수 없습니다.");
+    if (nickname.length < 1 || nickname.length > 12) {
+      throw new Error("아이디는 1~12자로 입력해주세요.");
     }
-  }
+    if (name.length < 1 || name.length > 20) {
+      throw new Error("이름은 1~20자로 입력해주세요.");
+    }
+    if (!CAMPUSES.includes(campus as Campus)) {
+      throw new Error("캠퍼스를 선택해주세요.");
+    }
+    const maxClass = maxClassForCampus(campus as Campus);
+    if (!Number.isInteger(classNumber) || classNumber < 1 || classNumber > maxClass) {
+      throw new Error(`${campus} 캠퍼스는 1~${maxClass}반까지 선택할 수 있습니다.`);
+    }
+    if (email && !validateEmail(email)) {
+      throw new Error("이메일을 올바르게 입력해주세요.");
+    }
 
-  await db
-    .update(users)
-    .set({ isAdmin: nextIsAdmin })
-    .where(eq(users.id, targetUserId));
+    const [target] = await db
+      .select({
+        id: users.id,
+        emailVerifiedAt: users.emailVerifiedAt,
+        isAdmin: users.isAdmin,
+      })
+      .from(users)
+      .where(eq(users.id, targetUserId));
+    if (!target) throw new Error("사용자를 찾을 수 없습니다.");
 
-  revalidatePath("/admin");
-}
+    // 관리자 권한 변경 시 안전장치(본인/마지막 관리자 보호)
+    if (target.isAdmin !== nextIsAdmin) {
+      if (targetUserId === admin.id && !nextIsAdmin) {
+        throw new Error("본인 관리자 권한은 회수할 수 없습니다.");
+      }
+      if (!nextIsAdmin && target.isAdmin) {
+        const [adminCount] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(users)
+          .where(eq(users.isAdmin, true));
+        if ((adminCount?.count ?? 0) <= 1) {
+          throw new Error("마지막 관리자 권한은 회수할 수 없습니다.");
+        }
+      }
+    }
 
-export async function updateUserInfo(formData: FormData) {
-  await requireAdmin();
-  const targetUserId = normalizeId(formData, "userId");
-  const nickname = String(formData.get("nickname") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const campus = String(formData.get("campus") ?? "").trim();
-  const classNumber = Number(formData.get("classNumber"));
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const emailVerified = formData.get("emailVerified") === "true";
-
-  if (nickname.length < 1 || nickname.length > 12) {
-    throw new Error("아이디는 1~12자로 입력해주세요.");
-  }
-  if (name.length < 1 || name.length > 20) {
-    throw new Error("이름은 1~20자로 입력해주세요.");
-  }
-  if (!CAMPUSES.includes(campus as Campus)) {
-    throw new Error("캠퍼스를 선택해주세요.");
-  }
-  const maxClass = maxClassForCampus(campus as Campus);
-  if (!Number.isInteger(classNumber) || classNumber < 1 || classNumber > maxClass) {
-    throw new Error(`${campus} 캠퍼스는 1~${maxClass}반까지 선택할 수 있습니다.`);
-  }
-  if (email && !validateEmail(email)) {
-    throw new Error("이메일을 올바르게 입력해주세요.");
-  }
-
-  const [target] = await db
-    .select({ id: users.id, emailVerifiedAt: users.emailVerifiedAt })
-    .from(users)
-    .where(eq(users.id, targetUserId));
-  if (!target) throw new Error("사용자를 찾을 수 없습니다.");
-
-  const [nicknameOwner] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.nickname, nickname));
-  if (nicknameOwner && nicknameOwner.id !== targetUserId) {
-    throw new Error("이미 사용 중인 아이디입니다.");
-  }
-
-  if (email) {
-    const [emailOwner] = await db
+    const [nicknameOwner] = await db
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.email, email));
-    if (emailOwner && emailOwner.id !== targetUserId) {
-      throw new Error("이미 사용 중인 이메일입니다.");
+      .where(eq(users.nickname, nickname));
+    if (nicknameOwner && nicknameOwner.id !== targetUserId) {
+      throw new Error("이미 사용 중인 아이디입니다.");
     }
+
+    if (email) {
+      const [emailOwner] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, email));
+      if (emailOwner && emailOwner.id !== targetUserId) {
+        throw new Error("이미 사용 중인 이메일입니다.");
+      }
+    }
+
+    await db
+      .update(users)
+      .set({
+        nickname,
+        name,
+        campus: campus as Campus,
+        classNumber,
+        isAdmin: nextIsAdmin,
+        email: email || null,
+        emailVerifiedAt: email
+          ? emailVerified
+            ? (target.emailVerifiedAt ?? new Date())
+            : null
+          : null,
+      })
+      .where(eq(users.id, targetUserId));
+
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "저장에 실패했습니다.",
+    };
   }
-
-  await db
-    .update(users)
-    .set({
-      nickname,
-      name,
-      campus: campus as Campus,
-      classNumber,
-      email: email || null,
-      emailVerifiedAt: email
-        ? emailVerified
-          ? (target.emailVerifiedAt ?? new Date())
-          : null
-        : null,
-    })
-    .where(eq(users.id, targetUserId));
-
-  revalidatePath("/admin");
 }
 
 export async function deleteAttemptRecord(formData: FormData) {

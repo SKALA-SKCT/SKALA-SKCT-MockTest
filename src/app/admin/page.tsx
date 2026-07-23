@@ -12,13 +12,10 @@ import {
   users,
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
-import {
-  deleteAttemptRecord,
-  setUserAdminRole,
-  updateUserInfo,
-} from "@/lib/actions/admin";
+import { deleteAttemptRecord } from "@/lib/actions/admin";
 import AdminCharts from "@/components/AdminCharts";
 import AdminAnalytics from "@/components/AdminAnalytics";
+import AccountInfoForm from "@/components/AccountInfoForm";
 
 export const dynamic = "force-dynamic";
 
@@ -921,145 +918,24 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 </div>
 
                 <div className="grid items-start gap-5 p-5 lg:grid-cols-[0.9fr_1.6fr]">
-                  <section className="flex h-full min-h-full flex-col">
-                    <form
-                      id="update-user-info"
-                      action={updateUserInfo}
-                      className="grid gap-2.5"
-                    >
-                      <input type="hidden" name="userId" value={selectedUser.id} />
-                      <input
-                        type="hidden"
-                        name="emailVerified"
-                        value={selectedUser.emailVerifiedAt ? "true" : "false"}
-                      />
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                          이름
-                        </span>
-                        <input
-                          name="name"
-                          defaultValue={selectedUser.name}
-                          className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                          아이디
-                        </span>
-                        <input
-                          name="nickname"
-                          defaultValue={selectedUser.nickname}
-                          className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                          이메일
-                        </span>
-                        <input
-                          name="email"
-                          type="email"
-                          defaultValue={selectedUser.email ?? ""}
-                          placeholder="이메일 없음"
-                          className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                        />
-                      </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <label className="block">
-                          <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                            캠퍼스
-                          </span>
-                          <select
-                            name="campus"
-                            defaultValue={selectedUser.campus}
-                            className="select-control h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                          >
-                            {CAMPUSES.map((campus) => (
-                              <option key={campus} value={campus}>
-                                {campus}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="block">
-                          <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-                            반
-                          </span>
-                          <select
-                            name="classNumber"
-                            defaultValue={selectedUser.classNumber}
-                            className="select-control h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-                          >
-                            {allClassNumbers.map((classNumber) => (
-                              <option key={classNumber} value={classNumber}>
-                                {classNumber}반
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
-                    </form>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <span className="text-sm font-bold text-ink">
-                        관리자 권한
-                      </span>
-                      <form action={setUserAdminRole}>
-                        <input
-                          type="hidden"
-                          name="userId"
-                          value={selectedUser.id}
-                        />
-                        <input
-                          type="hidden"
-                          name="isAdmin"
-                          value={selectedUser.isAdmin ? "false" : "true"}
-                        />
-                        <button
-                          type="submit"
-                          disabled={
-                            selectedUser.id === currentAdmin.id &&
-                            selectedUser.isAdmin
-                          }
-                          role="switch"
-                          aria-checked={selectedUser.isAdmin}
-                          aria-label={
-                            selectedUser.isAdmin
-                              ? "관리자 권한 회수"
-                              : "관리자 권한 부여"
-                          }
-                          title={
-                            selectedUser.isAdmin
-                              ? "관리자 권한 회수"
-                              : "관리자 권한 부여"
-                          }
-                          className={`relative h-8 w-14 shrink-0 rounded-full p-1 transition ${
-                            selectedUser.isAdmin ? "bg-brand" : "bg-zinc-200"
-                          } ${
-                            selectedUser.id === currentAdmin.id &&
-                            selectedUser.isAdmin
-                              ? "cursor-not-allowed opacity-60"
-                              : "hover:opacity-90"
-                          }`}
-                        >
-                          <span
-                            className={`block h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
-                              selectedUser.isAdmin
-                                ? "translate-x-6"
-                                : "translate-x-0"
-                            }`}
-                          />
-                        </button>
-                      </form>
-                    </div>
-                    <button
-                      type="submit"
-                      form="update-user-info"
-                      className="mt-auto h-10 w-full rounded-lg bg-ink px-4 text-sm font-bold text-white transition hover:bg-black"
-                    >
-                      정보 저장
-                    </button>
-                  </section>
+                  <AccountInfoForm
+                    key={selectedUser.id}
+                    user={{
+                      id: selectedUser.id,
+                      name: selectedUser.name,
+                      nickname: selectedUser.nickname,
+                      email: selectedUser.email,
+                      campus: selectedUser.campus,
+                      classNumber: selectedUser.classNumber,
+                      emailVerified: Boolean(selectedUser.emailVerifiedAt),
+                      isAdmin: selectedUser.isAdmin,
+                    }}
+                    campuses={CAMPUSES}
+                    classNumbers={allClassNumbers}
+                    lockAdminToggle={
+                      selectedUser.id === currentAdmin.id && selectedUser.isAdmin
+                    }
+                  />
 
                   <section className="min-w-0">
                     <div className="overflow-hidden rounded-xl border border-[#e1d8d3] bg-white">

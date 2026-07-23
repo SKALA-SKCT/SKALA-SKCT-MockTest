@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { unstable_cache } from "next/cache";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -19,6 +20,33 @@ import ExamStartButton from "@/components/ExamStartButton";
 import PublicChat from "@/components/PublicChat";
 
 export const dynamic = "force-dynamic";
+
+// 모든 유저에게 동일하고 거의 안 바뀌는 쿼리는 60초 캐시(방문마다 DB 왕복 제거).
+// 쿠키 등 요청별 값에 의존하지 않으므로 캐시 스코프 안에서 안전하다.
+const getPublishedExams = unstable_cache(
+  async () =>
+    db
+      .select()
+      .from(exams)
+      .where(eq(exams.published, true))
+      .orderBy(asc(exams.createdAt)),
+  ["dashboard:published-exams"],
+  { revalidate: 60, tags: ["exams"] }
+);
+
+const getExamSubjectTotals = unstable_cache(
+  async () =>
+    db
+      .select({
+        examId: questions.examId,
+        subject: questions.subject,
+        total: sql<number>`count(*)::int`,
+      })
+      .from(questions)
+      .groupBy(questions.examId, questions.subject),
+  ["dashboard:exam-subject-totals"],
+  { revalidate: 60, tags: ["questions"] }
+);
 
 const landingGuideSections = [
   {
@@ -264,28 +292,29 @@ export default async function Dashboard() {
   const user = await getCurrentUser();
   if (!user) return <LandingPage />;
 
-  const examList = await db
-    .select()
-    .from(exams)
-    .where(eq(exams.published, true))
-    .orderBy(asc(exams.createdAt));
+  // 서로 의존이 없는 쿼리는 병렬 실행(순차 왕복 3회 → 1회).
+  // 시험 목록·문항 수는 60초 캐시, 채팅은 신선도가 중요해 매번 조회.
+  const [examList, initialChatRows, examSubjectTotals] = await Promise.all([
+    getPublishedExams(),
+    db
+      .select({
+        id: chatMessages.id,
+        userId: chatMessages.userId,
+        body: chatMessages.body,
+        isAnonymous: chatMessages.isAnonymous,
+        createdAt: chatMessages.createdAt,
+        name: users.name,
+        campus: users.campus,
+        classNumber: users.classNumber,
+      })
+      .from(chatMessages)
+      .innerJoin(users, eq(users.id, chatMessages.userId))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(80),
+    getExamSubjectTotals(),
+  ]);
 
   const publishedExamIds = examList.map((exam) => exam.id);
-  const initialChatRows = await db
-    .select({
-      id: chatMessages.id,
-      userId: chatMessages.userId,
-      body: chatMessages.body,
-      isAnonymous: chatMessages.isAnonymous,
-      createdAt: chatMessages.createdAt,
-      name: users.name,
-      campus: users.campus,
-      classNumber: users.classNumber,
-    })
-    .from(chatMessages)
-    .innerJoin(users, eq(users.id, chatMessages.userId))
-    .orderBy(desc(chatMessages.createdAt))
-    .limit(80);
   const initialChatMessages = initialChatRows.reverse().map((row) => ({
     id: row.id,
     body: row.body,
@@ -366,15 +395,7 @@ export default async function Dashboard() {
       ? items.reduce((acc, item) => acc + scoreOf(item.id), 0) / items.length
       : 0;
 
-  // 시험별·과목별 문항 수
-  const examSubjectTotals = await db
-    .select({
-      examId: questions.examId,
-      subject: questions.subject,
-      total: sql<number>`count(*)::int`,
-    })
-    .from(questions)
-    .groupBy(questions.examId, questions.subject);
+  // 시험별·과목별 문항 수 (examSubjectTotals는 위에서 병렬로 조회됨)
   const totalByExamSubject = new Map(
     examSubjectTotals.map((row) => [`${row.examId}:${row.subject}`, row.total])
   );

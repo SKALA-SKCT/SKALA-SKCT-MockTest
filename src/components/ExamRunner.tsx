@@ -212,14 +212,16 @@ export default function ExamRunner({
 
   if (!currentSubject) {
     return (
-      <div className="mx-auto mt-24 max-w-md text-center">
-        <p className="text-lg font-semibold">모든 과목을 완료했습니다!</p>
-        <button
-          onClick={() => router.replace(`/exam/${examId}/result`)}
-          className="mt-4 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-semibold text-white"
-        >
-          결과 보기
-        </button>
+      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center pb-24">
+        <div className="max-w-md text-center">
+          <p className="text-lg font-semibold">모든 과목을 완료했습니다!</p>
+          <button
+            onClick={() => router.replace(`/exam/${examId}/result`)}
+            className="mt-4 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-semibold text-white"
+          >
+            결과 보기
+          </button>
+        </div>
       </div>
     );
   }
@@ -298,42 +300,44 @@ export default function ExamRunner({
     const subjectIndex = subjects.indexOf(currentSubject);
     return (
       <>
-        <div className="mx-auto mt-20 max-w-md rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-xs font-medium text-zinc-400">
-            {examTitle} · {subjectIndex + 1}/{subjects.length}교시
-          </p>
-          <h1 className="mt-2 text-3xl font-bold">{currentSubject}</h1>
-          <p className="mt-3 text-sm text-zinc-500">
-            {sectionQuestions.length}문항 · {SECTION_MINUTES}분
-          </p>
-          <ul className="mx-auto mt-4 max-w-xs space-y-1 text-left text-xs text-zinc-400">
-            <li>· 과목 안에서는 문항을 자유롭게 이동할 수 있습니다.</li>
-            <li>· 메모장/그림판은 문제를 넘기면 지워집니다.</li>
-            <li>· 시간이 끝나면 자동 제출됩니다.</li>
-          </ul>
-          <button
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                const res = await startSection(examId, currentSubject);
-                setIdx(0);
-                setSectionState(res.sectionState);
-              } finally {
-                setBusy(false);
-              }
-            }}
-            className="mt-6 w-full rounded-lg bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-          >
-            {busy ? "준비 중..." : "시작하기"}
-          </button>
-          <button
-            disabled={busy}
-            onClick={exitExam}
-            className="mt-3 text-xs text-zinc-400 hover:text-zinc-600 hover:underline disabled:opacity-50"
-          >
-            나가기
-          </button>
+        <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center pb-24">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+            <p className="text-xs font-medium text-zinc-400">
+              {examTitle} · {subjectIndex + 1}/{subjects.length}교시
+            </p>
+            <h1 className="mt-2 text-3xl font-bold">{currentSubject}</h1>
+            <p className="mt-3 text-sm text-zinc-500">
+              {sectionQuestions.length}문항 · {SECTION_MINUTES}분
+            </p>
+            <ul className="mx-auto mt-4 max-w-xs space-y-1 text-left text-xs text-zinc-400">
+              <li>· 과목 안에서는 문항을 자유롭게 이동할 수 있습니다.</li>
+              <li>· 메모장/그림판은 문제를 넘기면 지워집니다.</li>
+              <li>· 시간이 끝나면 자동 제출됩니다.</li>
+            </ul>
+            <button
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const res = await startSection(examId, currentSubject);
+                  setIdx(0);
+                  setSectionState(res.sectionState);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              className="mt-6 w-full rounded-lg bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {busy ? "준비 중..." : "시작하기"}
+            </button>
+            <button
+              disabled={busy}
+              onClick={exitExam}
+              className="mt-3 text-xs text-zinc-400 hover:text-zinc-600 hover:underline disabled:opacity-50"
+            >
+              나가기
+            </button>
+          </div>
         </div>
         {confirmModal}
       </>
