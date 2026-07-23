@@ -105,7 +105,7 @@ export default async function AdminAnalytics() {
           <p className="mt-2 text-xs leading-5 text-ink-3">
             {!analytics.configured && analytics.reason === "request-failed"
               ? "현재 GA4 데이터를 불러오지 못했습니다. GA4 속성 권한과 환경변수를 확인해주세요."
-              : "NEXT_PUBLIC_GA_MEASUREMENT_ID, GA4_PROPERTY_ID, GA4_CLIENT_EMAIL, GA4_PRIVATE_KEY를 설정해주세요."}
+              : "NEXT_PUBLIC_GTM_ID, GA4_PROPERTY_ID, GA4_CLIENT_EMAIL, GA4_PRIVATE_KEY를 설정해주세요."}
           </p>
         </section>
       ) : (

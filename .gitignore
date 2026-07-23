@@ -25,6 +25,9 @@ __pycache__/
 # misc
 .DS_Store
 *.pem
+# Local Google Cloud service-account key material
+/private-key.pem
+/public-key.pem
 .claude/
 .idea/
 tmp/
