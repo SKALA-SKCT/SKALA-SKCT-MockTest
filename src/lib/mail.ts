@@ -12,7 +12,7 @@ export function appUrl(path: string) {
     (process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
       : undefined) ||
-    "http://localhost:3000";
+    "https://skala-skct.vercel.app";
   return new URL(path, base).toString();
 }
 
