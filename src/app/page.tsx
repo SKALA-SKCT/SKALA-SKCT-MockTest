@@ -1,10 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { unstable_cache } from "next/cache";
-import { redirect } from "next/navigation";
-import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
+  chatMessages,
   exams,
   questions,
   responses,
@@ -12,10 +13,11 @@ import {
   SUBJECTS,
   users,
 } from "@/db/schema";
-import { getCurrentUser, motherPageUrl } from "@/lib/session";
+import { getCurrentUser } from "@/lib/session";
 import SubjectRadar from "@/components/SubjectRadar";
 import TrendChart from "@/components/TrendChart";
 import ExamStartButton from "@/components/ExamStartButton";
+import PublicChat from "@/components/PublicChat";
 
 export const dynamic = "force-dynamic";
 
@@ -46,17 +48,282 @@ const getExamSubjectTotals = unstable_cache(
   { revalidate: 60, tags: ["questions"] }
 );
 
+const landingGuideSections = [
+  {
+    eyebrow: "Start",
+    title: "1회차부터 순서대로 응시",
+    body: "처음 접속하면 모의고사 목록에서 1회차만 응시할 수 있습니다. 한 회차를 완료해야 다음 회차가 열립니다.",
+    image: "/help/empty-dashboard.png",
+    imageWidth: 2602,
+    imageHeight: 1750,
+    tone: "bg-red-50 text-brand",
+    hideBottomShadow: true,
+  },
+  {
+    eyebrow: "Exam Info",
+    title: "시험 구성 확인 후 시작",
+    body: "응시 버튼을 누르면 유형 수, 총 시간, 유형별 문항 수와 시간을 확인할 수 있습니다. 시작 후에는 재응시할 수 없습니다.",
+    image: "/help/exam-intro.png",
+    imageWidth: 2598,
+    imageHeight: 1760,
+    tone: "bg-zinc-100 text-ink",
+  },
+  {
+    eyebrow: "Section",
+    title: "유형별 안내 확인",
+    body: "각 유형은 20문항, 15분으로 진행됩니다. 유형 안에서는 문항 번호를 눌러 자유롭게 이동할 수 있습니다.",
+    image: "/help/section-start.png",
+    imageWidth: 2594,
+    imageHeight: 1770,
+    tone: "bg-amber-50 text-amber-700",
+    hideBottomShadow: true,
+  },
+  {
+    eyebrow: "Solving",
+    title: "메모장, 그림판, 계산기와 함께 풀이",
+    body: "풀이 화면에서는 메모장과 그림판을 사용할 수 있고, 수열추리 등 계산이 필요한 유형에서는 계산기도 함께 제공합니다.",
+    image: "/help/exam-taking.png",
+    imageWidth: 2640,
+    imageHeight: 1492,
+    tone: "bg-emerald-50 text-emerald-700",
+  },
+  {
+    eyebrow: "Submit",
+    title: "미응답이 있어도 유형 제출 가능",
+    body: "다음 유형으로 넘어갈 때 미응답 문항 수를 확인한 뒤 제출할 수 있습니다. 제출한 유형은 다시 풀 수 없습니다.",
+    image: "/help/submit-confirm.png",
+    imageWidth: 2320,
+    imageHeight: 1760,
+    tone: "bg-red-50 text-brand",
+  },
+  {
+    eyebrow: "Exit",
+    title: "응시 중단 시 기록 초기화",
+    body: "응시 도중 나가기를 선택하면 이번 응시 기록과 저장된 답안이 모두 초기화됩니다.",
+    image: "/help/exit-confirm.png",
+    imageWidth: 2322,
+    imageHeight: 1754,
+    tone: "bg-zinc-100 text-ink",
+    hideBottomShadow: true,
+  },
+  {
+    eyebrow: "Dashboard",
+    title: "완료 후 누적 분석 확인",
+    body: "완료한 회차의 점수 추이와 유형별 누적 점수를 전체, 캠퍼스, 분반 평균과 비교합니다.",
+    image: "/help/dashboard.png",
+    imageWidth: 1297,
+    imageHeight: 886,
+    tone: "bg-amber-50 text-amber-700",
+    hideBottomShadow: true,
+  },
+  {
+    eyebrow: "Result",
+    title: "전체 시험자 점수 분포 확인",
+    body: "응시 완료 후 내 점수대, 전체 평균, 최고점을 한 화면에서 확인해 현재 위치를 빠르게 파악할 수 있습니다.",
+    image: "/help/result-distribution.png",
+    imageWidth: 1304,
+    imageHeight: 833,
+    tone: "bg-red-50 text-brand",
+  },
+  {
+    eyebrow: "Compare",
+    title: "과목별 점수와 랭킹 비교",
+    body: "과목별 점수, 평균 대비 차이, 랭킹을 함께 보며 강점과 약한 유형을 구분합니다.",
+    image: "/help/result-detail.png",
+    imageWidth: 2556,
+    imageHeight: 1406,
+    tone: "bg-emerald-50 text-emerald-700",
+  },
+  {
+    eyebrow: "Weak Points",
+    title: "유형별 고오답률 문항 분석",
+    body: "내 응시를 제외한 전체 응시자 기준으로 많이 틀린 문항을 모아, 복습 우선순위를 정할 수 있습니다.",
+    image: "/help/hard-questions.png",
+    imageWidth: 2588,
+    imageHeight: 990,
+    tone: "bg-amber-50 text-amber-700",
+  },
+  {
+    eyebrow: "Review",
+    title: "문항별 리뷰와 해설 확인",
+    body: "문제 원문, 자료, 보기, 정답, 내 답, 해설을 한 번에 확인하며 틀린 문제와 맞춘 문제를 필터링할 수 있습니다.",
+    image: "/help/review.png",
+    imageWidth: 2062,
+    imageHeight: 1594,
+    tone: "bg-zinc-100 text-ink",
+  },
+];
+
+function LandingPage() {
+  return (
+    <div className="relative left-1/2 -ml-[50vw] -my-10 min-h-screen w-screen bg-white">
+      <header className="sticky top-0 z-50 border-b border-hairline bg-white/95 backdrop-blur">
+        <nav className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-6">
+          <Link href="/" className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black tracking-tight text-brand">
+              SKCT
+            </span>
+            <span className="text-sm font-semibold text-ink-2">모의고사</span>
+          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              href="/login"
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-red-600"
+            >
+              로그인
+            </Link>
+          </div>
+        </nav>
+      </header>
+
+      <section className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl content-center gap-10 px-6 py-12">
+        <div className="relative overflow-hidden rounded-2xl border border-hairline bg-zinc-950 shadow-2xl">
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-55"
+            style={{ backgroundImage: "url('/help/dashboard.png')" }}
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/88 via-black/58 to-black/16" />
+          <div className="relative flex min-h-[520px] max-w-4xl flex-col justify-center px-10 py-16 text-white [word-break:keep-all]">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-red-200">
+              SKALA SKCT Practice
+            </p>
+            <h1 className="mt-4 text-5xl font-black tracking-tight">
+              SKCT 모의고사
+            </h1>
+            <p className="mt-5 max-w-3xl text-lg leading-8 text-white/82">
+              SKALA 내에서 SKCT 모의고사를 응시하고,
+              <br />
+              결과를 전체, 캠퍼스, 분반 평균과 비교해 취약 유형과 문항을 복습하는 분석 서비스입니다.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-2">
+              {["12회차 모의고사", "5개 유형 분석", "문항별 리뷰"].map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white/88"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+            <div className="mt-9 flex items-center gap-3">
+              <Link
+                href="/login"
+                className="rounded-lg bg-brand px-6 py-3 text-sm font-black text-white shadow-lg transition hover:bg-red-600"
+              >
+                로그인하고 시작
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <section className="grid gap-10 pt-4">
+          <div className="max-w-4xl border-l-4 border-brand pl-5 [word-break:keep-all]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-brand">
+              Service Guide
+            </p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-ink">
+              응시부터 복습까지, 전체 이용 흐름
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-ink-3">
+              SKCT 모의고사는 단순히 문제를 푸는 화면에서 끝나지 않습니다.
+              <br />
+              응시 전 구성 확인, 유형별 풀이, 제출, 결과 비교, 고오답률 문항 분석, 문항별 리뷰까지 한 번의 학습 흐름으로 이어집니다.
+            </p>
+          </div>
+          <div className="grid gap-0">
+            {landingGuideSections.map((item, index) => {
+              const reversed = index % 2 === 1;
+              return (
+                <article
+                  key={item.title}
+                  className={`grid items-center gap-8 py-12 ${
+                    reversed
+                      ? "lg:grid-cols-[minmax(0,1fr)_420px]"
+                      : "lg:grid-cols-[420px_minmax(0,1fr)]"
+                  }`}
+                >
+                  <div className={reversed ? "lg:order-2" : ""}>
+                    <div className="[word-break:keep-all]">
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-brand">
+                        {item.eyebrow}
+                      </p>
+                      <h3 className="mt-2 text-2xl font-black tracking-tight text-ink">
+                        {item.title}
+                      </h3>
+                      <p className="mt-4 text-base leading-8 text-ink-3 [overflow-wrap:normal]">
+                        {item.body}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className={`rounded-2xl border border-red-100 bg-white p-5 shadow-[0_24px_70px_rgba(20,20,20,0.08)] ${
+                      reversed ? "lg:order-1" : ""
+                    }`}
+                  >
+                    <div className="relative overflow-hidden rounded-xl">
+                      <Image
+                        src={item.image}
+                        alt={item.title}
+                        width={item.imageWidth}
+                        height={item.imageHeight}
+                        sizes="(min-width: 1280px) 820px, 100vw"
+                        className="h-auto w-full"
+                      />
+                      {item.hideBottomShadow && (
+                        <div
+                          className="pointer-events-none absolute inset-x-0 bottom-0 h-[9%] bg-gradient-to-t from-white via-white/95 to-transparent"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      </section>
+    </div>
+  );
+}
+
 export default async function Dashboard() {
   const user = await getCurrentUser();
-  if (!user) redirect(motherPageUrl("/login"));
+  if (!user) return <LandingPage />;
 
-  // 서로 의존이 없는 쿼리는 병렬 실행(순차 왕복 2회 → 1회).
-  const [examList, examSubjectTotals] = await Promise.all([
+  // 서로 의존이 없는 쿼리는 병렬 실행(순차 왕복 3회 → 1회).
+  // 시험 목록·문항 수는 60초 캐시, 채팅은 신선도가 중요해 매번 조회.
+  const [examList, initialChatRows, examSubjectTotals] = await Promise.all([
     getPublishedExams(),
+    db
+      .select({
+        id: chatMessages.id,
+        userId: chatMessages.userId,
+        body: chatMessages.body,
+        isAnonymous: chatMessages.isAnonymous,
+        createdAt: chatMessages.createdAt,
+        name: users.name,
+        campus: users.campus,
+        classNumber: users.classNumber,
+      })
+      .from(chatMessages)
+      .innerJoin(users, eq(users.id, chatMessages.userId))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(80),
     getExamSubjectTotals(),
   ]);
 
   const publishedExamIds = examList.map((exam) => exam.id);
+  const initialChatMessages = initialChatRows.reverse().map((row) => ({
+    id: row.id,
+    body: row.body,
+    isAnonymous: row.isAnonymous,
+    mine: row.userId === user.id,
+    author: row.isAnonymous ? "익명" : row.name,
+    meta: row.isAnonymous ? null : `${row.campus} ${row.classNumber}반`,
+    createdAt: row.createdAt.toISOString(),
+  }));
 
   // 통계는 유저·시험별 가장 최근 '완료' 응시 1개만 사용
   const finishedRows = publishedExamIds.length
@@ -308,7 +575,11 @@ export default async function Dashboard() {
   }
 
   return (
-    <div className="grid gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-stretch">
+    <div className="grid gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[280px_minmax(0,1fr)_280px] xl:items-stretch">
+      <aside className="min-h-0 xl:flex xl:h-full">
+        <PublicChat initialMessages={initialChatMessages} />
+      </aside>
+
       {/* ── 중앙: 분석 대시보드 */}
       <div className="flex min-w-0 flex-1 flex-col gap-4 xl:h-full xl:min-h-0">
         {/* 스탯 타일 */}

@@ -15,22 +15,6 @@ const SESSION_COOKIE_OPTIONS = {
   path: "/",
 } as const;
 
-const DEPLOYED_MOTHER_PAGE_URL = "https://skala-skct-landing.vercel.app";
-const LOCAL_MOTHER_PAGE_URL = "http://localhost:3000";
-
-export function motherPageUrl(path = "/login") {
-  const configured =
-    process.env.MOTHER_PAGE_URL ||
-    process.env.NEXT_PUBLIC_MOTHER_PAGE_URL;
-  const base =
-    process.env.NODE_ENV === "production"
-      ? configured && !configured.includes("localhost")
-        ? configured
-        : DEPLOYED_MOTHER_PAGE_URL
-      : configured || LOCAL_MOTHER_PAGE_URL;
-  return new URL(path, base).toString();
-}
-
 function getSessionSecret() {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32) {
@@ -82,7 +66,7 @@ export async function getCurrentUser() {
 
 export async function requireUser() {
   const user = await getCurrentUser();
-  if (!user) redirect(motherPageUrl("/login"));
+  if (!user) redirect("/login");
   return user;
 }
 

@@ -11,9 +11,6 @@ import {
   updateMyProfile,
 } from "@/lib/actions/auth";
 
-const LANDING_LOGIN_URL =
-  process.env.NEXT_PUBLIC_MOTHER_PAGE_URL?.replace(/\/$/, "") ?? "https://skala-skct-landing.vercel.app";
-
 const CAMPUSES = ["판교", "울산", "광주"] as const;
 type Campus = (typeof CAMPUSES)[number];
 const maxClassForCampus = (campus: Campus) => (campus === "판교" ? 10 : 4);
@@ -162,7 +159,7 @@ export default function AccountMenu({
     setBusy(true);
     const result = await deleteAccountWithNickname(confirmNickname);
     if (result.ok) {
-      window.location.href = `${LANDING_LOGIN_URL}/login`;
+      window.location.href = "/login";
       return;
     }
     setDeleteError(result.error ?? "회원탈퇴에 실패했습니다.");
