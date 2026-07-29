@@ -4,10 +4,8 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  changeMyPasswordWithCode,
   deleteAccountWithNickname,
   logoutOnly,
-  requestMyPasswordChangeCode,
   updateMyProfile,
 } from "@/lib/actions/auth";
 
@@ -15,30 +13,20 @@ const CAMPUSES = ["판교", "울산", "광주"] as const;
 type Campus = (typeof CAMPUSES)[number];
 const maxClassForCampus = (campus: Campus) => (campus === "판교" ? 10 : 4);
 
-function maskEmail(email: string | null) {
-  if (!email) return "";
-  const [local, domain] = email.split("@");
-  if (!domain) return email[0] + "*".repeat(Math.max(1, email.length - 1));
-  return `${local.slice(0, 2)}${"*".repeat(Math.max(2, local.length - 2))}@${domain}`;
-}
-
 export default function AccountMenu({
   nickname,
   name,
-  email,
   campus,
   classNumber,
 }: {
   nickname: string;
   name: string;
-  email: string | null;
   campus: Campus;
   classNumber: number;
 }) {
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [passwordOpen, setPasswordOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [confirmNickname, setConfirmNickname] = useState("");
   const [deleteError, setDeleteError] = useState("");
@@ -46,14 +34,6 @@ export default function AccountMenu({
   const [profileClassNumber, setProfileClassNumber] = useState(classNumber);
   const [profileError, setProfileError] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
-  const [passwordStep, setPasswordStep] = useState<"request" | "change">(
-    "request"
-  );
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordMessage, setPasswordMessage] = useState("");
-  const [code, setCode] = useState("");
-  const [pin, setPin] = useState("");
-  const [pinConfirm, setPinConfirm] = useState("");
 
   const handleLogout = async () => {
     if (busy) return;
@@ -77,18 +57,6 @@ export default function AccountMenu({
     setDeleteError("");
   };
 
-  const openPasswordModal = () => {
-    if (busy) return;
-    setMenuOpen(false);
-    setPasswordOpen(true);
-    setPasswordStep("request");
-    setPasswordError("");
-    setPasswordMessage("");
-    setCode("");
-    setPin("");
-    setPinConfirm("");
-  };
-
   const openProfileModal = () => {
     if (busy) return;
     setMenuOpen(false);
@@ -104,50 +72,6 @@ export default function AccountMenu({
     setProfileOpen(false);
     setProfileError("");
     setProfileMessage("");
-  };
-
-  const closePasswordModal = () => {
-    if (busy) return;
-    setPasswordOpen(false);
-    setPasswordError("");
-    setPasswordMessage("");
-  };
-
-  const handleRequestPasswordCode = async () => {
-    if (busy) return;
-    setBusy(true);
-    setPasswordError("");
-    setPasswordMessage("");
-    const result = await requestMyPasswordChangeCode();
-    if (result.ok) {
-      setPasswordStep("change");
-      setPasswordMessage(result.message ?? "인증번호를 보냈습니다.");
-    } else {
-      setPasswordError(result.error ?? "인증번호 발송에 실패했습니다.");
-    }
-    setBusy(false);
-  };
-
-  const handleChangePassword = async () => {
-    if (busy) return;
-    setBusy(true);
-    setPasswordError("");
-    setPasswordMessage("");
-    const result = await changeMyPasswordWithCode({
-      code,
-      pin,
-      pinConfirm,
-    });
-    if (result.ok) {
-      setPasswordMessage(result.message ?? "비밀번호가 변경되었습니다.");
-      setCode("");
-      setPin("");
-      setPinConfirm("");
-      setBusy(false);
-      return;
-    }
-    setPasswordError(result.error ?? "비밀번호 변경에 실패했습니다.");
-    setBusy(false);
   };
 
   const handleDeleteAccount = async () => {
@@ -370,127 +294,6 @@ export default function AccountMenu({
         )
       : null;
 
-  const passwordDialog =
-    typeof document !== "undefined" && passwordOpen
-      ? createPortal(
-          <div
-            role="presentation"
-            className="fixed inset-0 z-[1000] grid place-items-center bg-zinc-950/45 px-4 py-8 backdrop-blur-[1px]"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) closePasswordModal();
-            }}
-          >
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="change-password-title"
-              className="w-full max-w-[420px] rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl"
-              onMouseDown={(event) => event.stopPropagation()}
-            >
-              <div className="space-y-2">
-                <p
-                  id="change-password-title"
-                  className="text-xl font-bold text-zinc-950"
-                >
-                  비밀번호 변경
-                </p>
-                <p className="text-sm leading-6 text-zinc-500">
-                  인증번호를 {maskEmail(email)}로 받은 뒤 새 비밀번호를
-                  입력해주세요.
-                </p>
-              </div>
-
-              {passwordStep === "request" ? (
-                <button
-                  type="button"
-                  onClick={() => void handleRequestPasswordCode()}
-                  disabled={busy || !email}
-                  className="mt-5 w-full rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                >
-                  {busy ? "발송 중..." : "인증번호 받기"}
-                </button>
-              ) : (
-                <div className="mt-5 space-y-3">
-                  <input
-                    value={code}
-                    onChange={(event) => {
-                      setCode(event.target.value.replace(/\D/g, "").slice(0, 6));
-                      setPasswordError("");
-                    }}
-                    placeholder="인증번호 6자리"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    className="w-full rounded-lg border border-zinc-300 px-4 py-3 text-sm outline-none focus:border-red-500"
-                  />
-                  <input
-                    value={pin}
-                    onChange={(event) => {
-                      setPin(event.target.value);
-                      setPasswordError("");
-                    }}
-                    type="password"
-                    placeholder="새 비밀번호"
-                    autoComplete="new-password"
-                    className="w-full rounded-lg border border-zinc-300 px-4 py-3 text-sm outline-none focus:border-red-500"
-                  />
-                  <input
-                    value={pinConfirm}
-                    onChange={(event) => {
-                      setPinConfirm(event.target.value);
-                      setPasswordError("");
-                    }}
-                    type="password"
-                    placeholder="새 비밀번호 확인"
-                    autoComplete="new-password"
-                    className="w-full rounded-lg border border-zinc-300 px-4 py-3 text-sm outline-none focus:border-red-500"
-                  />
-                </div>
-              )}
-
-              {passwordError && (
-                <p className="mt-3 text-xs text-red-600">{passwordError}</p>
-              )}
-              {passwordMessage && (
-                <p className="mt-3 text-xs text-emerald-600">
-                  {passwordMessage}
-                </p>
-              )}
-
-              <div className="mt-6 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={closePasswordModal}
-                  disabled={busy}
-                  className="rounded-lg border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
-                >
-                  닫기
-                </button>
-                {passwordStep === "change" ? (
-                  <button
-                    type="button"
-                    onClick={() => void handleChangePassword()}
-                    disabled={busy || code.length !== 6 || !pin || !pinConfirm}
-                    className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {busy ? "변경 중..." : "변경하기"}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={closePasswordModal}
-                    disabled={busy}
-                    className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
-                  >
-                    확인
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>,
-          document.body
-        )
-      : null;
-
   return (
     <>
       <DropdownMenu.Root open={menuOpen} onOpenChange={setMenuOpen}>
@@ -517,15 +320,6 @@ export default function AccountMenu({
             <DropdownMenu.Item
               onSelect={(event) => {
                 event.preventDefault();
-                openPasswordModal();
-              }}
-              className="cursor-pointer rounded-lg px-3 py-2 text-ink-2 outline-none ring-0 hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-            >
-              비밀번호 변경
-            </DropdownMenu.Item>
-            <DropdownMenu.Item
-              onSelect={(event) => {
-                event.preventDefault();
                 openProfileModal();
               }}
               className="cursor-pointer rounded-lg px-3 py-2 text-ink-2 outline-none ring-0 hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
@@ -547,7 +341,6 @@ export default function AccountMenu({
       </DropdownMenu.Root>
       {profileDialog}
       {deleteDialog}
-      {passwordDialog}
     </>
   );
 }

@@ -104,7 +104,6 @@ export default async function RootLayout({
                   <AccountMenu
                     nickname={user.nickname}
                     name={user.name}
-                    email={user.email}
                     campus={user.campus}
                     classNumber={user.classNumber}
                   />
