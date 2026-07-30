@@ -45,9 +45,38 @@ const getExamSubjectTotals = unstable_cache(
   { revalidate: 60, tags: ["questions"] }
 );
 
-export default async function Dashboard() {
+type DashboardProps = {
+  searchParams: Promise<{ sso?: string | string[] }>;
+};
+
+export default async function Dashboard({ searchParams }: DashboardProps) {
   const user = await getCurrentUser();
-  if (!user) redirect(getMotherLoginUrl("/"));
+  if (!user) {
+    const { sso } = await searchParams;
+
+    // Mother에서 이미 돌아온 요청을 다시 Mother로 보내면 두 앱 사이에
+    // 무한 리다이렉트가 생긴다. MockPractice와 동일하게 한 번만 왕복한다.
+    if (sso === "1") {
+      return (
+        <main className="mx-auto flex min-h-[70vh] w-full max-w-xl items-center px-6 py-16">
+          <section className="w-full rounded-2xl border border-hairline bg-surface p-8 text-center shadow-sm">
+            <h1 className="text-2xl font-semibold">로그인 세션을 확인하지 못했어요</h1>
+            <p className="mt-3 leading-7 text-muted">
+              통합 로그인 설정을 확인하는 중입니다. 잠시 후 다시 시도해 주세요.
+            </p>
+            <Link
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-foreground px-5 font-medium text-background"
+              href={getMotherLoginUrl("/")}
+            >
+              다시 로그인하기
+            </Link>
+          </section>
+        </main>
+      );
+    }
+
+    redirect(getMotherLoginUrl("/"));
+  }
 
   // 서로 의존이 없는 쿼리는 병렬 실행(순차 왕복 2회 → 1회).
   const [examList, examSubjectTotals] = await Promise.all([
