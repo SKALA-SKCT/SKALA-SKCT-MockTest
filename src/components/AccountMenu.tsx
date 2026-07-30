@@ -4,6 +4,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { deleteAccountWithNickname, logoutOnly } from "@/lib/actions/auth";
+import { getMotherLogoutUrl } from "@/lib/mother-auth";
 
 export default function AccountMenu({
   nickname,
@@ -22,7 +23,7 @@ export default function AccountMenu({
     if (busy) return;
     setBusy(true);
     await logoutOnly();
-    window.location.href = "/";
+    window.location.href = getMotherLogoutUrl();
   };
 
   const openDeleteModal = () => {
@@ -49,7 +50,7 @@ export default function AccountMenu({
     setBusy(true);
     const result = await deleteAccountWithNickname(confirmNickname);
     if (result.ok) {
-      window.location.href = "/login";
+      window.location.href = getMotherLogoutUrl();
       return;
     }
     setDeleteError(result.error ?? "회원탈퇴에 실패했습니다.");

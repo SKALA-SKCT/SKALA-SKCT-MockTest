@@ -42,3 +42,10 @@ export function getMotherLoginUrl(path = "/") {
   login.searchParams.set("redirect", target.toString());
   return login.toString();
 }
+
+export function getMotherLogoutUrl(path = "/login") {
+  const target = new URL(path, `${getMotherUrl()}/`);
+  const logout = new URL("/api/auth/logout", `${getMotherUrl()}/`);
+  logout.searchParams.set("redirect", target.toString());
+  return logout.toString();
+}

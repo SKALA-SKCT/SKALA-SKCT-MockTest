@@ -9,6 +9,7 @@ import { authTokens, CAMPUSES, maxClassForCampus, users, type Campus } from "@/d
 import { appUrl, sendMail } from "@/lib/mail";
 import { hitRateLimit } from "@/lib/rate-limit";
 import { createSession, destroySession } from "@/lib/session";
+import { getMotherLogoutUrl } from "@/lib/mother-auth";
 
 export type AuthFormState = { error?: string; message?: string };
 
@@ -289,7 +290,7 @@ export async function login(
 
 export async function logout() {
   await destroySession();
-  redirect("/");
+  redirect(getMotherLogoutUrl());
 }
 
 export async function logoutOnly() {
