@@ -223,7 +223,7 @@ export default function ExamRunner({
   }, [examId]);
 
   useEffect(() => {
-    if (!sectionStartedAt) return;
+    if (!currentSubject) return;
 
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!shouldCleanupOnUnloadRef.current) return;
@@ -269,7 +269,7 @@ export default function ExamRunner({
       document.removeEventListener("click", guardLinkNavigation, true);
       window.removeEventListener("popstate", guardHistoryNavigation);
     };
-  }, [requestNavigationExit, sectionStartedAt]);
+  }, [currentSubject, requestNavigationExit]);
 
   const activeQuestionId = section ? sectionQuestions[idx]?.id ?? null : null;
   useEffect(() => {

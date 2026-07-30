@@ -194,7 +194,7 @@ export default function Calculator() {
         <CalcButton
           label="0"
           onClick={() => input("0")}
-          className="col-span-5 row-start-5 border border-zinc-200 bg-white"
+          className="col-span-3 row-start-5 border border-zinc-200 bg-white"
         />
       </div>
     </div>
