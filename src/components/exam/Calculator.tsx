@@ -168,33 +168,33 @@ export default function Calculator() {
         {expression}
       </div>
       <div className="grid grid-cols-5 gap-1.5">
-        <CalcButton label="C" onClick={clear} className="bg-zinc-200 text-zinc-700" />
+        <CalcButton label="C" onClick={clear} className="col-span-3 bg-zinc-200 text-zinc-700" />
         <CalcButton label="(" onClick={() => input("(")} className="bg-zinc-100" />
         <CalcButton label=")" onClick={() => input(")")} className="bg-zinc-100" />
         <CalcButton label="%" onClick={() => input("%")} className="bg-zinc-100" />
         <CalcButton label="÷" onClick={() => input("÷")} className="bg-zinc-100" />
+        <CalcButton label="×" onClick={() => input("×")} className="bg-zinc-100" />
+        <CalcButton label="−" onClick={() => input("-")} className="bg-zinc-100" />
+        <CalcButton label="+" onClick={() => input("+")} className="bg-zinc-100" />
         {["7", "8", "9"].map((digit) => (
           <CalcButton key={digit} label={digit} onClick={() => input(digit)} className="border border-zinc-200 bg-white" />
         ))}
-        <CalcButton label="×" onClick={() => input("×")} className="bg-zinc-100" />
-        <CalcButton label="−" onClick={() => input("-")} className="bg-zinc-100" />
+        <CalcButton
+          label="="
+          onClick={equals}
+          className="col-span-2 row-span-2 h-full bg-brand text-white"
+        />
         {["4", "5", "6"].map((digit) => (
           <CalcButton key={digit} label={digit} onClick={() => input(digit)} className="border border-zinc-200 bg-white" />
         ))}
-        <CalcButton label="+" onClick={() => input("+")} className="bg-zinc-100" />
         {["1", "2", "3"].map((digit) => (
           <CalcButton key={digit} label={digit} onClick={() => input(digit)} className="border border-zinc-200 bg-white" />
         ))}
         <CalcButton label="." onClick={() => input(".")} className="border border-zinc-200 bg-white" />
         <CalcButton
-          label="="
-          onClick={equals}
-          className="col-start-5 row-start-3 row-span-2 h-full bg-brand text-white"
-        />
-        <CalcButton
           label="0"
           onClick={() => input("0")}
-          className="col-span-3 row-start-5 border border-zinc-200 bg-white"
+          className="border border-zinc-200 bg-white"
         />
       </div>
     </div>
