@@ -90,7 +90,7 @@ export default function ExamStartButton({
               <button
                 type="button"
                 onClick={startExam}
-                className="rounded-[10px] bg-ink px-[18px] py-2 text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px"
+                className="rounded-[10px] bg-brand px-[18px] py-2 text-sm font-medium text-white transition hover:bg-[#c90026] hover:-translate-y-px"
               >
                 시작하기
               </button>

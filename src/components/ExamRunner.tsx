@@ -88,6 +88,7 @@ export default function ExamRunner({
   const [notice, setNotice] = useState<string | null>(null);
   const restoredSubjectRef = useRef<string | null>(null);
   const shouldCleanupOnUnloadRef = useRef(true);
+  const suppressNextPopRef = useRef(false);
 
   const currentSubject = subjects.find((s) => !sectionState[s]?.finishedAt);
   const section = currentSubject ? sectionState[currentSubject] : undefined;
@@ -102,6 +103,25 @@ export default function ExamRunner({
   const sectionStartedAt = section?.startedAt;
 
   const [remaining, setRemaining] = useState<number | null>(null);
+
+  const requestNavigationExit = useCallback(
+    (destination: string) => {
+      setConfirmRequest({
+        title: "응시를 중단할까요?",
+        message:
+          "지금 나가면 이번 응시 기록과 저장된 답안이 모두 초기화됩니다.",
+        confirmText: "나가기",
+        tone: "danger",
+        onConfirm: async () => {
+          await Promise.allSettled([...pendingSavesRef.current]);
+          await abandonAttempt(examId);
+          shouldCleanupOnUnloadRef.current = false;
+          window.location.assign(destination);
+        },
+      });
+    },
+    [examId]
+  );
 
   useLayoutEffect(() => {
     if (!sectionStartedAt) return;
@@ -197,12 +217,59 @@ export default function ExamRunner({
     };
 
     window.addEventListener("pagehide", cleanupAttempt);
-    window.addEventListener("beforeunload", cleanupAttempt);
     return () => {
       window.removeEventListener("pagehide", cleanupAttempt);
-      window.removeEventListener("beforeunload", cleanupAttempt);
     };
   }, [examId]);
+
+  useEffect(() => {
+    if (!sectionStartedAt) return;
+
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!shouldCleanupOnUnloadRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const guardLinkNavigation = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
+      if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+      const destination = new URL(anchor.href, window.location.href);
+      if (destination.href === window.location.href) return;
+      event.preventDefault();
+      requestNavigationExit(destination.href);
+    };
+    const guardHistoryNavigation = () => {
+      if (suppressNextPopRef.current) {
+        suppressNextPopRef.current = false;
+        return;
+      }
+      const destination = window.location.href;
+      suppressNextPopRef.current = true;
+      window.history.forward();
+      requestNavigationExit(destination);
+    };
+
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    document.addEventListener("click", guardLinkNavigation, true);
+    window.addEventListener("popstate", guardHistoryNavigation);
+    return () => {
+      window.removeEventListener("beforeunload", warnBeforeUnload);
+      document.removeEventListener("click", guardLinkNavigation, true);
+      window.removeEventListener("popstate", guardHistoryNavigation);
+    };
+  }, [requestNavigationExit, sectionStartedAt]);
 
   const activeQuestionId = section ? sectionQuestions[idx]?.id ?? null : null;
   useEffect(() => {
@@ -227,19 +294,7 @@ export default function ExamRunner({
   }
 
   const exitExam = () => {
-    setConfirmRequest({
-      title: "응시를 중단할까요?",
-      message:
-        "지금 나가면 이번 응시 기록과 저장된 답안이 모두 초기화됩니다.",
-      confirmText: "나가기",
-      tone: "danger",
-      onConfirm: async () => {
-        await Promise.allSettled([...pendingSavesRef.current]);
-        await abandonAttempt(examId);
-        shouldCleanupOnUnloadRef.current = false;
-        router.replace("/");
-      },
-    });
+    requestNavigationExit(new URL("/", window.location.href).href);
   };
 
   const moveToNextSubject = () => {
@@ -259,7 +314,7 @@ export default function ExamRunner({
   };
 
   const confirmModal = confirmRequest ? (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+    <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
         <p className="text-lg font-bold text-zinc-900">{confirmRequest.title}</p>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
@@ -326,7 +381,7 @@ export default function ExamRunner({
                   setBusy(false);
                 }
               }}
-              className="mt-6 w-full rounded-[10px] bg-ink py-3 text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px disabled:opacity-50"
+              className="mt-6 w-full rounded-[10px] bg-brand py-3 text-sm font-medium text-white transition hover:bg-[#c90026] hover:-translate-y-px disabled:opacity-50"
             >
               {busy ? "준비 중..." : "시작하기"}
             </button>
