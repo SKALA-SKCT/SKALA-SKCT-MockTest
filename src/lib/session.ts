@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -45,7 +46,7 @@ export async function destroySession() {
   });
 }
 
-export async function getSessionUserId(): Promise<number | null> {
+export const getSessionUserId = cache(async (): Promise<number | null> => {
   const store = await cookies();
   const token = store.get(COOKIE)?.value;
   if (!token) return null;
@@ -55,14 +56,14 @@ export async function getSessionUserId(): Promise<number | null> {
   } catch {
     return null;
   }
-}
+});
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const uid = await getSessionUserId();
   if (uid == null) return null;
   const [user] = await db.select().from(users).where(eq(users.id, uid));
   return user ?? null;
-}
+});
 
 export async function requireUser() {
   const user = await getCurrentUser();

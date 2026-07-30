@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { notFound, redirect } from "next/navigation";
-import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
@@ -21,6 +22,26 @@ import ResultStrategyAnalysis, {
 } from "@/components/ResultStrategyAnalysis";
 
 export const dynamic = "force-dynamic";
+
+const getResultExam = unstable_cache(
+  async (examId: number) => {
+    const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
+    return exam ?? null;
+  },
+  ["result:exam"],
+  { revalidate: 60, tags: ["exams"] }
+);
+
+const getResultQuestions = unstable_cache(
+  async (examId: number) =>
+    db
+      .select()
+      .from(questions)
+      .where(eq(questions.examId, examId))
+      .orderBy(asc(questions.subject), asc(questions.number)),
+  ["result:questions"],
+  { revalidate: 60, tags: ["questions"] }
+);
 
 function maskName(value: string | null) {
   if (!value) return "-";
@@ -50,20 +71,21 @@ export default async function ResultPage({
   if (!Number.isInteger(examId)) notFound();
 
   const user = await requireUser();
-  const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
-  if (!exam) notFound();
-
-  const myAttempts = await db
-    .select()
-    .from(attempts)
-    .where(
-      and(
-        eq(attempts.userId, user.id),
-        eq(attempts.examId, examId),
-        isNotNull(attempts.finishedAt)
+  const [exam, myAttempts] = await Promise.all([
+    getResultExam(examId),
+    db
+      .select()
+      .from(attempts)
+      .where(
+        and(
+          eq(attempts.userId, user.id),
+          eq(attempts.examId, examId),
+          isNotNull(attempts.finishedAt)
+        )
       )
-    )
-    .orderBy(asc(attempts.id));
+      .orderBy(asc(attempts.id)),
+  ]);
+  if (!exam) notFound();
   const requestedRound = Number(round ?? "");
   const selectedRound =
     Number.isInteger(requestedRound) &&
@@ -74,11 +96,22 @@ export default async function ResultPage({
   const myAttempt = myAttempts[selectedRound - 1];
   if (!myAttempt) redirect(`/exam/${examId}/take`);
 
-  const qs = await db
-    .select()
-    .from(questions)
-    .where(eq(questions.examId, examId))
-    .orderBy(asc(questions.subject), asc(questions.number));
+  const [qs, finishedRows] = await Promise.all([
+    getResultQuestions(examId),
+    db
+      .select({
+        attemptId: attempts.id,
+        userId: attempts.userId,
+        nickname: users.nickname,
+        name: users.name,
+        campus: users.campus,
+        classNumber: users.classNumber,
+      })
+      .from(attempts)
+      .innerJoin(users, eq(users.id, attempts.userId))
+      .where(and(eq(attempts.examId, examId), isNotNull(attempts.finishedAt)))
+      .orderBy(asc(attempts.id)),
+  ]);
 
   const examSubjects = SUBJECTS.filter((s) => qs.some((q) => q.subject === s));
   const totalBySubject = new Map<string, number>();
@@ -91,19 +124,6 @@ export default async function ResultPage({
   }));
 
   // 완료된 응시 — 유저별 N번째 완료 기록끼리 비교한다.
-  const finishedRows = await db
-    .select({
-      attemptId: attempts.id,
-      userId: attempts.userId,
-      nickname: users.nickname,
-      name: users.name,
-      campus: users.campus,
-      classNumber: users.classNumber,
-    })
-    .from(attempts)
-    .innerJoin(users, eq(users.id, attempts.userId))
-    .where(and(eq(attempts.examId, examId), isNotNull(attempts.finishedAt)))
-    .orderBy(asc(attempts.id));
   const attemptRowsByUser = new Map<number, (typeof finishedRows)>();
   for (const row of finishedRows) {
     const rows = attemptRowsByUser.get(row.userId) ?? [];
@@ -128,17 +148,55 @@ export default async function ResultPage({
   const analysisAttemptIds = peerAttemptIds.length ? peerAttemptIds : [myAttempt.id];
   const analysisCount = analysisAttemptIds.length;
 
-  // 응시별 · 과목별 정답 수
-  const subjectCorrect = await db
-    .select({
-      attemptId: responses.attemptId,
-      subject: questions.subject,
-      correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
-    })
-    .from(responses)
-    .innerJoin(questions, eq(questions.id, responses.questionId))
-    .where(inArray(responses.attemptId, attemptIds))
-    .groupBy(responses.attemptId, questions.subject);
+  const [
+    subjectCorrect,
+    qAccuracyRows,
+    analysisAccuracyRows,
+    analysisChoiceRows,
+    myResponses,
+  ] = await Promise.all([
+    db
+      .select({
+        attemptId: responses.attemptId,
+        subject: questions.subject,
+        correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
+      })
+      .from(responses)
+      .innerJoin(questions, eq(questions.id, responses.questionId))
+      .where(inArray(responses.attemptId, attemptIds))
+      .groupBy(responses.attemptId, questions.subject),
+    db
+      .select({
+        questionId: responses.questionId,
+        correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
+      })
+      .from(responses)
+      .where(inArray(responses.attemptId, attemptIds))
+      .groupBy(responses.questionId),
+    db
+      .select({
+        questionId: responses.questionId,
+        correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
+      })
+      .from(responses)
+      .where(inArray(responses.attemptId, analysisAttemptIds))
+      .groupBy(responses.questionId),
+    db
+      .select({
+        questionId: responses.questionId,
+        choice: responses.choice,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(responses)
+      .where(
+        and(
+          inArray(responses.attemptId, analysisAttemptIds),
+          isNotNull(responses.choice)
+        )
+      )
+      .groupBy(responses.questionId, responses.choice),
+    db.select().from(responses).where(eq(responses.attemptId, myAttempt.id)),
+  ]);
 
   const scoreByAttempt = new Map<number, { total: number; bySubject: Map<string, number> }>();
   for (const a of finishedAttempts)
@@ -186,43 +244,14 @@ export default async function ResultPage({
     };
   });
   // 문항별 전체 정답률 (무응답/미기록은 오답 처리: 분모 = 완료 인원)
-  const qAccuracyRows = await db
-    .select({
-      questionId: responses.questionId,
-      correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
-    })
-    .from(responses)
-    .where(inArray(responses.attemptId, attemptIds))
-    .groupBy(responses.questionId);
   const correctCountByQ = new Map(
     qAccuracyRows.map((r) => [r.questionId, r.correct])
   );
 
-  const analysisAccuracyRows = analysisAttemptIds.length
-    ? await db
-        .select({
-          questionId: responses.questionId,
-          correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
-        })
-        .from(responses)
-        .where(inArray(responses.attemptId, analysisAttemptIds))
-        .groupBy(responses.questionId)
-    : [];
   const analysisCorrectCountByQ = new Map(
     analysisAccuracyRows.map((r) => [r.questionId, r.correct])
   );
 
-  const analysisChoiceRows = analysisAttemptIds.length
-    ? await db
-        .select({
-          questionId: responses.questionId,
-          choice: responses.choice,
-          count: sql<number>`count(*)::int`,
-        })
-        .from(responses)
-        .where(and(inArray(responses.attemptId, analysisAttemptIds), isNotNull(responses.choice)))
-        .groupBy(responses.questionId, responses.choice)
-    : [];
   const analysisChoiceCountsByQ = new Map<number, number[]>();
   for (const row of analysisChoiceRows) {
     if (row.choice == null) continue;
@@ -232,10 +261,6 @@ export default async function ResultPage({
   }
 
   // 내 응답
-  const myResponses = await db
-    .select()
-    .from(responses)
-    .where(eq(responses.attemptId, myAttempt.id));
   const myResponseByQ = new Map(myResponses.map((r) => [r.questionId, r]));
   const myChoiceByQ = new Map(myResponses.map((r) => [r.questionId, r.choice]));
 
