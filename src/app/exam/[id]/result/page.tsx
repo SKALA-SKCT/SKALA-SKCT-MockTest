@@ -144,11 +144,7 @@ export default async function ResultPage({
     .filter((row): row is (typeof finishedRows)[number] => Boolean(row));
   const n = finishedAttempts.length;
   const attemptIds = finishedAttempts.map((a) => a.attemptId);
-  const peerAttemptIds = finishedAttempts
-    .filter((a) => a.userId !== user.id)
-    .map((a) => a.attemptId);
-  const peerCount = peerAttemptIds.length;
-  const analysisAttemptIds = peerAttemptIds.length ? peerAttemptIds : [myAttempt.id];
+  const analysisAttemptIds = finishedAttempts.map((a) => a.attemptId);
   const analysisCount = analysisAttemptIds.length;
 
   const [
@@ -546,7 +542,7 @@ export default async function ResultPage({
             examId={examId}
             questions={reviewQuestions}
             subjects={reviewSubjects}
-            peerCount={peerCount}
+            participantCount={analysisCount}
           />
         </ResultRoundTabs>
       </div>

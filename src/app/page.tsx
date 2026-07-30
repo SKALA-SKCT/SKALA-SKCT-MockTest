@@ -134,7 +134,7 @@ const landingGuideSections = [
   {
     eyebrow: "Weak Points",
     title: "유형별 고오답률 문항 분석",
-    body: "내 응시를 제외한 전체 응시자 기준으로 많이 틀린 문항을 모아, 복습 우선순위를 정할 수 있습니다.",
+    body: "내 응시를 포함한 전체 응시자 기준으로 많이 틀린 문항을 모아, 복습 우선순위를 정할 수 있습니다.",
     image: "/help/hard-questions.png",
     imageWidth: 2588,
     imageHeight: 990,

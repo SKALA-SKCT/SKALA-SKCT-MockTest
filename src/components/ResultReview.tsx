@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ResultReviewChatbot from "@/components/ResultReviewChatbot";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
 import {
   formatReviewExplanation,
@@ -279,12 +280,12 @@ export default function ResultReview({
   examId,
   questions,
   subjects,
-  peerCount,
+  participantCount,
 }: {
   examId: number;
   questions: ReviewQuestion[];
   subjects: SubjectSummary[];
-  peerCount: number;
+  participantCount: number;
 }) {
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
@@ -349,13 +350,11 @@ export default function ResultReview({
           <div>
             <h2 className="text-lg font-bold">유형별 고오답률 문항</h2>
             <p className="mt-1 text-xs text-zinc-400">
-              {peerCount > 0
-                ? `내 응시를 제외한 ${peerCount}명의 오답률 기준`
-                : "아직 다른 응시자 데이터가 없어 내 완료 기록을 기준으로 표시합니다."}
+              내 응시를 포함한 {participantCount}명의 오답률 기준
             </p>
           </div>
           <span className="rounded-full bg-zinc-50 px-3 py-1 text-xs font-bold text-zinc-500">
-            {peerCount > 0 ? "전체 기준" : "내 기록 기준"}
+            전체 기준
           </span>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -515,6 +514,7 @@ export default function ResultReview({
           ))}
         </div>
       </section>
+      <ResultReviewChatbot questions={questions} participantCount={participantCount} />
     </div>
   );
 }
