@@ -347,7 +347,9 @@ export default async function ResultPage({
   });
 
   const strategyInput: StrategyAnalysisInput = {
+    attemptId: myAttempt.id,
     examTitle: exam.title,
+    round: selectedRound,
     score: myScore.total,
     total: totalQuestions,
     rank,

@@ -22,7 +22,9 @@ type StrategyQuestion = {
 };
 
 export type StrategyAnalysisInput = {
+  attemptId: number;
   examTitle: string;
+  round: number;
   score: number;
   total: number;
   rank: number;
@@ -45,6 +47,7 @@ export default function ResultStrategyAnalysis({
 }: {
   input: StrategyAnalysisInput;
 }) {
+  const cacheKey = `skct:result-analysis:${input.attemptId}`;
   const [result, setResult] = useState<StrategyAnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +56,12 @@ export default function ResultStrategyAnalysis({
     setLoading(true);
     setError(null);
     try {
+      const cached = window.localStorage.getItem(cacheKey);
+      if (cached) {
+        setResult(JSON.parse(cached) as StrategyAnalysisResult);
+        return;
+      }
+
       const response = await fetch("/api/ai/result-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,6 +73,7 @@ export default function ResultStrategyAnalysis({
       if (!response.ok || !("summary" in payload)) {
         throw new Error("error" in payload ? payload.error : "분석에 실패했습니다.");
       }
+      window.localStorage.setItem(cacheKey, JSON.stringify(payload));
       setResult(payload);
     } catch (analysisError) {
       setError(
@@ -74,15 +84,16 @@ export default function ResultStrategyAnalysis({
     } finally {
       setLoading(false);
     }
-  }, [input]);
+  }, [cacheKey, input]);
 
   useEffect(() => {
+    setResult(null);
+    setError(null);
     const timer = window.setTimeout(() => {
       void generateAnalysis();
     }, 0);
-    // A result view creates one analysis request; later renders reuse the result in this view.
     return () => window.clearTimeout(timer);
-  }, [generateAnalysis]);
+  }, [cacheKey, generateAnalysis]);
 
   return (
     <section className="chart-card mb-6 border-brand/20 bg-[#fffdfc] p-5">

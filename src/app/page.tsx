@@ -548,7 +548,7 @@ export default async function Dashboard() {
   }
 
   return (
-    <div className="grid gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-stretch">
+    <div className="grid gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-stretch">
       {/* ── 중앙: 분석 대시보드 */}
       <div className="flex min-w-0 flex-1 flex-col gap-4 xl:h-full xl:min-h-0">
         {/* 스탯 타일 */}
@@ -585,7 +585,9 @@ export default async function Dashboard() {
               <h2 className="text-sm font-semibold text-ink">
                 회차별 점수 추이
               </h2>
-              <p className="mb-2 text-xs text-ink-3">완료한 회차 기준, 100점 만점</p>
+              <p className="mb-2 text-xs text-ink-3">
+                완료한 {myFinished.length}회차 기준, 100점 만점
+              </p>
               <TrendChart data={trendData} className="min-h-0 flex-1" />
             </div>
             <div className="chart-card flex min-h-0 flex-col p-3.5">
@@ -670,10 +672,10 @@ export default async function Dashboard() {
           <div className="border-b border-hairline px-4 py-3.5">
             <h2 className="text-sm font-semibold text-ink">모의고사</h2>
             <p className="mt-1 text-xs text-ink-3">
-              완료한 회차는 결과 페이지에서 다시 응시할 수 있습니다.
+              완료한 모의고사는 다시 응시할 수 있습니다.
             </p>
             <p className="mt-1 text-xs text-ink-3">
-              대시보드 점수는 첫 응시 기록만 반영됩니다.
+              모든 회차별 분석을 확인하실 수 있습니다.
             </p>
           </div>
           <ul className="soft-scrollbar flex min-h-0 flex-1 flex-col divide-y divide-[var(--grid)] overflow-y-auto px-3.5">
@@ -704,12 +706,22 @@ export default async function Dashboard() {
                 </div>
                 {r.exam ? (
                   r.done ? (
-                    <Link
-                      href={`/exam/${r.exam.id}/result`}
-                      className="rounded-lg border border-hairline px-2.5 py-1.5 text-[11px] font-semibold text-ink-2 transition hover:bg-page"
-                    >
-                      결과
-                    </Link>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <ExamStartButton
+                        examId={r.exam.id}
+                        title={r.exam.title}
+                        label="재응시"
+                        subjects={subjectInfoOfExam(r.exam.id)}
+                        sectionMinutes={SECTION_MINUTES}
+                        compact
+                      />
+                      <Link
+                        href={`/exam/${r.exam.id}/result`}
+                        className="rounded-lg border border-hairline px-2.5 py-1.5 text-[11px] font-semibold text-ink-2 transition hover:bg-page"
+                      >
+                        결과
+                      </Link>
+                    </div>
                   ) : r.locked ? (
                     <span className="rounded-lg bg-page px-2.5 py-1.5 text-[11px] font-medium text-ink-3">
                       잠김
