@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/session";
 import AccountMenu from "@/components/AccountMenu";
 import HelpGuideButton from "@/components/HelpGuideButton";
 import BrandMark from "@/components/BrandMark";
+import { getMotherUrl } from "@/lib/mother-auth";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://skala-skct.vercel.app"),
@@ -52,6 +53,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getCurrentUser();
+  const motherUrl = getMotherUrl();
+  const practiceUrl =
+    process.env.NEXT_PUBLIC_PRACTICE_URL ?? "https://practice.skala-skct.com";
 
   return (
     <html lang="ko" className="h-full antialiased">
@@ -84,11 +88,31 @@ export default async function RootLayout({
         <div className="desktop-app-shell flex min-h-full flex-col">
           {user && (
             <header className="sticky top-0 z-[60] bg-[rgba(250,250,249,0.72)] [backdrop-filter:blur(18px)_saturate(160%)] [transition:background-color_0.3s_ease]">
-              <nav className="mx-auto flex h-[68px] w-[min(1200px,calc(100vw-48px))] items-center gap-4">
-                <Link href="/" className="flex items-center">
+              <nav className="mx-auto grid h-[68px] w-[min(1200px,calc(100vw-48px))] grid-cols-[1fr_auto_1fr] items-center gap-6">
+                <Link href="/" className="flex items-center justify-self-start">
                   <BrandMark />
                 </Link>
-                <div className="ml-auto flex items-center gap-2">
+                <div className="flex items-center gap-[34px] text-[16px] font-normal leading-[1.7]">
+                  <a
+                    href={motherUrl}
+                    className="text-ink transition-colors hover:text-brand"
+                  >
+                    홈
+                  </a>
+                  <a
+                    href={practiceUrl}
+                    className="text-ink transition-colors hover:text-brand"
+                  >
+                    모의고사 문제 연습
+                  </a>
+                  <a
+                    href={`${motherUrl}/#types`}
+                    className="text-ink transition-colors hover:text-brand"
+                  >
+                    유형별 문제 연습
+                  </a>
+                </div>
+                <div className="flex items-center justify-self-end gap-2">
                   {user.isAdmin && (
                     <Link
                       href="/admin"
