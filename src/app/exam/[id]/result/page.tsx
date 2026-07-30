@@ -437,181 +437,185 @@ export default async function ResultPage({
             id: attempt.id,
             round: index + 1,
           }))}
-        />
-      </div>
-
-      {/* 요약 카드 */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="metric-card p-5 text-center">
-          <p className="text-xs text-zinc-400">총점</p>
-          <p className="mt-1 text-3xl font-extrabold text-brand">
-            {myScore.total}
-            <span className="text-base font-medium text-zinc-400">
-              /{totalQuestions}
-            </span>
-          </p>
-        </div>
-        <div className="metric-card p-5 text-center">
-          <p className="text-xs text-zinc-400">전체 평균 점수</p>
-          <p className="mt-1 text-3xl font-extrabold text-zinc-900">
-            {averageTotal.toFixed(1)}
-            <span className="text-base font-medium text-zinc-400">
-              /{totalQuestions}
-            </span>
-          </p>
-        </div>
-        <div className="metric-card p-5 text-center">
-          <p className="text-xs text-zinc-400">내 캠퍼스 평균</p>
-          <p className="mt-1 text-3xl font-extrabold text-zinc-900">
-            {campusAverageTotal.toFixed(1)}
-            <span className="text-base font-medium text-zinc-400">
-              /{totalQuestions}
-            </span>
-          </p>
-        </div>
-        <div className="metric-card p-5 text-center">
-          <p className="text-xs text-zinc-400">내 분반 평균</p>
-          <p className="mt-1 text-3xl font-extrabold text-zinc-900">
-            {classAverageTotal.toFixed(1)}
-            <span className="text-base font-medium text-zinc-400">
-              /{totalQuestions}
-            </span>
-          </p>
-        </div>
-        <div className="metric-card p-5 text-center">
-          <p className="text-xs text-zinc-400">등수</p>
-          <p className="mt-1 text-3xl font-extrabold text-brand">
-            {rank}
-            <span className="text-base font-medium text-zinc-400">/{n}등</span>
-          </p>
-        </div>
-        <div className="metric-card p-5 text-center">
-          <p className="text-xs text-zinc-400">응시 인원</p>
-          <p className="mt-1 text-3xl font-extrabold text-zinc-900">
-            {n}
-            <span className="text-base font-medium text-zinc-400">명</span>
-          </p>
-        </div>
-      </div>
-
-      <ResultStrategyAnalysis input={strategyInput} />
-
-      <div className="chart-card mb-6 p-5">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 className="font-semibold">전체 시험자 점수 분포</h2>
-            <p className="mt-1 text-xs text-zinc-400">
-              완료 응시 {n}명 기준
-            </p>
-          </div>
-          <div className="text-right text-xs text-zinc-500">
-            평균 {averageTotal.toFixed(1)}점 · 최고 {ranking[0]?.total ?? 0}점
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <ScoreDistributionChart
-            data={scoreDistribution}
-            myScore={myScore.total}
-            average={averageTotal}
-          />
-        </div>
-      </div>
-
-      <div className="mb-6 grid gap-4 md:grid-cols-2">
-        {/* 과목별 레이더 */}
-        <div className="chart-card flex flex-col p-5">
-          <h2 className="mb-2 font-semibold">과목별 점수 비교</h2>
-          <SubjectRadar data={radarData} className="min-h-80 flex-1" />
-        </div>
-
-        {/* 과목별 표 + 랭킹 */}
-        <div className="flex flex-col gap-4">
-          <div className="chart-card p-5">
-            <h2 className="mb-3 font-semibold">과목별 점수</h2>
-            <table className="data-table text-sm">
-              <thead>
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium first:rounded-l-xl">과목</th>
-                  <th className="px-3 py-2 text-right font-medium">내 점수</th>
-                  <th className="px-3 py-2 text-right font-medium">전체 평균</th>
-                  <th className="px-3 py-2 text-right font-medium">캠퍼스 평균</th>
-                  <th className="px-3 py-2 text-right font-medium">분반 평균</th>
-                  <th className="px-3 py-2 text-right font-medium last:rounded-r-xl">차이</th>
-                </tr>
-              </thead>
-              <tbody>
-                {radarData.map((r) => {
-                  const diff = r.나 - r.그룹평균;
-                  return (
-                    <tr key={r.subject}>
-                      <td className="px-3 py-2.5 text-zinc-600">{r.subject}</td>
-                      <td className="px-3 py-2.5 text-right font-semibold">
-                        {myScore.bySubject.get(r.subject) ?? 0}/
-                        {totalBySubject.get(r.subject)}
-                      </td>
-                      <td className="px-3 py-2.5 text-right text-xs text-zinc-500">
-                        평균 {r.avgScore.toFixed(1)}/
-                        {totalBySubject.get(r.subject)}
-                      </td>
-                      <td className="px-3 py-2.5 text-right text-xs text-zinc-500">
-                        {r.campusAvgScore.toFixed(1)}/
-                        {totalBySubject.get(r.subject)}
-                      </td>
-                      <td className="px-3 py-2.5 text-right text-xs text-zinc-500">
-                        {r.classAvgScore.toFixed(1)}/
-                        {totalBySubject.get(r.subject)}
-                      </td>
-                      <td
-                        className={`px-3 py-2.5 text-right text-xs font-medium ${
-                          diff > 0
-                            ? "text-[#b98328]"
-                            : diff < 0
-                              ? "text-brand"
-                              : "text-zinc-400"
-                        }`}
-                      >
-                        {diff > 0 ? "+" : ""}
-                        {diff}점
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="chart-card p-5">
-            <h2 className="mb-3 font-semibold">랭킹</h2>
-            <ol className="space-y-1.5 text-sm">
-              {ranking.slice(0, 5).map((r, i) => (
-                <li
-                  key={i}
-                  className="flex justify-between rounded-xl bg-page px-3 py-2 text-zinc-600"
-                >
-                  <span>
-                    {i + 1}위 · {maskName(r.name)} · {maskName(r.nickname)}
-                  </span>
-                  <span>
-                    {r.total}/{totalQuestions}
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <div className="mt-3 flex justify-between rounded-xl border border-[#f4d4ce] bg-[#fff7f5] px-3 py-2 text-sm font-semibold text-brand">
-              <span>내 등수 · {rank}위</span>
-              <span>
-                {myScore.total}/{totalQuestions}
-              </span>
+        >
+          {/* 요약 카드 */}
+          <div className="mb-6 mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="metric-card p-5 text-center">
+              <p className="text-xs text-zinc-400">총점</p>
+              <p className="mt-1 text-3xl font-extrabold text-brand">
+                {myScore.total}
+                <span className="text-base font-medium text-zinc-400">
+                  /{totalQuestions}
+                </span>
+              </p>
+            </div>
+            <div className="metric-card p-5 text-center">
+              <p className="text-xs text-zinc-400">전체 평균 점수</p>
+              <p className="mt-1 text-3xl font-extrabold text-zinc-900">
+                {averageTotal.toFixed(1)}
+                <span className="text-base font-medium text-zinc-400">
+                  /{totalQuestions}
+                </span>
+              </p>
+            </div>
+            <div className="metric-card p-5 text-center">
+              <p className="text-xs text-zinc-400">내 캠퍼스 평균</p>
+              <p className="mt-1 text-3xl font-extrabold text-zinc-900">
+                {campusAverageTotal.toFixed(1)}
+                <span className="text-base font-medium text-zinc-400">
+                  /{totalQuestions}
+                </span>
+              </p>
+            </div>
+            <div className="metric-card p-5 text-center">
+              <p className="text-xs text-zinc-400">내 분반 평균</p>
+              <p className="mt-1 text-3xl font-extrabold text-zinc-900">
+                {classAverageTotal.toFixed(1)}
+                <span className="text-base font-medium text-zinc-400">
+                  /{totalQuestions}
+                </span>
+              </p>
+            </div>
+            <div className="metric-card p-5 text-center">
+              <p className="text-xs text-zinc-400">등수</p>
+              <p className="mt-1 text-3xl font-extrabold text-brand">
+                {rank}
+                <span className="text-base font-medium text-zinc-400">/{n}등</span>
+              </p>
+            </div>
+            <div className="metric-card p-5 text-center">
+              <p className="text-xs text-zinc-400">응시 인원</p>
+              <p className="mt-1 text-3xl font-extrabold text-zinc-900">
+                {n}
+                <span className="text-base font-medium text-zinc-400">명</span>
+              </p>
             </div>
           </div>
-        </div>
+
+          <ResultStrategyAnalysis
+            input={strategyInput}
+            initialResult={myResult.aiAnalysis}
+          />
+
+          <div className="chart-card mb-6 p-5">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="font-semibold">전체 시험자 점수 분포</h2>
+                <p className="mt-1 text-xs text-zinc-400">
+                  완료 응시 {n}명 기준
+                </p>
+              </div>
+              <div className="text-right text-xs text-zinc-500">
+                평균 {averageTotal.toFixed(1)}점 · 최고 {ranking[0]?.total ?? 0}점
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <ScoreDistributionChart
+                data={scoreDistribution}
+                myScore={myScore.total}
+                average={averageTotal}
+              />
+            </div>
+          </div>
+
+          <div className="mb-6 grid gap-4 md:grid-cols-2">
+            {/* 과목별 레이더 */}
+            <div className="chart-card flex flex-col p-5">
+              <h2 className="mb-2 font-semibold">과목별 점수 비교</h2>
+              <SubjectRadar data={radarData} className="min-h-80 flex-1" />
+            </div>
+
+            {/* 과목별 표 + 랭킹 */}
+            <div className="flex flex-col gap-4">
+              <div className="chart-card p-5">
+                <h2 className="mb-3 font-semibold">과목별 점수</h2>
+                <table className="data-table text-sm">
+                  <thead>
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium first:rounded-l-xl">과목</th>
+                      <th className="px-3 py-2 text-right font-medium">내 점수</th>
+                      <th className="px-3 py-2 text-right font-medium">전체 평균</th>
+                      <th className="px-3 py-2 text-right font-medium">캠퍼스 평균</th>
+                      <th className="px-3 py-2 text-right font-medium">분반 평균</th>
+                      <th className="px-3 py-2 text-right font-medium last:rounded-r-xl">차이</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {radarData.map((r) => {
+                      const diff = r.나 - r.그룹평균;
+                      return (
+                        <tr key={r.subject}>
+                          <td className="px-3 py-2.5 text-zinc-600">{r.subject}</td>
+                          <td className="px-3 py-2.5 text-right font-semibold">
+                            {myScore.bySubject.get(r.subject) ?? 0}/
+                            {totalBySubject.get(r.subject)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right text-xs text-zinc-500">
+                            평균 {r.avgScore.toFixed(1)}/
+                            {totalBySubject.get(r.subject)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right text-xs text-zinc-500">
+                            {r.campusAvgScore.toFixed(1)}/
+                            {totalBySubject.get(r.subject)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right text-xs text-zinc-500">
+                            {r.classAvgScore.toFixed(1)}/
+                            {totalBySubject.get(r.subject)}
+                          </td>
+                          <td
+                            className={`px-3 py-2.5 text-right text-xs font-medium ${
+                              diff > 0
+                                ? "text-[#b98328]"
+                                : diff < 0
+                                  ? "text-brand"
+                                  : "text-zinc-400"
+                            }`}
+                          >
+                            {diff > 0 ? "+" : ""}
+                            {diff}점
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="chart-card p-5">
+                <h2 className="mb-3 font-semibold">랭킹</h2>
+                <ol className="space-y-1.5 text-sm">
+                  {ranking.slice(0, 5).map((r, i) => (
+                    <li
+                      key={i}
+                      className="flex justify-between rounded-xl bg-page px-3 py-2 text-zinc-600"
+                    >
+                      <span>
+                        {i + 1}위 · {maskName(r.name)} · {maskName(r.nickname)}
+                      </span>
+                      <span>
+                        {r.total}/{totalQuestions}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <div className="mt-3 flex justify-between rounded-xl border border-[#f4d4ce] bg-[#fff7f5] px-3 py-2 text-sm font-semibold text-brand">
+                  <span>내 등수 · {rank}위</span>
+                  <span>
+                    {myScore.total}/{totalQuestions}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ResultReview
+            examId={examId}
+            questions={reviewQuestions}
+            subjects={reviewSubjects}
+            peerCount={peerCount}
+          />
+        </ResultRoundTabs>
       </div>
 
-      <ResultReview
-        examId={examId}
-        questions={reviewQuestions}
-        subjects={reviewSubjects}
-        peerCount={peerCount}
-      />
     </div>
   );
 }

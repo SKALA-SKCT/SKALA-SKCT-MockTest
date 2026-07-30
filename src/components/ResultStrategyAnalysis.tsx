@@ -44,10 +44,14 @@ type StrategyAnalysisResult = {
 
 export default function ResultStrategyAnalysis({
   input,
+  initialResult,
 }: {
   input: StrategyAnalysisInput;
+  initialResult?: StrategyAnalysisResult | null;
 }) {
-  const [result, setResult] = useState<StrategyAnalysisResult | null>(null);
+  const [result, setResult] = useState<StrategyAnalysisResult | null>(
+    initialResult ?? null
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,13 +83,20 @@ export default function ResultStrategyAnalysis({
   }, [input]);
 
   useEffect(() => {
+    if (initialResult) {
+      setResult(initialResult);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setResult(null);
     setError(null);
     const timer = window.setTimeout(() => {
       void generateAnalysis();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [generateAnalysis]);
+  }, [generateAnalysis, initialResult]);
 
   return (
     <section className="chart-card mb-6 border-brand/20 bg-[#fffdfc] p-5">
