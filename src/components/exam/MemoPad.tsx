@@ -19,6 +19,8 @@ function MemoTextarea() {
 export default function MemoPad({ resetKey }: { resetKey: number | string }) {
   const [tab, setTab] = useState<"memo" | "draw">("memo");
   const [memoReset, setMemoReset] = useState(0);
+  const [drawTool, setDrawTool] = useState<"pen" | "eraser">("pen");
+  const [lineWidth, setLineWidth] = useState(2);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
@@ -54,8 +56,9 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
     const ctx = e.currentTarget.getContext("2d");
     if (!ctx) return;
     const p = pos(e);
+    ctx.globalCompositeOperation = drawTool === "eraser" ? "destination-out" : "source-over";
     ctx.strokeStyle = "#18181b";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = drawTool === "eraser" ? Math.max(lineWidth * 2, 8) : lineWidth;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(last.current.x, last.current.y);
@@ -89,6 +92,42 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
         >
           그림판
         </button>
+        {tab === "draw" && (
+          <div className="ml-1 flex items-center gap-1 border-l border-zinc-100 pl-2">
+            <button
+              type="button"
+              onClick={() => setDrawTool("pen")}
+              aria-pressed={drawTool === "pen"}
+              className={`rounded px-1.5 py-1 text-[11px] font-medium ${
+                drawTool === "pen" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-600"
+              }`}
+            >
+              펜
+            </button>
+            <button
+              type="button"
+              onClick={() => setDrawTool("eraser")}
+              aria-pressed={drawTool === "eraser"}
+              className={`rounded px-1.5 py-1 text-[11px] font-medium ${
+                drawTool === "eraser" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-600"
+              }`}
+            >
+              지우개
+            </button>
+            <label className="flex items-center gap-1 text-[10px] text-zinc-400">
+              굵기
+              <input
+                type="range"
+                min="1"
+                max="12"
+                value={lineWidth}
+                onChange={(event) => setLineWidth(Number(event.target.value))}
+                className="h-1 w-12 accent-zinc-800"
+                aria-label="펜 굵기"
+              />
+            </label>
+          </div>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -97,7 +136,7 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
           }}
           className="ml-auto px-2 py-1.5 text-xs text-zinc-400 hover:text-zinc-600"
         >
-          지우기
+          전체 지우기
         </button>
       </div>
       <div className="h-44 overflow-hidden rounded-b-lg">

@@ -23,7 +23,7 @@ function CalcButton({
 }
 
 function calculate(source: string) {
-  const tokens = source.match(/\d+(?:\.\d+)?|[()+\-×÷]/g) ?? [];
+  const tokens = source.match(/\d+(?:\.\d+)?|[()%+\-×÷]/g) ?? [];
   if (tokens.join("") !== source || tokens.length === 0) throw new Error("invalid");
 
   let index = 0;
@@ -50,14 +50,19 @@ function calculate(source: string) {
       index += 1;
       return -factor();
     }
+    let value: number;
     if (tokens[index] === "(") {
       index += 1;
-      const value = expression();
+      value = expression();
       if (tokens[index++] !== ")") throw new Error("invalid");
-      return value;
+    } else {
+      value = Number(tokens[index++]);
+      if (!Number.isFinite(value)) throw new Error("invalid");
     }
-    const value = Number(tokens[index++]);
-    if (!Number.isFinite(value)) throw new Error("invalid");
+    while (tokens[index] === "%") {
+      index += 1;
+      value /= 100;
+    }
     return value;
   };
 
@@ -99,17 +104,6 @@ export default function Calculator() {
     [justCalculated]
   );
 
-  const addParenthesis = useCallback(() => {
-    setExpression((current) => {
-      if (current === "0" || current === "오류" || justCalculated) return "(";
-      const opens = (current.match(/\(/g) ?? []).length;
-      const closes = (current.match(/\)/g) ?? []).length;
-      const shouldClose = opens > closes && /[\d)]$/.test(current);
-      return current + (shouldClose ? ")" : "(");
-    });
-    setJustCalculated(false);
-  }, [justCalculated]);
-
   const equals = useCallback(() => {
     setExpression((current) => {
       try {
@@ -135,12 +129,9 @@ export default function Calculator() {
 
       const mapped =
         event.key === "*" ? "×" : event.key === "/" ? "÷" : event.key;
-      if (/^\d$/.test(mapped) || [".", "+", "-", "×", "÷", "("].includes(mapped)) {
+      if (/^\d$/.test(mapped) || [".", "+", "-", "×", "÷", "(", ")", "%"].includes(mapped)) {
         event.preventDefault();
         input(mapped);
-      } else if (mapped === ")") {
-        event.preventDefault();
-        input(")");
       } else if (event.key === "Enter" || event.key === "=") {
         event.preventDefault();
         equals();
@@ -176,14 +167,16 @@ export default function Calculator() {
       >
         {expression}
       </div>
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-5 gap-1.5">
         <CalcButton label="C" onClick={clear} className="bg-zinc-200 text-zinc-700" />
-        <CalcButton label="( )" onClick={addParenthesis} className="bg-zinc-100" />
+        <CalcButton label="(" onClick={() => input("(")} className="bg-zinc-100" />
+        <CalcButton label=")" onClick={() => input(")")} className="bg-zinc-100" />
+        <CalcButton label="%" onClick={() => input("%")} className="bg-zinc-100" />
         <CalcButton label="÷" onClick={() => input("÷")} className="bg-zinc-100" />
-        <CalcButton label="×" onClick={() => input("×")} className="bg-zinc-100" />
         {["7", "8", "9"].map((digit) => (
           <CalcButton key={digit} label={digit} onClick={() => input(digit)} className="border border-zinc-200 bg-white" />
         ))}
+        <CalcButton label="×" onClick={() => input("×")} className="bg-zinc-100" />
         <CalcButton label="−" onClick={() => input("-")} className="bg-zinc-100" />
         {["4", "5", "6"].map((digit) => (
           <CalcButton key={digit} label={digit} onClick={() => input(digit)} className="border border-zinc-200 bg-white" />
@@ -192,9 +185,9 @@ export default function Calculator() {
         {["1", "2", "3"].map((digit) => (
           <CalcButton key={digit} label={digit} onClick={() => input(digit)} className="border border-zinc-200 bg-white" />
         ))}
-        <CalcButton label="=" onClick={equals} className="row-span-2 h-full bg-brand text-white" />
-        <CalcButton label="0" onClick={() => input("0")} className="col-span-2 border border-zinc-200 bg-white" />
         <CalcButton label="." onClick={() => input(".")} className="border border-zinc-200 bg-white" />
+        <CalcButton label="=" onClick={equals} className="row-span-2 h-full bg-brand text-white" />
+        <CalcButton label="0" onClick={() => input("0")} className="col-span-4 border border-zinc-200 bg-white" />
       </div>
     </div>
   );
