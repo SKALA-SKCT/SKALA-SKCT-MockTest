@@ -406,115 +406,120 @@ export default function ResultReview({
       </section>
 
       <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold">문항별 리뷰</h2>
-            <p className="mt-1 text-xs text-zinc-400">
-              문제 원문, 자료, 보기, 해설을 함께 확인합니다.
-            </p>
-          </div>
-          <div className="flex flex-wrap rounded-xl border border-hairline bg-white p-1 text-xs font-semibold shadow-sm">
-            <button
-              type="button"
-              onClick={() => setReviewFilter("all")}
-              className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "all" ? "bg-brand text-white" : "text-zinc-500"
-              }`}
-            >
-              전체 {questions.length}
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewFilter("wrong")}
-              className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "wrong" ? "bg-[#8f7d73] text-white" : "text-zinc-500"
-              }`}
-            >
-              틀린 문제 {wrongCount}
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewFilter("correct")}
-              className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "correct" ? "bg-[#f59a8e] text-white" : "text-zinc-500"
-              }`}
-            >
-              맞춘 문제 {correctCount}
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewFilter("easy-mistake")}
-              className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "easy-mistake" ? "bg-brand text-white" : "text-zinc-500"
-              }`}
-            >
-              쉬운 문제 실수 {easyMistakeCount}
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewFilter("unanswered")}
-              className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "unanswered" ? "bg-[#8f7d73] text-white" : "text-zinc-500"
-              }`}
-            >
-              미응답 {unansweredCount}
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {visibleBySubject.map((subject) => (
-            <details
-              key={subject.subject}
-              open={
-                reviewFilter === "all"
-                  ? openSubjects[subject.subject]
-                  : subject.questions.length > 0
-              }
-              onToggle={(event) => {
-                const isOpen = event.currentTarget.open;
-                setOpenSubjects((prev) => ({
-                  ...prev,
-                  [subject.subject]: isOpen,
-                }));
-              }}
-              className="chart-card"
-            >
-              <summary className="flex cursor-pointer select-none items-center px-5 py-4 font-semibold">
-                <span aria-hidden="true" className="review-chevron mr-3 text-lg font-bold leading-none text-ink-2">
-                  ▸
-                </span>
-                <span>
-                  {subject.subject}{" "}
-                  <span className="ml-1 text-sm font-normal text-zinc-400">
-                  {subject.mine}/{subject.total}
-                  {reviewFilter !== "all" && ` · 표시 ${subject.questions.length}문항`}
-                  </span>
-                </span>
-                <span className="ml-auto text-sm font-normal text-zinc-400">
-                  {formatSubjectElapsedSeconds(subject.elapsedSeconds)}
-                </span>
-              </summary>
-              <div className="divide-y divide-zinc-100 border-t border-zinc-100">
-                {subject.questions.length > 0 ? (
-                  subject.questions.map((question) => (
-                    <QuestionCard
-                      key={question.id}
-                      question={question}
-                      examId={examId}
-                    />
-                  ))
-                ) : (
-                  <div className="px-5 py-8 text-center text-sm text-zinc-400">
-                    표시할 문항이 없습니다.
-                  </div>
-                )}
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_400px]">
+          <div className="min-w-0">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold">문항별 리뷰</h2>
+                <p className="mt-1 text-xs text-zinc-400">
+                  문제 원문, 자료, 보기, 해설을 함께 확인합니다.
+                </p>
               </div>
-            </details>
-          ))}
+              <div className="flex flex-wrap rounded-xl border border-hairline bg-white p-1 text-xs font-semibold shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("all")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    reviewFilter === "all" ? "bg-brand text-white" : "text-zinc-500"
+                  }`}
+                >
+                  전체 {questions.length}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("wrong")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    reviewFilter === "wrong" ? "bg-[#8f7d73] text-white" : "text-zinc-500"
+                  }`}
+                >
+                  틀린 문제 {wrongCount}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("correct")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    reviewFilter === "correct" ? "bg-[#f59a8e] text-white" : "text-zinc-500"
+                  }`}
+                >
+                  맞춘 문제 {correctCount}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("easy-mistake")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    reviewFilter === "easy-mistake" ? "bg-brand text-white" : "text-zinc-500"
+                  }`}
+                >
+                  쉬운 문제 실수 {easyMistakeCount}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("unanswered")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    reviewFilter === "unanswered" ? "bg-[#8f7d73] text-white" : "text-zinc-500"
+                  }`}
+                >
+                  미응답 {unansweredCount}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {visibleBySubject.map((subject) => (
+                <details
+                  key={subject.subject}
+                  open={
+                    reviewFilter === "all"
+                      ? openSubjects[subject.subject]
+                      : subject.questions.length > 0
+                  }
+                  onToggle={(event) => {
+                    const isOpen = event.currentTarget.open;
+                    setOpenSubjects((prev) => ({
+                      ...prev,
+                      [subject.subject]: isOpen,
+                    }));
+                  }}
+                  className="chart-card"
+                >
+                  <summary className="flex cursor-pointer select-none items-center px-5 py-4 font-semibold">
+                    <span aria-hidden="true" className="review-chevron mr-3 text-lg font-bold leading-none text-ink-2">
+                      ▸
+                    </span>
+                    <span>
+                      {subject.subject}{" "}
+                      <span className="ml-1 text-sm font-normal text-zinc-400">
+                      {subject.mine}/{subject.total}
+                      {reviewFilter !== "all" && ` · 표시 ${subject.questions.length}문항`}
+                      </span>
+                    </span>
+                    <span className="ml-auto text-sm font-normal text-zinc-400">
+                      {formatSubjectElapsedSeconds(subject.elapsedSeconds)}
+                    </span>
+                  </summary>
+                  <div className="divide-y divide-zinc-100 border-t border-zinc-100">
+                    {subject.questions.length > 0 ? (
+                      subject.questions.map((question) => (
+                        <QuestionCard
+                          key={question.id}
+                          question={question}
+                          examId={examId}
+                        />
+                      ))
+                    ) : (
+                      <div className="px-5 py-8 text-center text-sm text-zinc-400">
+                        표시할 문항이 없습니다.
+                      </div>
+                    )}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+
+          <ResultReviewChatbot questions={questions} participantCount={participantCount} />
         </div>
       </section>
-      <ResultReviewChatbot questions={questions} participantCount={participantCount} />
     </div>
   );
 }

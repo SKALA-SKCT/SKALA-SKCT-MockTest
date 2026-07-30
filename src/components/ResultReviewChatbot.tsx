@@ -18,10 +18,6 @@ function formatElapsedSeconds(value: number | null) {
   return minutes > 0 ? `${minutes}분 ${seconds}초` : `${seconds}초`;
 }
 
-function normalizeMention(value: string) {
-  return value.replace(/^@/, "").trim();
-}
-
 function findMentionedQuestions(message: string, questions: ReviewQuestion[]) {
   const mentionedSubjects = SUBJECTS.filter((subject) =>
     message.includes(`@${subject}`)
@@ -77,7 +73,6 @@ export default function ResultReviewChatbot({
   questions: ReviewQuestion[];
   participantCount: number;
 }) {
-  const [open, setOpen] = useState(true);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -99,6 +94,7 @@ export default function ResultReviewChatbot({
     event.preventDefault();
     const text = input.trim();
     if (!text || loading) return;
+
     const mentionedQuestions = findMentionedQuestions(text, questions);
     const nextMessages: ChatMessage[] = [...messages, { role: "user", content: text }];
     setMessages(nextMessages);
@@ -139,109 +135,89 @@ export default function ResultReviewChatbot({
     }
   };
 
+  const addHint = (hint: string) => {
+    setInput((current) => `${current}${current.trim() ? " " : ""}${hint} `);
+  };
+
   return (
-    <aside className="fixed bottom-5 right-5 z-50 w-[360px] max-w-[calc(100vw-2.5rem)]">
-      {open ? (
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
-          <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-3">
-            <div>
-              <p className="text-sm font-black text-zinc-900">문항 리뷰 챗봇</p>
-              <p className="text-[11px] text-zinc-400">대화 기록은 저장되지 않습니다.</p>
-            </div>
-            <div className="group relative ml-auto">
-              <button
-                type="button"
-                aria-label="챗봇 사용 안내"
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 text-xs font-black text-zinc-500 transition hover:border-brand hover:text-brand"
-              >
-                ?
-              </button>
-              <div className="pointer-events-none absolute right-0 top-9 w-72 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs leading-5 text-zinc-500 opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100">
-                채팅 기록은 저장되지 않아 페이지를 나가거나 새로고침하면 사라집니다.
-                <br />
-                @21번, @자료해석, @자료해석 21번처럼 언급하고 해설, 풀이 팁,
-                함정, 오답 선택 이유를 물어보세요.
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-700"
-              aria-label="챗봇 접기"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="max-h-[360px] space-y-2 overflow-y-auto bg-zinc-50 px-3 py-3">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <p
-                  className={`max-w-[86%] whitespace-pre-line rounded-2xl px-3 py-2 text-xs leading-5 ${
-                    message.role === "user"
-                      ? "bg-brand text-white"
-                      : "border border-zinc-100 bg-white text-zinc-700"
-                  }`}
-                >
-                  {message.content}
-                </p>
-              </div>
-            ))}
-            {loading && (
-              <div className="flex justify-start">
-                <p className="rounded-2xl border border-zinc-100 bg-white px-3 py-2 text-xs text-zinc-400">
-                  답변 생성 중...
-                </p>
-              </div>
-            )}
-          </div>
-
-          <form onSubmit={submit} className="border-t border-zinc-100 bg-white p-3">
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {["@자료해석", "@언어추리", mentionHints].filter(Boolean).map((hint) => (
-                <button
-                  key={hint}
-                  type="button"
-                  onClick={() =>
-                    setInput((current) =>
-                      `${current}${current.trim() ? " " : ""}${normalizeMention(hint).startsWith("@") ? hint : hint} `
-                    )
-                  }
-                  className="rounded-full bg-zinc-50 px-2 py-1 text-[11px] font-semibold text-zinc-500 hover:bg-red-50 hover:text-brand"
-                >
-                  {hint}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-[minmax(0,1fr)_64px] gap-2">
-              <input
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder="@21번 왜 헷갈렸는지 알려줘"
-                className="h-10 rounded-xl border border-zinc-200 px-3 text-xs outline-none focus:border-brand"
-              />
-              <button
-                type="submit"
-                disabled={loading || !input.trim()}
-                className="h-10 rounded-xl bg-brand text-xs font-black text-white transition hover:bg-red-600 disabled:opacity-40"
-              >
-                전송
-              </button>
-            </div>
-          </form>
+    <aside className="chart-card sticky top-24 flex max-h-[calc(100vh-7rem)] min-h-[560px] flex-col overflow-hidden p-0">
+      <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-3">
+        <div>
+          <p className="text-sm font-black text-zinc-900">문항 리뷰 챗봇</p>
+          <p className="text-[11px] text-zinc-400">대화 기록은 저장되지 않습니다.</p>
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="ml-auto flex h-12 items-center rounded-full bg-brand px-5 text-sm font-black text-white shadow-2xl transition hover:bg-red-600"
-        >
-          문항 챗봇
-        </button>
-      )}
+        <div className="group relative ml-auto">
+          <button
+            type="button"
+            aria-label="챗봇 사용 안내"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 text-xs font-black text-zinc-500 transition hover:border-brand hover:text-brand"
+          >
+            ?
+          </button>
+          <div className="pointer-events-none absolute right-0 top-9 z-10 w-72 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs leading-5 text-zinc-500 opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100">
+            채팅 기록은 저장되지 않아 페이지를 나가거나 새로고침하면 사라집니다.
+            <br />
+            @21번, @자료해석, @자료해석 21번처럼 언급하고 해설, 풀이 팁,
+            함정, 오답 선택 이유를 물어보세요.
+          </div>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-zinc-50 px-3 py-3">
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+          >
+            <p
+              className={`max-w-[86%] whitespace-pre-line rounded-2xl px-3 py-2 text-xs leading-5 ${
+                message.role === "user"
+                  ? "bg-brand text-white"
+                  : "border border-zinc-100 bg-white text-zinc-700"
+              }`}
+            >
+              {message.content}
+            </p>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <p className="rounded-2xl border border-zinc-100 bg-white px-3 py-2 text-xs text-zinc-400">
+              답변 생성 중...
+            </p>
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={submit} className="border-t border-zinc-100 bg-white p-3">
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {["@자료해석", "@언어추리", mentionHints].filter(Boolean).map((hint) => (
+            <button
+              key={hint}
+              type="button"
+              onClick={() => addHint(hint)}
+              className="rounded-full bg-zinc-50 px-2 py-1 text-[11px] font-semibold text-zinc-500 hover:bg-red-50 hover:text-brand"
+            >
+              {hint}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-[minmax(0,1fr)_64px] gap-2">
+          <input
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="@21번 왜 헷갈렸는지 알려줘"
+            className="h-10 rounded-xl border border-zinc-200 px-3 text-xs outline-none focus:border-brand"
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="h-10 rounded-xl bg-brand text-xs font-black text-white transition hover:bg-red-600 disabled:opacity-40"
+          >
+            전송
+          </button>
+        </div>
+      </form>
     </aside>
   );
 }
