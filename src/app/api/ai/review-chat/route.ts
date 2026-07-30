@@ -69,6 +69,8 @@ const SKCT_KEYWORDS = [
   "적성",
 ];
 
+const SUBJECTS = ["언어이해", "자료해석", "창의수리", "언어추리", "수열추리"];
+
 const BLOCKED_TOPIC_KEYWORDS = [
   "레시피",
   "요리",
@@ -142,6 +144,8 @@ SKCT 범위를 벗어난 질문에는 "SKCT 학습과 문항 리뷰에 관한 �
 문항 데이터가 제공된 경우 반드시 제공된 문항 데이터와 사용자 풀이 기록만 근거로 사용하고, 없는 원문/조건/통계를 만들어내지 마라.
 사용자가 말한 "자료해석 12번" 같은 번호는 displayLabel 또는 localNumber 기준이다. number는 DB 원본 전체 번호이므로 사용자 질문 번호와 달라도 같은 문항으로 취급하라.
 mentionedQuestions가 비어 있지 않으면 "데이터가 없다"고 답하지 말고, 제공된 문항 데이터로 답하라.
+사용자가 특정 과목과 문항 번호를 말했으면 displayLabel이 정확히 일치하는 문항만 분석하라. 다른 과목 문항으로 대체하거나 여러 문항의 내용을 섞지 마라.
+언급된 문항 데이터가 여러 개라 어느 문항인지 확정할 수 없으면 임의로 선택하지 말고 과목명을 함께 말해 달라고 요청하라.
 해설, 풀이 팁, 함정, 응시자들이 헷갈렸을 가능성, 다른 답이 나온 이유를 묻는 경우 문항 정보와 선택률, 사용자의 선택/정오답/풀이 시간을 반영하라.
 문항이 언급되지 않았지만 SKCT 관련 일반 질문이면, 일반적인 SKCT 학습 조언으로 답하라.
 답변은 마크다운 형식으로 작성하라. 2~4개 bullet 또는 짧은 문단으로 끝까지 완성하라.
@@ -235,10 +239,31 @@ export async function POST(request: Request) {
       role: message.role,
       content: message.content.trim().slice(0, 800),
     }));
-  const mentionedQuestions = (payload.mentionedQuestions ?? []).slice(0, 5);
+  const requestedSubjects = SUBJECTS.filter((subject) => question.includes(subject));
+  const requestedNumbers = Array.from(question.matchAll(/@?(\d{1,3})번/g)).map(
+    (match) => Number(match[1])
+  );
+  const mentionedQuestions = (payload.mentionedQuestions ?? [])
+    .filter(
+      (item) =>
+        (requestedSubjects.length === 0 || requestedSubjects.includes(item.subject)) &&
+        (requestedNumbers.length === 0 ||
+          requestedNumbers.includes(item.localNumber ?? item.number))
+    )
+    .slice(0, 5);
 
   if (!question) {
     return NextResponse.json({ error: "질문을 입력해주세요." }, { status: 400 });
+  }
+
+  if (
+    requestedSubjects.length > 0 &&
+    requestedNumbers.length > 0 &&
+    mentionedQuestions.length === 0
+  ) {
+    return NextResponse.json({
+      answer: `${requestedSubjects[0]} ${requestedNumbers[0]}번 문항 데이터를 찾지 못했습니다. 결과 페이지에서 해당 문항 번호를 확인해 주세요.`,
+    });
   }
 
   if (!isSkctRelated(question, mentionedQuestions, history)) {

@@ -20,7 +20,7 @@ function formatElapsedSeconds(value: number | null) {
 
 function findMentionedQuestions(message: string, questions: ReviewQuestion[]) {
   const mentionedSubjects = SUBJECTS.filter((subject) =>
-    message.includes(`@${subject}`)
+    message.includes(subject)
   );
   const mentionedNumbers = Array.from(message.matchAll(/@?(\d{1,3})번/g))
     .map((match) => Number(match[1]))
@@ -40,8 +40,7 @@ function findMentionedQuestions(message: string, questions: ReviewQuestion[]) {
         .findIndex((item) => item.id === question.id) + 1;
     const numberMatched =
       mentionedNumbers.length === 0 ||
-      mentionedNumbers.includes(question.number) ||
-      (mentionedSubjects.length > 0 && mentionedNumbers.includes(localNumber));
+      mentionedNumbers.includes(localNumber);
     return subjectMatched && numberMatched;
   });
 
