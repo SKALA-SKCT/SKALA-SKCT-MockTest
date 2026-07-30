@@ -186,8 +186,16 @@ export default function Calculator() {
           <CalcButton key={digit} label={digit} onClick={() => input(digit)} className="border border-zinc-200 bg-white" />
         ))}
         <CalcButton label="." onClick={() => input(".")} className="border border-zinc-200 bg-white" />
-        <CalcButton label="=" onClick={equals} className="row-span-2 h-full bg-brand text-white" />
-        <CalcButton label="0" onClick={() => input("0")} className="col-span-4 border border-zinc-200 bg-white" />
+        <CalcButton
+          label="="
+          onClick={equals}
+          className="col-start-5 row-start-3 row-span-2 h-full bg-brand text-white"
+        />
+        <CalcButton
+          label="0"
+          onClick={() => input("0")}
+          className="col-span-5 row-start-5 border border-zinc-200 bg-white"
+        />
       </div>
     </div>
   );

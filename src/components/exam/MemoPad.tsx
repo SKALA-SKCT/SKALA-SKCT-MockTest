@@ -73,7 +73,7 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
 
   return (
     <div className="rounded-lg border border-zinc-200">
-      <div className="flex items-center border-b border-zinc-100 px-2">
+      <div className="flex h-10 items-center overflow-hidden whitespace-nowrap border-b border-zinc-100 px-2">
         <button
           type="button"
           onClick={() => setTab("memo")}
@@ -93,7 +93,7 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
           그림판
         </button>
         {tab === "draw" && (
-          <div className="ml-1 flex items-center gap-1 border-l border-zinc-100 pl-2">
+          <div className="ml-1 flex shrink-0 items-center gap-1 border-l border-zinc-100 pl-2">
             <button
               type="button"
               onClick={() => setDrawTool("pen")}
@@ -114,7 +114,7 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
             >
               지우개
             </button>
-            <label className="flex items-center gap-1 text-[10px] text-zinc-400">
+            <label className="flex shrink-0 items-center gap-1 text-[10px] text-zinc-400">
               굵기
               <input
                 type="range"
@@ -134,7 +134,7 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
             if (tab === "memo") setMemoReset((v) => v + 1);
             if (tab === "draw") clearCanvas();
           }}
-          className="ml-auto px-2 py-1.5 text-xs text-zinc-400 hover:text-zinc-600"
+          className="ml-auto shrink-0 px-2 py-1.5 text-xs text-zinc-400 hover:text-zinc-600"
         >
           전체 지우기
         </button>

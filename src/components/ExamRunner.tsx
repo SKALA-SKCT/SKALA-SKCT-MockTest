@@ -439,7 +439,7 @@ export default function ExamRunner({
 
   return (
     <>
-      <div className="mx-auto flex max-w-6xl flex-col gap-5 md:flex-row md:items-start">
+      <div className="mx-auto grid w-[min(1200px,calc(100vw-48px))] grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_400px] md:items-start">
         {/* 왼쪽: 문제 영역 */}
         <div className="min-w-0 flex-1">
           {/* 문항 번호 스트립: 과목 내 자유 이동 */}
@@ -546,7 +546,7 @@ export default function ExamRunner({
       </div>
 
       {/* 오른쪽: 실제 시험처럼 고정 도구 패널 */}
-      <aside className="w-full shrink-0 md:sticky md:top-20 md:mt-10 md:w-80 lg:w-88">
+      <aside className="w-full md:sticky md:top-20 md:mt-10">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2">
             <div>
