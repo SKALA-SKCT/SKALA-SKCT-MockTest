@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { unstable_cache } from "next/cache";
 import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -12,7 +13,7 @@ import {
   SUBJECTS,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
-import SubjectRadar from "@/components/SubjectRadar";
+import { getMotherLoginUrl } from "@/lib/mother-auth";
 import TrendChart from "@/components/TrendChart";
 import ExamStartButton from "@/components/ExamStartButton";
 
@@ -287,7 +288,7 @@ function LandingPage() {
 
 export default async function Dashboard() {
   const user = await getCurrentUser();
-  if (!user) return <LandingPage />;
+  if (!user) redirect(getMotherLoginUrl("/"));
 
   // 서로 의존이 없는 쿼리는 병렬 실행(순차 왕복 2회 → 1회).
   const [examList, examSubjectTotals] = await Promise.all([
@@ -504,7 +505,7 @@ export default async function Dashboard() {
   }
 
   return (
-    <div className="grid gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-stretch">
+    <div className="mx-auto grid w-full max-w-[78rem] gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-stretch">
       {/* ── 중앙: 분석 대시보드 */}
       <div className="flex min-w-0 flex-1 flex-col gap-4 xl:h-full xl:min-h-0">
         {/* 스탯 타일 */}
@@ -536,21 +537,13 @@ export default async function Dashboard() {
 
         {/* 차트 */}
         {myFinished.length > 0 ? (
-          <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
+          <div className="grid min-h-0 flex-1 gap-3">
             <div className="chart-card flex min-h-0 flex-col p-3.5">
               <TrendChart
                 data={trendData}
                 className="min-h-0 flex-1"
                 title="회차별 점수 추이"
                 description="완료한 모의고사의 1회차 기준, 100점 만점"
-              />
-            </div>
-            <div className="chart-card flex min-h-0 flex-col p-3.5">
-              <SubjectRadar
-                data={radarData}
-                className="min-h-0 flex-1"
-                title="유형별 점수"
-                description="전체 모의고사의 1회차 점수 누적, 100점 만점"
               />
             </div>
           </div>

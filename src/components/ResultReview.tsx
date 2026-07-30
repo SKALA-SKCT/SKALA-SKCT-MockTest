@@ -48,12 +48,22 @@ type SubjectSummary = {
 type HardQuestionPreview = {
   id: number;
   number: number;
+  localNumber: number;
   subject: string;
   wrongRate: number;
   note: string;
   elapsedSeconds: number | null;
   isSample: boolean;
 };
+
+function getSubjectQuestionNumber(question: ReviewQuestion, questions: ReviewQuestion[]) {
+  return (
+    questions
+      .filter((item) => item.subject === question.subject)
+      .sort((a, b) => a.number - b.number)
+      .findIndex((item) => item.id === question.id) + 1
+  );
+}
 
 function ResultPill({ question }: { question: ReviewQuestion }) {
   return (
@@ -126,9 +136,11 @@ function splitQuestionBody(question: ReviewQuestion & { supplementImageUrl?: str
 function QuestionCard({
   question,
   examId,
+  localNumber,
 }: {
   question: ReviewQuestion;
   examId: number;
+  localNumber: number;
 }) {
   const choiceRates = question.choiceRates;
   const displayQuestion = applyQuestionContentOverride(examId, question);
@@ -154,11 +166,10 @@ function QuestionCard({
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
-        <ResultPill question={question} />
-        <span className="font-medium text-zinc-500">문제 {question.number}</span>
         <span className="font-semibold text-zinc-500">
-          {formatElapsedSeconds(question.elapsedSeconds)}
+          {question.subject} {localNumber}번
         </span>
+        <ResultPill question={question} />
         <span className="ml-auto font-medium">
           <WrongRate value={question.peerWrongRate} />
         </span>
@@ -313,6 +324,7 @@ export default function ResultReview({
       const actual = subject.hardQuestions.map((question) => ({
         id: question.id,
         number: question.number,
+        localNumber: getSubjectQuestionNumber(question, questions),
         subject: question.subject,
         wrongRate: question.peerWrongRate ?? 0,
         note: question.isCorrect ? "정답 문항" : question.myChoice == null ? "무응답 문항" : "오답 문항",
@@ -322,7 +334,7 @@ export default function ResultReview({
       map.set(subject.subject, actual);
     }
     return map;
-  }, [subjects]);
+  }, [questions, subjects]);
 
   const wrongCount = questions.filter((q) => !q.isCorrect).length;
   const correctCount = questions.length - wrongCount;
@@ -381,7 +393,7 @@ export default function ResultReview({
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-semibold text-zinc-700">
-                              {q.number}번
+                              {q.localNumber}번
                             </span>
                             <span className="font-extrabold text-brand">
                               {q.wrongRate}%
@@ -504,6 +516,7 @@ export default function ResultReview({
                           key={question.id}
                           question={question}
                           examId={examId}
+                          localNumber={getSubjectQuestionNumber(question, questions)}
                         />
                       ))
                     ) : (

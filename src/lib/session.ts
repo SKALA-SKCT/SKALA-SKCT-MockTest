@@ -5,6 +5,7 @@ import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { getMotherLoginUrl } from "@/lib/mother-auth";
 
 const COOKIE = "skct_session";
 let cachedSecret: Uint8Array | null = null;
@@ -67,7 +68,7 @@ export const getCurrentUser = cache(async () => {
 
 export async function requireUser() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(getMotherLoginUrl("/"));
   return user;
 }
 
