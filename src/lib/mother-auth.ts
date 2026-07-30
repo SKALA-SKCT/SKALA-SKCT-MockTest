@@ -1,5 +1,5 @@
 const DEFAULT_MOTHER_URL = "https://www.skala-skct.com";
-const DEFAULT_APP_URL = "https://www.mock.skala-skct.com";
+const DEFAULT_APP_URL = "https://mock.skala-skct.com";
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
