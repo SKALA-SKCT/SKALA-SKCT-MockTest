@@ -61,6 +61,15 @@ body {
   font-optical-sizing: auto;
 }
 
+body.exam-session-active .app-header {
+  display: none;
+}
+
+body.exam-session-active .app-main {
+  max-width: none;
+  padding-top: 0;
+}
+
 /* 공통 카드 */
 .card {
   background: var(--surface);

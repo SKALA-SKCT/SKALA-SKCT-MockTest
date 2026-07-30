@@ -20,7 +20,6 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
   const [tab, setTab] = useState<"memo" | "draw">("memo");
   const [memoReset, setMemoReset] = useState(0);
   const [drawTool, setDrawTool] = useState<"pen" | "eraser">("pen");
-  const [lineWidth, setLineWidth] = useState(2);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
@@ -58,7 +57,7 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
     const p = pos(e);
     ctx.globalCompositeOperation = drawTool === "eraser" ? "destination-out" : "source-over";
     ctx.strokeStyle = "#18181b";
-    ctx.lineWidth = drawTool === "eraser" ? Math.max(lineWidth * 2, 8) : lineWidth;
+    ctx.lineWidth = drawTool === "eraser" ? 8 : 2;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(last.current.x, last.current.y);
@@ -114,18 +113,6 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
             >
               지우개
             </button>
-            <label className="flex shrink-0 items-center gap-1 text-[10px] text-zinc-400">
-              굵기
-              <input
-                type="range"
-                min="1"
-                max="12"
-                value={lineWidth}
-                onChange={(event) => setLineWidth(Number(event.target.value))}
-                className="h-1 w-12 accent-zinc-800"
-                aria-label="펜 굵기"
-              />
-            </label>
           </div>
         )}
         <button

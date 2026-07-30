@@ -88,7 +88,7 @@ export default async function RootLayout({
         )}
         <div className="desktop-app-shell flex min-h-full flex-col">
           {user && (
-            <header className="sticky top-0 z-[60] bg-[rgba(250,250,249,0.72)] [backdrop-filter:blur(18px)_saturate(160%)] [transition:background-color_0.3s_ease]">
+            <header className="app-header sticky top-0 z-[60] bg-[rgba(250,250,249,0.72)] [backdrop-filter:blur(18px)_saturate(160%)] [transition:background-color_0.3s_ease]">
               <nav className="mx-auto grid h-[68px] w-[min(1200px,calc(100vw-48px))] grid-cols-[1fr_auto_1fr] items-center gap-6">
                 <Link href="/" className="flex items-center justify-self-start">
                   <BrandMark />
@@ -115,7 +115,7 @@ export default async function RootLayout({
               </nav>
             </header>
           )}
-          <main className="mx-auto w-full max-w-[1248px] flex-1 px-6 py-5">
+          <main className="app-main mx-auto w-full max-w-[1248px] flex-1 px-6 py-5">
             {children}
           </main>
         </div>

@@ -74,8 +74,8 @@ export default function ExamRunner({
   const router = useRouter();
   const [sectionState, setSectionState] = useState<SectionState>(initialSectionState);
   const [answers, setAnswers] = useState<Record<number, number | null>>(initialAnswers);
-  // 과목 안에서는 자유롭게 이동 가능
   const [idx, setIdx] = useState(0);
+  const [zoom, setZoom] = useState(100);
   const [busy, setBusy] = useState(false);
   const [confirmRequest, setConfirmRequest] = useState<{
     title: string;
@@ -103,6 +103,12 @@ export default function ExamRunner({
   const sectionStartedAt = section?.startedAt;
 
   const [remaining, setRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!sectionStartedAt) return;
+    document.body.classList.add("exam-session-active");
+    return () => document.body.classList.remove("exam-session-active");
+  }, [sectionStartedAt]);
 
   const requestNavigationExit = useCallback(
     (destination: string) => {
@@ -141,23 +147,31 @@ export default function ExamRunner({
   useEffect(() => {
     if (!sectionStartedAt || !currentSubject || sectionQuestions.length === 0) return;
     if (restoredSubjectRef.current === currentSubject) return;
+    const progressKey = `mocktest-progress:${examId}:${currentSubject}`;
     const requestedParam = new URLSearchParams(window.location.search).get("q");
     const timeout = window.setTimeout(() => {
       const requested = Number(requestedParam);
-      if (Number.isInteger(requested)) {
-        setIdx(Math.min(sectionQuestions.length - 1, Math.max(0, requested - 1)));
-      }
+      const saved = Number(window.sessionStorage.getItem(progressKey));
+      const forwardOnlyIndex = Math.max(
+        Number.isInteger(requested) ? requested - 1 : 0,
+        Number.isInteger(saved) ? saved : 0
+      );
+      setIdx(Math.min(sectionQuestions.length - 1, Math.max(0, forwardOnlyIndex)));
       restoredSubjectRef.current = currentSubject;
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, [currentSubject, sectionQuestions.length, sectionStartedAt]);
+  }, [currentSubject, examId, sectionQuestions.length, sectionStartedAt]);
 
   useEffect(() => {
     if (!sectionStartedAt || restoredSubjectRef.current !== currentSubject) return;
     const url = new URL(window.location.href);
     url.searchParams.set("q", String(idx + 1));
     window.history.replaceState(null, "", url);
-  }, [currentSubject, idx, sectionStartedAt]);
+    window.sessionStorage.setItem(
+      `mocktest-progress:${examId}:${currentSubject}`,
+      String(idx)
+    );
+  }, [currentSubject, examId, idx, sectionStartedAt]);
 
   const handleFinishSection = useCallback(
     async (subject: Subject) => {
@@ -166,6 +180,7 @@ export default function ExamRunner({
       try {
         await Promise.allSettled([...pendingSavesRef.current]);
         const res = await finishSection(examId, subject);
+        window.sessionStorage.removeItem(`mocktest-progress:${examId}:${subject}`);
         setSectionState(res.sectionState);
         setIdx(0);
         restoredSubjectRef.current = null;
@@ -365,7 +380,7 @@ export default function ExamRunner({
               {sectionQuestions.length}문항 · {SECTION_MINUTES}분
             </p>
             <ul className="mx-auto mt-4 max-w-xs space-y-1 text-left text-xs text-zinc-400">
-              <li>· 과목 안에서는 문항을 자유롭게 이동할 수 있습니다.</li>
+              <li>· 다음 문항으로 이동하면 이전 문항으로 돌아갈 수 없습니다.</li>
               <li>· 메모장/그림판은 문제를 넘기면 지워집니다.</li>
               <li>· 시간이 끝나면 자동 제출됩니다.</li>
             </ul>
@@ -429,7 +444,7 @@ export default function ExamRunner({
     });
   };
 
-  const goNext = () => {
+  const advanceQuestion = () => {
     if (isLast) {
       moveToNextSubject();
       return;
@@ -437,30 +452,68 @@ export default function ExamRunner({
     setIdx((v) => v + 1);
   };
 
+  const goNext = () => {
+    if (answers[q.id] == null && !isLast) {
+      setConfirmRequest({
+        title: "미응답으로 넘어갈까요?",
+        message:
+          "다음 문제로 이동하면 이 문제에는 다시 돌아올 수 없습니다.",
+        confirmText: "넘어가기",
+        onConfirm: advanceQuestion,
+      });
+      return;
+    }
+    advanceQuestion();
+  };
+
   return (
     <>
-      <div className="mx-auto grid w-[min(1200px,calc(100vw-48px))] grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_400px] md:items-start">
+      <div className="sticky top-0 z-50 mb-5 border-b border-zinc-200 bg-page/95 backdrop-blur">
+        <div className="mx-auto grid h-16 w-[min(1200px,calc(100vw-48px))] grid-cols-[1fr_auto_1fr] items-center">
+          <div className="flex items-center gap-3 justify-self-start">
+            <span className="text-sm font-bold text-zinc-800">{currentSubject}</span>
+            <div className="flex items-center rounded-lg border border-zinc-200 bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => setZoom((value) => Math.max(80, value - 10))}
+                disabled={zoom <= 80}
+                aria-label="화면 축소"
+                className="flex h-7 w-8 items-center justify-center rounded-md text-base font-bold text-zinc-600 hover:bg-zinc-100 disabled:opacity-30"
+              >
+                −
+              </button>
+              <span className="w-11 text-center text-[11px] font-semibold tabular-nums text-zinc-500">
+                {zoom}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setZoom((value) => Math.min(120, value + 10))}
+                disabled={zoom >= 120}
+                aria-label="화면 확대"
+                className="flex h-7 w-8 items-center justify-center rounded-md text-base font-bold text-zinc-600 hover:bg-zinc-100 disabled:opacity-30"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <div className={`text-center ${urgent ? "text-brand" : "text-zinc-900"}`}>
+            <p className="text-[10px] font-semibold text-zinc-400">남은 시간</p>
+            <p className="font-mono text-2xl font-bold tabular-nums">
+              {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
+            </p>
+          </div>
+          <p className="justify-self-end text-sm font-semibold text-zinc-500">
+            문제 <span className="text-brand">{idx + 1}</span> / {sectionQuestions.length}
+          </p>
+        </div>
+      </div>
+
+      <div
+        className="mx-auto grid w-[min(1200px,calc(100vw-48px))] origin-top grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_400px] md:items-start"
+        style={{ zoom: `${zoom}%` }}
+      >
         {/* 왼쪽: 문제 영역 */}
         <div className="min-w-0 flex-1">
-          {/* 문항 번호 스트립: 과목 내 자유 이동 */}
-          <div className="mb-3 flex flex-wrap gap-1">
-            {sectionQuestions.map((qq, i) => (
-              <button
-                key={qq.id}
-                onClick={() => setIdx(i)}
-                className={`h-7 w-7 rounded text-xs font-medium transition ${
-                  i === idx
-                    ? "bg-brand text-white"
-                    : answers[qq.id] != null
-                      ? "bg-zinc-800 text-white"
-                      : "bg-white text-zinc-500 ring-1 ring-zinc-200 hover:bg-zinc-100"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="mb-3 flex items-baseline">
             <p className="text-sm font-bold text-red-600">
@@ -524,17 +577,10 @@ export default function ExamRunner({
             })}
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
-            <button
-              onClick={() => setIdx((v) => Math.max(0, v - 1))}
-              disabled={idx === 0 || busy}
-              className="rounded-lg border border-zinc-300 bg-white px-6 py-2.5 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-40"
-            >
-              ← 이전
-            </button>
+          <div className="mt-6 flex items-center justify-end">
             <button
               disabled={busy}
-              onClick={isLast ? moveToNextSubject : goNext}
+              onClick={goNext}
               className={`rounded-lg px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50 ${
                 isLast ? "bg-ink hover:bg-brand" : "bg-brand hover:bg-[#c90026]"
               }`}
@@ -552,13 +598,6 @@ export default function ExamRunner({
             <div>
               <p className="text-[11px] text-zinc-400">{examTitle}</p>
               <p className="text-sm font-bold">{currentSubject}</p>
-            </div>
-            <div
-              className={`font-mono text-2xl font-bold tabular-nums ${
-                urgent ? "text-red-600" : "text-zinc-800"
-              }`}
-            >
-              {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
             </div>
           </div>
           <div className="flex flex-col gap-3">
