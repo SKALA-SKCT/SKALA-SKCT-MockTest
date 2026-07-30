@@ -17,7 +17,7 @@ export default function HeaderServiceNav({
       </a>
       <button
         type="button"
-        onClick={() => window.alert("준비 중입니다!")}
+        onClick={() => window.alert("서비스 준비 중입니다!")}
         className="text-ink transition-colors hover:text-brand"
       >
         유형별 문제 연습
