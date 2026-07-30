@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { createHash } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
@@ -25,6 +26,20 @@ type MotherClaims = {
   skalaHandle?: string;
   admin?: boolean;
 };
+
+function makeMotherNickname(claims: MotherClaims) {
+  const linkedHandle = claims.skalaHandle?.trim();
+  if (linkedHandle) return linkedHandle;
+
+  const source =
+    claims.sub?.trim() ||
+    (typeof claims.uid === "number" ? `uid:${claims.uid}` : "") ||
+    claims.nick?.trim();
+  if (!source) return "";
+
+  const digest = createHash("sha256").update(source).digest("hex").slice(0, 10);
+  return `m_${digest}`;
+}
 
 function getSessionSecret() {
   const secret = process.env.SESSION_SECRET;
@@ -68,7 +83,7 @@ async function findOrCreateMotherUser(claims: MotherClaims) {
     if (linkedUser) return linkedUser;
   }
 
-  const nickname = (claims.skalaHandle || claims.sub || "").trim();
+  const nickname = makeMotherNickname(claims);
   if (!nickname) return null;
 
   const [existing] = await db
