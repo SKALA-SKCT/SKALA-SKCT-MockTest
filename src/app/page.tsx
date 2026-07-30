@@ -509,7 +509,7 @@ export default async function Dashboard() {
       <div className="flex min-w-0 flex-1 flex-col gap-4 xl:h-full xl:min-h-0">
         {/* 스탯 타일 */}
         {tiles.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             {tiles.map((t) => (
               <div key={t.label} className="metric-card px-4 py-3">
                 <p className="text-xs font-medium text-ink-3">{t.label}</p>
@@ -538,20 +538,20 @@ export default async function Dashboard() {
         {myFinished.length > 0 ? (
           <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
             <div className="chart-card flex min-h-0 flex-col p-3.5">
-              <h2 className="text-sm font-semibold text-ink">
-                회차별 점수 추이
-              </h2>
-              <p className="mb-2 text-xs text-ink-3">
-                완료한 모의고사의 1회차 기준, 100점 만점
-              </p>
-              <TrendChart data={trendData} className="min-h-0 flex-1" />
+              <TrendChart
+                data={trendData}
+                className="min-h-0 flex-1"
+                title="회차별 점수 추이"
+                description="완료한 모의고사의 1회차 기준, 100점 만점"
+              />
             </div>
             <div className="chart-card flex min-h-0 flex-col p-3.5">
-              <h2 className="text-sm font-semibold text-ink">유형별 점수</h2>
-              <p className="mb-2 text-xs text-ink-3">
-                전체 모의고사의 1회차 점수 누적, 100점 만점
-              </p>
-              <SubjectRadar data={radarData} className="min-h-0 flex-1" />
+              <SubjectRadar
+                data={radarData}
+                className="min-h-0 flex-1"
+                title="유형별 점수"
+                description="전체 모의고사의 1회차 점수 누적, 100점 만점"
+              />
             </div>
           </div>
         ) : (
