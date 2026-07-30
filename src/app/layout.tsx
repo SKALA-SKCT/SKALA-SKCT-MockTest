@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/session";
 import AccountMenu from "@/components/AccountMenu";
 import HelpGuideButton from "@/components/HelpGuideButton";
 import BrandMark from "@/components/BrandMark";
+import HeaderServiceNav from "@/components/HeaderServiceNav";
 import { getMotherUrl } from "@/lib/mother-auth";
 
 export const metadata: Metadata = {
@@ -92,26 +93,10 @@ export default async function RootLayout({
                 <Link href="/" className="flex items-center justify-self-start">
                   <BrandMark />
                 </Link>
-                <div className="flex items-center gap-[34px] text-[16px] font-normal leading-[1.7]">
-                  <a
-                    href={motherUrl}
-                    className="text-ink transition-colors hover:text-brand"
-                  >
-                    홈
-                  </a>
-                  <a
-                    href={practiceUrl}
-                    className="text-ink transition-colors hover:text-brand"
-                  >
-                    모의고사 문제 연습
-                  </a>
-                  <a
-                    href={`${motherUrl}/#types`}
-                    className="text-ink transition-colors hover:text-brand"
-                  >
-                    유형별 문제 연습
-                  </a>
-                </div>
+                <HeaderServiceNav
+                  motherUrl={motherUrl}
+                  practiceUrl={practiceUrl}
+                />
                 <div className="flex items-center justify-self-end gap-2">
                   {user.isAdmin && (
                     <Link
