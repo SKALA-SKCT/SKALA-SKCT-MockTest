@@ -5,6 +5,7 @@ import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
+  attemptResults,
   exams,
   questions,
   responses,
@@ -20,6 +21,8 @@ import ResultReview, { type ReviewQuestion } from "@/components/ResultReview";
 import ResultStrategyAnalysis, {
   type StrategyAnalysisInput,
 } from "@/components/ResultStrategyAnalysis";
+import ResultRoundTabs from "@/components/ResultRoundTabs";
+import { createAttemptResultSnapshot } from "@/lib/result-snapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +98,14 @@ export default async function ResultPage({
       : myAttempts.length;
   const myAttempt = myAttempts[selectedRound - 1];
   if (!myAttempt) redirect(`/exam/${examId}/take`);
+  let [myResult] = await db
+    .select()
+    .from(attemptResults)
+    .where(eq(attemptResults.attemptId, myAttempt.id));
+  if (!myResult) {
+    myResult = await createAttemptResultSnapshot(myAttempt.id);
+  }
+  const mySnapshot = myResult.snapshot;
 
   const [qs, finishedRows] = await Promise.all([
     getResultQuestions(examId),
@@ -153,7 +164,6 @@ export default async function ResultPage({
     qAccuracyRows,
     analysisAccuracyRows,
     analysisChoiceRows,
-    myResponses,
   ] = await Promise.all([
     db
       .select({
@@ -195,7 +205,6 @@ export default async function ResultPage({
         )
       )
       .groupBy(responses.questionId, responses.choice),
-    db.select().from(responses).where(eq(responses.attemptId, myAttempt.id)),
   ]);
 
   const scoreByAttempt = new Map<number, { total: number; bySubject: Map<string, number> }>();
@@ -207,7 +216,12 @@ export default async function ResultPage({
     s.bySubject.set(row.subject, row.correct);
   }
 
-  const myScore = scoreByAttempt.get(myAttempt.id)!;
+  const myScore = {
+    total: mySnapshot.totalScore,
+    bySubject: new Map(
+      Object.entries(mySnapshot.subjectScores) as Array<[string, number]>
+    ),
+  };
   const totalQuestions = qs.length;
   const rank =
     1 +
@@ -260,9 +274,10 @@ export default async function ResultPage({
     analysisChoiceCountsByQ.set(row.questionId, counts);
   }
 
-  // 내 응답
-  const myResponseByQ = new Map(myResponses.map((r) => [r.questionId, r]));
-  const myChoiceByQ = new Map(myResponses.map((r) => [r.questionId, r.choice]));
+  // 내 응답은 완료 시점에 저장한 스냅샷을 사용한다.
+  const mySnapshotByQ = new Map(
+    mySnapshot.questions.map((question) => [question.questionId, question])
+  );
 
   // 레이더 데이터: 과목별 정답률(%) 나 vs 전체 평균
   const radarData = examSubjects.map((s) => {
@@ -311,20 +326,9 @@ export default async function ResultPage({
     .sort((a, b) => b.total - a.total);
 
   const reviewQuestions: ReviewQuestion[] = qs.map((q) => {
-    const myChoice = myChoiceByQ.get(q.id) ?? null;
-    const response = myResponseByQ.get(q.id);
-    const elapsedSeconds = response
-      ? response.timeSpentSeconds +
-        (response.questionStartedAt && response.answeredAt
-          ? Math.max(
-              0,
-              Math.round(
-                (response.answeredAt.getTime() - response.questionStartedAt.getTime()) /
-                  1000
-              )
-            )
-          : 0)
-      : 0;
+    const snapshotQuestion = mySnapshotByQ.get(q.id);
+    const myChoice = snapshotQuestion?.choice ?? null;
+    const elapsedSeconds = snapshotQuestion?.elapsedSeconds ?? 0;
     const groupAccuracy = n
       ? Math.round(((correctCountByQ.get(q.id) ?? 0) / n) * 100)
       : 0;
@@ -344,7 +348,7 @@ export default async function ResultPage({
       explanation: q.explanation,
       myChoice,
       elapsedSeconds,
-      isCorrect: myChoice === q.answer,
+      isCorrect: snapshotQuestion?.isCorrect ?? false,
       groupAccuracy,
       peerWrongRate,
       choiceRates:
@@ -360,10 +364,7 @@ export default async function ResultPage({
       subject,
       mine: myScore.bySubject.get(subject) ?? 0,
       total: totalBySubject.get(subject) ?? 0,
-      elapsedSeconds: subjectQuestions.reduce(
-        (sum, question) => sum + (question.elapsedSeconds ?? 0),
-        0
-      ),
+      elapsedSeconds: mySnapshot.subjectElapsedSeconds[subject] ?? 0,
       hardQuestions:
         [...subjectQuestions]
           .filter((q) => q.peerWrongRate != null)
@@ -379,7 +380,7 @@ export default async function ResultPage({
     total: totalQuestions,
     rank,
     participants: n,
-    unanswered: reviewQuestions.filter((q) => q.myChoice == null).length,
+    unanswered: mySnapshot.unanswered,
     easyMistakes: reviewQuestions.filter(
       (q) => !q.isCorrect && q.myChoice != null && q.groupAccuracy >= 70
     ).length,
@@ -431,25 +432,14 @@ export default async function ResultPage({
             sectionMinutes={SECTION_MINUTES}
           />
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {myAttempts.map((attempt, index) => {
-            const attemptRound = index + 1;
-            const active = attemptRound === selectedRound;
-            return (
-              <Link
-                key={attempt.id}
-                href={`/exam/${examId}/result?round=${attemptRound}`}
-                className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
-                  active
-                    ? "border-brand bg-brand text-white"
-                    : "border-hairline bg-white text-ink-2 hover:bg-page"
-                }`}
-              >
-                {attemptRound}회차
-              </Link>
-            );
-          })}
-        </div>
+        <ResultRoundTabs
+          examId={examId}
+          selectedRound={selectedRound}
+          rounds={myAttempts.map((attempt, index) => ({
+            id: attempt.id,
+            round: index + 1,
+          }))}
+        />
       </div>
 
       {/* 요약 카드 */}

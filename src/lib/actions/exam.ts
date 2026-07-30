@@ -13,6 +13,7 @@ import {
   type Subject,
 } from "@/db/schema";
 import { requireUser } from "@/lib/session";
+import { createAttemptResultSnapshot } from "@/lib/result-snapshot";
 
 const GRACE_MS = 30 * 1000;
 
@@ -270,6 +271,10 @@ export async function finishSection(examId: number, subject: Subject) {
     .update(attempts)
     .set({ sectionState: state, ...(allDone ? { finishedAt: new Date() } : {}) })
     .where(eq(attempts.id, attempt.id));
+
+  if (allDone) {
+    await createAttemptResultSnapshot(attempt.id);
+  }
 
   return { sectionState: state, finished: allDone };
 }

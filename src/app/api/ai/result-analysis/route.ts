@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/session";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { attempts, attemptResults } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
 type AnalysisInput = {
+  attemptId?: number;
   examTitle: string;
   score: number;
   total: number;
@@ -123,11 +127,27 @@ async function requestGemini(
 }
 
 export async function POST(request: Request) {
-  await requireUser();
+  const user = await requireUser();
   const input = (await request.json()) as AnalysisInput;
 
   if (!input || !Array.isArray(input.subjects)) {
     return NextResponse.json({ error: "분석 데이터가 올바르지 않습니다." }, { status: 400 });
+  }
+
+  if (input.attemptId) {
+    const [ownedResult] = await db
+      .select({ aiAnalysis: attemptResults.aiAnalysis })
+      .from(attemptResults)
+      .innerJoin(attempts, eq(attempts.id, attemptResults.attemptId))
+      .where(
+        and(
+          eq(attemptResults.attemptId, input.attemptId),
+          eq(attempts.userId, user.id)
+        )
+      );
+    if (ownedResult?.aiAnalysis) {
+      return NextResponse.json(ownedResult.aiAnalysis);
+    }
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -163,5 +183,13 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ ...result, provider: "gemini" });
+  const responsePayload = { ...result, provider: "gemini" as const };
+  if (input.attemptId) {
+    await db
+      .update(attemptResults)
+      .set({ aiAnalysis: responsePayload, updatedAt: new Date() })
+      .where(eq(attemptResults.attemptId, input.attemptId));
+  }
+
+  return NextResponse.json(responsePayload);
 }

@@ -47,7 +47,6 @@ export default function ResultStrategyAnalysis({
 }: {
   input: StrategyAnalysisInput;
 }) {
-  const cacheKey = `skct:result-analysis:${input.attemptId}`;
   const [result, setResult] = useState<StrategyAnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +55,6 @@ export default function ResultStrategyAnalysis({
     setLoading(true);
     setError(null);
     try {
-      const cached = window.localStorage.getItem(cacheKey);
-      if (cached) {
-        setResult(JSON.parse(cached) as StrategyAnalysisResult);
-        return;
-      }
-
       const response = await fetch("/api/ai/result-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,7 +66,6 @@ export default function ResultStrategyAnalysis({
       if (!response.ok || !("summary" in payload)) {
         throw new Error("error" in payload ? payload.error : "분석에 실패했습니다.");
       }
-      window.localStorage.setItem(cacheKey, JSON.stringify(payload));
       setResult(payload);
     } catch (analysisError) {
       setError(
@@ -84,7 +76,7 @@ export default function ResultStrategyAnalysis({
     } finally {
       setLoading(false);
     }
-  }, [cacheKey, input]);
+  }, [input]);
 
   useEffect(() => {
     setResult(null);
@@ -93,7 +85,7 @@ export default function ResultStrategyAnalysis({
       void generateAnalysis();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [cacheKey, generateAnalysis]);
+  }, [generateAnalysis]);
 
   return (
     <section className="chart-card mb-6 border-brand/20 bg-[#fffdfc] p-5">

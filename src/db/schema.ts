@@ -149,3 +149,49 @@ export const responses = pgTable(
     index("idx_response_question").on(t.questionId),
   ]
 );
+
+export type AttemptResultSnapshot = {
+  totalScore: number;
+  totalQuestions: number;
+  subjectScores: Record<Subject, number>;
+  subjectTotals: Record<Subject, number>;
+  subjectElapsedSeconds: Record<Subject, number>;
+  unanswered: number;
+  easyMistakes: number;
+  questions: Array<{
+    questionId: number;
+    choice: number | null;
+    isCorrect: boolean;
+    elapsedSeconds: number;
+  }>;
+};
+
+export type AttemptAiAnalysis = {
+  summary: string;
+  priorities: string[];
+  actions: string[];
+  provider: "gemini";
+};
+
+export const attemptResults = pgTable(
+  "attempt_results",
+  {
+    attemptId: integer("attempt_id")
+      .primaryKey()
+      .references(() => attempts.id, { onDelete: "cascade" }),
+    totalScore: integer("total_score").notNull(),
+    totalQuestions: integer("total_questions").notNull(),
+    snapshot: jsonb("snapshot").$type<AttemptResultSnapshot>().notNull(),
+    aiAnalysis: jsonb("ai_analysis").$type<AttemptAiAnalysis>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_attempt_results_total").on(t.totalScore),
+    index("idx_attempt_results_updated").on(t.updatedAt),
+  ]
+);
