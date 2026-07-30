@@ -10,7 +10,7 @@ function MemoTextarea() {
       value={memo}
       onChange={(e) => setMemo(e.target.value)}
       placeholder="다음 문제로 넘어가면 지워집니다"
-      className="h-36 w-full resize-none rounded-b-lg px-2.5 py-2 text-sm outline-none"
+      className="h-44 w-full resize-none rounded-b-lg px-3 py-2.5 text-sm outline-none"
     />
   );
 }
@@ -109,7 +109,7 @@ export default function MemoPad({ resetKey }: { resetKey: number | string }) {
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
-          className="h-36 w-full touch-none rounded-b-lg"
+          className="h-44 w-full touch-none rounded-b-lg"
         />
       )}
     </div>

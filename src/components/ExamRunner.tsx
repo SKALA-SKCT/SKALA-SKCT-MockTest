@@ -364,7 +364,7 @@ export default function ExamRunner({
   const urgent = remaining != null && remaining < 60;
 
   const select = (choice: number) => {
-    const next = choice;
+    const next = answers[q.id] === choice ? null : choice;
     setNotice(null);
     setAnswers((a) => ({ ...a, [q.id]: next }));
     const pendingSave = saveAnswer(examId, q.id, next).catch(() => {});
@@ -384,7 +384,7 @@ export default function ExamRunner({
 
   return (
     <>
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 md:flex-row md:items-start">
+      <div className="mx-auto flex max-w-6xl flex-col gap-5 md:flex-row md:items-start">
         {/* 왼쪽: 문제 영역 */}
         <div className="min-w-0 flex-1">
           {/* 문항 번호 스트립: 과목 내 자유 이동 */}
@@ -407,20 +407,13 @@ export default function ExamRunner({
           </div>
 
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <div className="mb-3 flex items-baseline justify-between">
+          <div className="mb-3 flex items-baseline">
             <p className="text-sm font-bold text-red-600">
               문제 {idx + 1}{" "}
               <span className="text-xs font-normal text-zinc-400">
                 / {sectionQuestions.length}
               </span>
             </p>
-            <button
-              disabled={busy}
-              onClick={moveToNextSubject}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
-            >
-              다음 유형으로
-            </button>
           </div>
           {notice && (
             <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700">
@@ -498,8 +491,8 @@ export default function ExamRunner({
       </div>
 
       {/* 오른쪽: 실제 시험처럼 고정 도구 패널 */}
-      <aside className="w-full shrink-0 md:sticky md:top-20 md:w-72">
-        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+      <aside className="w-full shrink-0 md:sticky md:top-20 md:w-80 lg:w-88">
+        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2">
             <div>
               <p className="text-[11px] text-zinc-400">{examTitle}</p>
@@ -514,8 +507,8 @@ export default function ExamRunner({
             </div>
           </div>
           <div className="flex flex-col gap-3">
-            <MemoPad resetKey={q.id} />
-            <Calculator />
+            <MemoPad key={`memo:${q.id}`} resetKey={q.id} />
+            <Calculator key={`calculator:${q.id}`} />
             <div className="grid grid-cols-2 gap-2">
               <button
                 disabled={busy}
