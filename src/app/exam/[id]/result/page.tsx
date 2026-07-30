@@ -95,7 +95,7 @@ export default async function ResultPage({
     requestedRound >= 1 &&
     requestedRound <= myAttempts.length
       ? requestedRound
-      : myAttempts.length;
+      : 1;
   const myAttempt = myAttempts[selectedRound - 1];
   if (!myAttempt) redirect(`/exam/${examId}/take`);
   let [myResult] = await db
@@ -421,9 +421,7 @@ export default async function ResultPage({
           ← 목록으로
         </Link>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">
-            {exam.title} — {selectedRound}회차 결과
-          </h1>
+          <h1 className="text-2xl font-bold">{exam.title}</h1>
           <ExamStartButton
             examId={examId}
             title={exam.title}
