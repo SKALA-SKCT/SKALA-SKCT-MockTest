@@ -491,7 +491,7 @@ export default function ExamRunner({
       </div>
 
       {/* 오른쪽: 실제 시험처럼 고정 도구 패널 */}
-      <aside className="w-full shrink-0 md:sticky md:top-20 md:w-80 lg:w-88">
+      <aside className="w-full shrink-0 md:sticky md:top-20 md:mt-10 md:w-80 lg:w-88">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2">
             <div>
