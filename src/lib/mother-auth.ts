@@ -1,4 +1,4 @@
-const DEFAULT_MOTHER_URL = "https://skala-skct.com";
+const DEFAULT_MOTHER_URL = "https://skala-skct-landing.vercel.app";
 const DEFAULT_APP_URL = "https://skala-skct.vercel.app";
 
 function trimTrailingSlash(value: string) {
@@ -9,7 +9,9 @@ function normalizeUrl(value: string | undefined, fallback: string) {
   const candidate = value?.trim();
   if (!candidate) return fallback;
   try {
-    return trimTrailingSlash(new URL(candidate).toString());
+    const url = new URL(candidate);
+    if (url.hostname === "skala-skct.com") return fallback;
+    return trimTrailingSlash(url.toString());
   } catch {
     return fallback;
   }
