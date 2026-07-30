@@ -168,7 +168,7 @@ export default function Calculator() {
         {expression}
       </div>
       <div className="grid grid-cols-5 gap-1.5">
-        <CalcButton label="C" onClick={clear} className="col-span-3 bg-zinc-200 text-zinc-700" />
+        <CalcButton label="C" onClick={clear} className="col-span-3 bg-zinc-100" />
         <CalcButton label="(" onClick={() => input("(")} className="bg-zinc-100" />
         <CalcButton label=")" onClick={() => input(")")} className="bg-zinc-100" />
         {["7", "8", "9"].map((digit) => (
