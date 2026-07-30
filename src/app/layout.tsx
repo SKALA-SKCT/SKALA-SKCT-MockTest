@@ -101,7 +101,7 @@ export default async function RootLayout({
                   {user.isAdmin && (
                     <Link
                       href="/admin"
-                      className="inline-flex min-h-[38px] items-center justify-center rounded-[10px] px-[18px] py-[6px] text-sm font-medium text-ink transition hover:bg-black/[0.04]"
+                      className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-page focus:outline-none focus-visible:outline-none focus-visible:ring-0"
                     >
                       관리자
                     </Link>
