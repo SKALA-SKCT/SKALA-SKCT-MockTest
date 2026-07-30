@@ -1,11 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { unstable_cache } from "next/cache";
-import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
-  chatMessages,
   exams,
   questions,
   responses,
@@ -17,7 +16,6 @@ import { getCurrentUser } from "@/lib/session";
 import SubjectRadar from "@/components/SubjectRadar";
 import TrendChart from "@/components/TrendChart";
 import ExamStartButton from "@/components/ExamStartButton";
-import PublicChat from "@/components/PublicChat";
 
 export const dynamic = "force-dynamic";
 
@@ -292,38 +290,13 @@ export default async function Dashboard() {
   const user = await getCurrentUser();
   if (!user) return <LandingPage />;
 
-  // 서로 의존이 없는 쿼리는 병렬 실행(순차 왕복 3회 → 1회).
-  // 시험 목록·문항 수는 60초 캐시, 채팅은 신선도가 중요해 매번 조회.
-  const [examList, initialChatRows, examSubjectTotals] = await Promise.all([
+  // 서로 의존이 없는 쿼리는 병렬 실행(순차 왕복 2회 → 1회).
+  const [examList, examSubjectTotals] = await Promise.all([
     getPublishedExams(),
-    db
-      .select({
-        id: chatMessages.id,
-        userId: chatMessages.userId,
-        body: chatMessages.body,
-        isAnonymous: chatMessages.isAnonymous,
-        createdAt: chatMessages.createdAt,
-        name: users.name,
-        campus: users.campus,
-        classNumber: users.classNumber,
-      })
-      .from(chatMessages)
-      .innerJoin(users, eq(users.id, chatMessages.userId))
-      .orderBy(desc(chatMessages.createdAt))
-      .limit(80),
     getExamSubjectTotals(),
   ]);
 
   const publishedExamIds = examList.map((exam) => exam.id);
-  const initialChatMessages = initialChatRows.reverse().map((row) => ({
-    id: row.id,
-    body: row.body,
-    isAnonymous: row.isAnonymous,
-    mine: row.userId === user.id,
-    author: row.isAnonymous ? "익명" : row.name,
-    meta: row.isAnonymous ? null : `${row.campus} ${row.classNumber}반`,
-    createdAt: row.createdAt.toISOString(),
-  }));
 
   // 통계는 유저·시험별 가장 최근 '완료' 응시 1개만 사용
   const finishedRows = publishedExamIds.length
@@ -575,11 +548,7 @@ export default async function Dashboard() {
   }
 
   return (
-    <div className="grid gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[280px_minmax(0,1fr)_280px] xl:items-stretch">
-      <aside className="min-h-0 xl:flex xl:h-full">
-        <PublicChat initialMessages={initialChatMessages} />
-      </aside>
-
+    <div className="grid gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-stretch">
       {/* ── 중앙: 분석 대시보드 */}
       <div className="flex min-w-0 flex-1 flex-col gap-4 xl:h-full xl:min-h-0">
         {/* 스탯 타일 */}

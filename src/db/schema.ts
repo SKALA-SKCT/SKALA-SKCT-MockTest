@@ -8,6 +8,7 @@ import {
   jsonb,
   uniqueIndex,
   index,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 
 export const SUBJECTS = [
@@ -27,6 +28,11 @@ export function maxClassForCampus(campus: Campus) {
 }
 
 export const SECTION_MINUTES = 15;
+export const tokenPurpose = pgEnum("token_purpose", [
+  "email_verify",
+  "find_id",
+  "password_reset",
+]);
 
 export type SectionState = Partial<
   Record<Subject, { startedAt: string; finishedAt?: string }>
@@ -34,25 +40,39 @@ export type SectionState = Partial<
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  // 통합 로그인(마더)의 안정 식별자. 예: `kakao:<id>` | `skala:<nick>`.
-  // 레거시 skct 계정은 null(자체 id로 식별). 신규 카카오 유저는 이 값으로 upsert된다.
-  externalId: text("external_id").unique(),
   nickname: text("nickname").notNull().unique(),
   name: text("name").notNull(),
   campus: text("campus").$type<Campus>().notNull(),
   classNumber: integer("class_number").notNull(),
-  // 이메일 로그인은 은퇴. 컬럼은 기존 데이터·관리자 표시를 위해 유지(선택).
   email: text("email").unique(),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
-  // 레거시 비번(bcrypt). 카카오 유저는 null.
-  pinHash: text("pin_hash"),
-  // 카카오 신규 유저가 캠퍼스/분반 온보딩을 마쳤는지(레거시는 항상 온보딩된 것으로 간주).
-  onboarded: boolean("onboarded").notNull().default(false),
+  pinHash: text("pin_hash").notNull(),
   isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
+
+export const authTokens = pgTable(
+  "auth_tokens",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    purpose: tokenPurpose("purpose").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_auth_tokens_hash").on(t.tokenHash),
+    index("idx_auth_tokens_user_purpose").on(t.userId, t.purpose),
+    index("idx_auth_tokens_email_purpose").on(t.email, t.purpose),
+  ]
+);
 
 export const exams = pgTable("exams", {
   id: serial("id").primaryKey(),
@@ -127,24 +147,5 @@ export const responses = pgTable(
   (t) => [
     uniqueIndex("uq_response").on(t.attemptId, t.questionId),
     index("idx_response_question").on(t.questionId),
-  ]
-);
-
-export const chatMessages = pgTable(
-  "chat_messages",
-  {
-    id: serial("id").primaryKey(),
-    userId: integer("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    body: text("body").notNull(),
-    isAnonymous: boolean("is_anonymous").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [
-    index("idx_chat_messages_created").on(t.createdAt),
-    index("idx_chat_messages_user").on(t.userId),
   ]
 );

@@ -1,9 +1,18 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser, motherLoginUrl } from "@/lib/session";
+import AuthForm from "@/components/AuthForm";
+import { login } from "@/lib/actions/auth";
+import { getCurrentUser } from "@/lib/session";
 
-// 로그인은 마더(관문)로 이관됨. /login 접근 시 관문으로 보낸다(이미 로그인 상태면 홈).
 export default async function LoginPage() {
   const user = await getCurrentUser();
   if (user) redirect("/");
-  redirect(motherLoginUrl());
+  return (
+    <AuthForm
+      action={login}
+      title="로그인"
+      submitLabel="로그인"
+      altHref="/register"
+      altLabel="처음이신가요? 가입하기"
+    />
+  );
 }

@@ -8,12 +8,11 @@ SKALA-SKCT는 랜딩페이지를 중심으로 여러 학습 페이지가 연결�
 
 | 영역 | 역할 |
 | --- | --- |
-| 랜딩페이지 | 서비스 소개, 로그인, 하위 페이지 이동을 담당하는 마더페이지 |
-| 실전 모의고사 | 실제 시험 환경에 가까운 응시 기능과 결과 대시보드, AI 분석을 제공 |
+| 실전 모의고사 | 자체 로그인/회원가입과 실제 시험 환경에 가까운 응시 기능, 결과 대시보드, AI 분석을 제공 |
 | 모의고사 문제 연습 | 더 자유로운 환경에서 모의고사 문제를 연습하는 페이지 |
 | 유형별 문제 연습 | 문제 유형별로 응시하고 반복 학습하는 페이지 |
 
-하위 3개 페이지는 랜딩페이지에서 제공하는 로그인 인증 흐름을 공유하는 구조를 전제로 합니다. 이 레포는 그중 실전 모의고사 영역을 담당합니다.
+이 레포는 실전 모의고사 영역을 담당하며, 자체 로그인/회원가입과 이메일 인증 흐름을 포함합니다.
 
 ## This Repository
 
@@ -32,21 +31,22 @@ SKALA-SKCT는 랜딩페이지를 중심으로 여러 학습 페이지가 연결�
 
 ## Authentication Flow
 
-이 앱은 자체 랜딩페이지와 자체 로그인/회원가입 화면을 제공하지 않습니다.
+이 앱은 자체 로그인/회원가입 화면을 제공합니다.
 
 - 로그인된 사용자가 `/`에 접근하면 바로 메인 대시보드가 표시됩니다.
-- 로그인되지 않은 사용자가 `/`에 접근하면 마더페이지 로그인 화면으로 이동합니다.
-- 로그인과 계정 관련 화면은 마더페이지 레포에서 관리합니다.
-
-로컬 개발에서는 마더페이지를 `http://localhost:3000`으로 봅니다.
-
-배포 환경에서는 마더페이지를 `https://skala-skct-landing.vercel.app`으로 봅니다.
+- 로그인되지 않은 사용자가 `/`에 접근하면 서비스 소개 화면과 로그인 진입 버튼이 표시됩니다.
+- 회원가입 시 이메일 인증번호를 SMTP로 발송합니다.
+- 아이디 찾기와 비밀번호 재설정도 가입 이메일을 기준으로 처리합니다.
 
 ## Routes
 
 | Route | Description |
 | --- | --- |
 | `/` | 메인 대시보드 |
+| `/login` | 로그인 |
+| `/register` | 회원가입 및 이메일 인증 |
+| `/find-id` | 아이디 찾기 |
+| `/forgot-password` | 비밀번호 재설정 요청 |
 | `/exam/[id]/take` | 실전 모의고사 응시 |
 | `/exam/[id]/result` | 응시 결과 및 리뷰 |
 | `/admin` | 관리자 화면 |
@@ -87,25 +87,20 @@ SKALA-SKCT는 랜딩페이지를 중심으로 여러 학습 페이지가 연결�
 | `DATABASE_SSL` | 배포 DB SSL 사용 여부 |
 | `DB_POOL_MAX` | DB pool 최대 연결 수 |
 | `SESSION_SECRET` | 세션 쿠키 서명용 secret |
+| `SMTP_HOST` | 메일 발송 SMTP host |
+| `SMTP_PORT` | 메일 발송 SMTP port |
+| `SMTP_USER` | SMTP 인증 사용자 |
+| `SMTP_PASS` | SMTP 인증 비밀번호 |
+| `MAIL_FROM` | 발신자 주소 |
+| `NEXT_PUBLIC_APP_URL` | 메일 링크에 사용할 앱 URL |
 | `GEMINI_API_KEY` | AI 결과 분석용 API key |
 | `GEMINI_MODEL` | AI 분석에 사용할 모델 |
 | `NEXT_PUBLIC_GTM_ID` | Google Tag Manager ID |
-| `MOTHER_PAGE_URL` | 마더페이지 URL override |
 
 ## Getting Started
 
 ```bash
 npm install
-npm run dev -- -p 3001
-```
-
-로컬에서 마더페이지와 함께 볼 때는 다음처럼 실행합니다.
-
-```bash
-# landing repository
-npm run dev
-
-# mock test repository
 npm run dev -- -p 3001
 ```
 
@@ -134,4 +129,4 @@ npm run build
 
 ## Repository Role
 
-이 레포는 SKALA-SKCT의 실전 모의고사 경험을 담당합니다. 랜딩과 인증 UI의 중심 역할은 마더페이지 레포가 맡고, 모의고사 문제 연습과 유형별 문제 연습은 별도 하위 페이지로 연결되는 구조입니다.
+이 레포는 SKALA-SKCT의 실전 모의고사 경험과 자체 계정 인증 흐름을 담당합니다. 모의고사 문제 연습과 유형별 문제 연습은 별도 하위 페이지로 연결되는 구조입니다.
