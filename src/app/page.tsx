@@ -298,7 +298,7 @@ export default async function Dashboard() {
 
   const publishedExamIds = examList.map((exam) => exam.id);
 
-  // 통계는 유저·시험별 가장 최근 '완료' 응시 1개만 사용
+  // 통계는 유저·시험별 첫 '완료' 응시 1개만 사용해 재응시 점수가 대시보드에 섞이지 않게 한다.
   const finishedRows = publishedExamIds.length
     ? await db
         .select({
@@ -322,7 +322,7 @@ export default async function Dashboard() {
   for (const a of finishedRows) {
     const key = `${a.userId}:${a.examId}`;
     const current = latestFinished.get(key);
-    if (!current || a.id > current.id) latestFinished.set(key, a);
+    if (!current || a.id < current.id) latestFinished.set(key, a);
   }
   const finished = [...latestFinished.values()];
   const myFinished = finished.filter((a) => a.userId === user.id);
@@ -670,10 +670,10 @@ export default async function Dashboard() {
           <div className="border-b border-hairline px-4 py-3.5">
             <h2 className="text-sm font-semibold text-ink">모의고사</h2>
             <p className="mt-1 text-xs text-ink-3">
-              모의고사는 재응시할 수 없습니다.
+              완료한 회차는 결과 페이지에서 다시 응시할 수 있습니다.
             </p>
             <p className="mt-1 text-xs text-ink-3">
-              1회차부터 순서대로 완료해야 다음 회차가 열립니다.
+              대시보드 점수는 첫 응시 기록만 반영됩니다.
             </p>
           </div>
           <ul className="soft-scrollbar flex min-h-0 flex-1 flex-col divide-y divide-[var(--grid)] overflow-y-auto px-3.5">

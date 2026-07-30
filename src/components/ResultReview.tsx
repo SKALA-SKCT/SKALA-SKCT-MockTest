@@ -179,7 +179,7 @@ function QuestionCard({
           <img
             src={displayQuestion.imageUrl}
             alt={`${displayQuestion.number}번 자료`}
-            className="mt-4 h-auto w-full rounded-lg border border-zinc-200 bg-white object-contain"
+            className="-mx-3 mt-4 h-auto w-[calc(100%+1.5rem)] max-w-none rounded-lg border border-zinc-200 bg-white object-contain"
           />
         )}
         {supplementImageUrl && (
@@ -187,7 +187,7 @@ function QuestionCard({
           <img
             src={supplementImageUrl}
             alt={`${displayQuestion.number}번 조건`}
-            className="mt-4 h-auto max-w-full rounded-lg border border-zinc-200 bg-white object-contain"
+            className="-mx-3 mt-4 h-auto w-[calc(100%+1.5rem)] max-w-none rounded-lg border border-zinc-200 bg-white object-contain"
           />
         )}
       </div>

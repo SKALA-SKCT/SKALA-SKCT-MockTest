@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { and, asc, desc, eq, isNotNull } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { attempts, exams, questions, responses, type Subject } from "@/db/schema";
 import { requireUser } from "@/lib/session";
@@ -20,20 +20,6 @@ export default async function TakePage({
   const user = await requireUser();
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
   if (!exam || !exam.published) notFound();
-
-  const [finishedAttempt] = await db
-    .select({ id: attempts.id })
-    .from(attempts)
-    .where(
-      and(
-        eq(attempts.userId, user.id),
-        eq(attempts.examId, examId),
-        isNotNull(attempts.finishedAt)
-      )
-    )
-    .orderBy(desc(attempts.id))
-    .limit(1);
-  if (finishedAttempt) redirect(`/exam/${examId}/result`);
 
   try {
     await startAttempt(examId);

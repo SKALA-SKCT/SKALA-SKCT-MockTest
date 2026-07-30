@@ -7,12 +7,14 @@ import {
   exams,
   questions,
   responses,
+  SECTION_MINUTES,
   users,
   SUBJECTS,
 } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import SubjectRadar from "@/components/SubjectRadar";
 import ScoreDistributionChart from "@/components/ScoreDistributionChart";
+import ExamStartButton from "@/components/ExamStartButton";
 import ResultReview, { type ReviewQuestion } from "@/components/ResultReview";
 import ResultStrategyAnalysis, {
   type StrategyAnalysisInput,
@@ -37,10 +39,13 @@ function distributionBands(totalQuestions: number) {
 
 export default async function ResultPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ round?: string }>;
 }) {
   const { id } = await params;
+  const { round } = await searchParams;
   const examId = Number(id);
   if (!Number.isInteger(examId)) notFound();
 
@@ -48,8 +53,7 @@ export default async function ResultPage({
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
   if (!exam) notFound();
 
-  // 가장 최근 완료 응시 기준
-  const [myAttempt] = await db
+  const myAttempts = await db
     .select()
     .from(attempts)
     .where(
@@ -59,8 +63,15 @@ export default async function ResultPage({
         isNotNull(attempts.finishedAt)
       )
     )
-    .orderBy(desc(attempts.id))
-    .limit(1);
+    .orderBy(asc(attempts.id));
+  const requestedRound = Number(round ?? "");
+  const selectedRound =
+    Number.isInteger(requestedRound) &&
+    requestedRound >= 1 &&
+    requestedRound <= myAttempts.length
+      ? requestedRound
+      : myAttempts.length;
+  const myAttempt = myAttempts[selectedRound - 1];
   if (!myAttempt) redirect(`/exam/${examId}/take`);
 
   const qs = await db
@@ -74,7 +85,12 @@ export default async function ResultPage({
   for (const q of qs) {
     totalBySubject.set(q.subject, (totalBySubject.get(q.subject) ?? 0) + 1);
   }
-  // 완료된 응시 — 유저별 가장 최근 완료 기록 1개만 사용
+  const subjectInfo = examSubjects.map((subject) => ({
+    subject,
+    total: totalBySubject.get(subject) ?? 0,
+  }));
+
+  // 완료된 응시 — 유저별 N번째 완료 기록끼리 비교한다.
   const finishedRows = await db
     .select({
       attemptId: attempts.id,
@@ -87,11 +103,16 @@ export default async function ResultPage({
     .from(attempts)
     .innerJoin(users, eq(users.id, attempts.userId))
     .where(and(eq(attempts.examId, examId), isNotNull(attempts.finishedAt)))
-    .orderBy(desc(attempts.id));
-  const latestByUser = new Map<number, (typeof finishedRows)[number]>();
-  for (const row of finishedRows)
-    if (!latestByUser.has(row.userId)) latestByUser.set(row.userId, row);
-  const finishedAttempts = [...latestByUser.values()];
+    .orderBy(asc(attempts.id));
+  const attemptRowsByUser = new Map<number, (typeof finishedRows)>();
+  for (const row of finishedRows) {
+    const rows = attemptRowsByUser.get(row.userId) ?? [];
+    rows.push(row);
+    attemptRowsByUser.set(row.userId, rows);
+  }
+  const finishedAttempts = [...attemptRowsByUser.values()]
+    .map((rows) => rows[selectedRound - 1])
+    .filter((row): row is (typeof finishedRows)[number] => Boolean(row));
   const campusAttempts = finishedAttempts.filter(
     (a) => a.campus === user.campus
   );
@@ -372,7 +393,35 @@ export default async function ResultPage({
           ← 목록으로
         </Link>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">{exam.title} — 결과</h1>
+          <h1 className="text-2xl font-bold">
+            {exam.title} — {selectedRound}회차 결과
+          </h1>
+          <ExamStartButton
+            examId={examId}
+            title={exam.title}
+            label="재응시"
+            subjects={subjectInfo}
+            sectionMinutes={SECTION_MINUTES}
+          />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {myAttempts.map((attempt, index) => {
+            const attemptRound = index + 1;
+            const active = attemptRound === selectedRound;
+            return (
+              <Link
+                key={attempt.id}
+                href={`/exam/${examId}/result?round=${attemptRound}`}
+                className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
+                  active
+                    ? "border-brand bg-brand text-white"
+                    : "border-hairline bg-white text-ink-2 hover:bg-page"
+                }`}
+              >
+                {attemptRound}회차
+              </Link>
+            );
+          })}
         </div>
       </div>
 
