@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 export default function HeaderServiceNav({
   motherUrl,
   practiceUrl,
@@ -12,6 +14,13 @@ export default function HeaderServiceNav({
       <a href={motherUrl} className="text-ink transition-colors hover:text-brand">
         홈
       </a>
+      <Link
+        href="/"
+        aria-current="page"
+        className="text-brand transition-colors"
+      >
+        실전 모의고사
+      </Link>
       <a href={practiceUrl} className="text-ink transition-colors hover:text-brand">
         모의고사 문제 연습
       </a>
