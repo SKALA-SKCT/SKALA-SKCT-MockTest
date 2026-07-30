@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function CalcButton({
   label,
@@ -70,6 +70,12 @@ export default function Calculator() {
   const [expression, setExpression] = useState("0");
   const [history, setHistory] = useState<string[]>([]);
   const [justCalculated, setJustCalculated] = useState(false);
+  const displayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const display = displayRef.current;
+    if (display) display.scrollLeft = display.scrollWidth;
+  }, [expression]);
 
   const input = useCallback(
     (value: string) => {
@@ -86,7 +92,7 @@ export default function Calculator() {
         if (/^[+\-×÷]$/.test(value) && /[+\-×÷]$/.test(current)) {
           return current.slice(0, -1) + value;
         }
-        return current.length >= 30 ? current : current + value;
+        return current + value;
       });
       setJustCalculated(false);
     },
@@ -119,7 +125,6 @@ export default function Calculator() {
 
   const clear = useCallback(() => {
     setExpression("0");
-    setHistory([]);
     setJustCalculated(false);
   }, []);
 
@@ -164,7 +169,11 @@ export default function Calculator() {
           <p className="text-[11px] leading-4 text-zinc-300">최근 계산 기록</p>
         )}
       </div>
-      <div className="mb-2 min-h-12 overflow-hidden rounded-md bg-zinc-50 px-2.5 py-2 text-right font-mono text-xl font-semibold tabular-nums">
+      <div
+        ref={displayRef}
+        className="mb-2 min-h-12 overflow-x-auto whitespace-nowrap rounded-md bg-zinc-50 px-2.5 py-2 text-right font-mono text-xl font-semibold tabular-nums"
+        aria-label="계산식"
+      >
         {expression}
       </div>
       <div className="grid grid-cols-4 gap-1.5">
