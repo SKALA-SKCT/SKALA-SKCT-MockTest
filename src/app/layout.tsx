@@ -104,8 +104,6 @@ export default async function RootLayout({
                   <AccountMenu
                     nickname={user.nickname}
                     name={user.name}
-                    campus={user.campus}
-                    classNumber={user.classNumber}
                   />
                   <HelpGuideButton />
                 </div>

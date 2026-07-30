@@ -100,26 +100,12 @@ export default function ResultStrategyAnalysis({
 
   return (
     <section className="chart-card mb-6 border-brand/20 bg-[#fffdfc] p-5">
-      <div className="relative mb-4 flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold">AI 핵심 진단</h2>
-            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-brand">
-              Gemini
-            </span>
-          </div>
-        </div>
-        <div className="group relative">
-          <button
-            type="button"
-            aria-label="AI 핵심 진단 안내"
-            className="flex h-6 w-6 items-center justify-center rounded-full border border-line text-xs font-bold text-ink-2 transition hover:border-brand hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
-          >
-            ?
-          </button>
-          <div className="pointer-events-none absolute right-0 top-8 z-10 w-64 rounded-lg border border-line bg-white px-3 py-2 text-xs leading-5 text-ink-2 opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100">
-            응시자가 늘어 최신 데이터가 반영되면 AI 진단 내용도 변경될 수 있습니다.
-          </div>
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold">AI 핵심 진단</h2>
+          <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-brand">
+            Gemini
+          </span>
         </div>
       </div>
 
