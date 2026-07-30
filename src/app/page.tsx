@@ -449,7 +449,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
                       />
                       <Link
                         href={`/exam/${r.exam.id}/result`}
-                        className="rounded-lg border border-hairline px-2.5 py-1.5 text-[11px] font-semibold text-ink-2 transition hover:bg-page"
+                        className="rounded-[10px] bg-brand px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-[#c90026] hover:-translate-y-px"
                       >
                         결과
                       </Link>

@@ -83,7 +83,7 @@ export default async function RootLayout({
         )}
         <div className="desktop-app-shell flex min-h-full flex-col">
           {user && (
-            <header className="sticky top-0 z-[60] bg-[rgba(247,247,245,0.86)] [backdrop-filter:blur(18px)_saturate(160%)]">
+            <header className="sticky top-0 z-[60] bg-[rgba(250,250,249,0.72)] [backdrop-filter:blur(18px)_saturate(160%)] [transition:background-color_0.3s_ease]">
               <nav className="mx-auto flex h-[68px] w-[min(1200px,calc(100vw-48px))] items-center gap-4">
                 <Link href="/" className="flex items-center">
                   <BrandMark />

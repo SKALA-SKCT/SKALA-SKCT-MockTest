@@ -226,7 +226,7 @@ export default function HelpGuideButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] text-sm font-bold text-ink transition hover:bg-black/[0.04] hover:text-brand"
+        className="flex h-[38px] w-[38px] items-center justify-center rounded-full text-sm font-bold text-ink transition hover:bg-black/[0.04] hover:text-brand"
         aria-label="서비스 가이드 열기"
         title="서비스 가이드"
       >

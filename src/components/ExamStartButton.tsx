@@ -34,7 +34,7 @@ export default function ExamStartButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`rounded-[10px] bg-ink font-medium text-white transition hover:bg-brand hover:-translate-y-px disabled:opacity-50 ${
+        className={`rounded-[10px] bg-brand font-medium text-white transition hover:bg-[#c90026] hover:-translate-y-px disabled:opacity-50 ${
           compact ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-sm"
         }`}
       >

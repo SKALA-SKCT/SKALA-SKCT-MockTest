@@ -1,6 +1,5 @@
 "use client";
 
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { deleteAccountWithNickname, logoutOnly } from "@/lib/actions/auth";
@@ -138,39 +137,48 @@ export default function AccountMenu({
 
   return (
     <>
-      <DropdownMenu.Root open={menuOpen} onOpenChange={setMenuOpen}>
-        <DropdownMenu.Trigger asChild>
-          <button className="inline-flex min-h-[38px] items-center justify-center rounded-[10px] bg-ink px-[18px] py-[6px] text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px focus:outline-none focus-visible:outline-none focus-visible:ring-0">
-            {name}님
-          </button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Content
-            align="end"
-            sideOffset={8}
-            className="z-50 min-w-36 rounded-xl border border-hairline bg-white p-1 text-sm shadow-lg outline-none"
-          >
-            <DropdownMenu.Item
-              onSelect={(event) => {
-                event.preventDefault();
-                void handleLogout();
-              }}
-              className="cursor-pointer rounded-lg px-3 py-2 text-ink-2 outline-none ring-0 hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+      <div
+        className="relative"
+        onMouseEnter={() => setMenuOpen(true)}
+        onMouseLeave={() => setMenuOpen(false)}
+      >
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+          className="inline-flex min-h-[38px] items-center justify-center rounded-[10px] bg-ink px-[18px] py-[6px] text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+        >
+          {name}님
+        </button>
+        <div
+          className={`absolute right-0 top-full z-[70] min-w-36 pt-2 text-sm transition ${
+            menuOpen
+              ? "visible translate-y-0 opacity-100"
+              : "invisible -translate-y-1 opacity-0"
+          }`}
+          role="menu"
+        >
+          <div className="rounded-xl border border-black/10 bg-white p-1 shadow-[0_14px_32px_rgba(0,0,0,0.14)]">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => void handleLogout()}
+              className="block w-full rounded-lg px-3 py-2 text-left text-ink-2 outline-none hover:bg-black/[0.04]"
             >
               로그아웃
-            </DropdownMenu.Item>
-            <DropdownMenu.Item
-              onSelect={(event) => {
-                event.preventDefault();
-                openDeleteModal();
-              }}
-              className="cursor-pointer rounded-lg px-3 py-2 text-red-600 outline-none ring-0 hover:bg-red-50 focus:bg-red-50 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={openDeleteModal}
+              className="block w-full rounded-lg px-3 py-2 text-left text-red-600 outline-none hover:bg-red-50"
             >
               회원탈퇴
-            </DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
+            </button>
+          </div>
+        </div>
+      </div>
       {deleteDialog}
     </>
   );
