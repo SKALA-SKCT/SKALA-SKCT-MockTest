@@ -457,7 +457,7 @@ export default async function Dashboard() {
     ];
   }
 
-  // 회차 목록: 1~12회차. 제목("N회차 모의고사")으로 매핑
+  // 모의고사 세트 목록: 1~12세트. 제목("N회차 모의고사")으로 매핑
   const ROUNDS = 12;
   const examByRound = new Map<number, (typeof examList)[number]>();
   for (const [index, e] of examList.entries()) {
@@ -469,7 +469,7 @@ export default async function Dashboard() {
     }
   }
 
-  // ── 추이: X축은 항상 1~12회차, 내 점수는 완료한 회차만 표시
+  // ── 추이: X축은 항상 1~12세트, 내 점수는 완료한 세트만 표시
   const trendData = Array.from({ length: ROUNDS }, (_, index) => {
     const round = index + 1;
     const exam = examByRound.get(round);
@@ -480,7 +480,7 @@ export default async function Dashboard() {
     const total = exam ? totalOfExam(exam.id) || 1 : 1;
     const scoreToPoint = (score: number) => Math.round((score / total) * 100);
     return {
-      name: `${round}회차`,
+      name: `${round}세트`,
       나: mine ? scoreToPoint(scoreOf(mine.id)) : null,
       그룹평균: peers.length ? scoreToPoint(avgScore(peers)) : null,
       캠퍼스평균: campusPeers.length ? scoreToPoint(avgScore(campusPeers)) : null,
@@ -586,13 +586,15 @@ export default async function Dashboard() {
                 회차별 점수 추이
               </h2>
               <p className="mb-2 text-xs text-ink-3">
-                완료한 {myFinished.length}회차 기준, 100점 만점
+                완료한 모의고사의 1회차 기준, 100점 만점
               </p>
               <TrendChart data={trendData} className="min-h-0 flex-1" />
             </div>
             <div className="chart-card flex min-h-0 flex-col p-3.5">
               <h2 className="text-sm font-semibold text-ink">유형별 점수</h2>
-              <p className="mb-2 text-xs text-ink-3">전체 회차 누적, 100점 만점</p>
+              <p className="mb-2 text-xs text-ink-3">
+                전체 모의고사의 1회차 점수 누적, 100점 만점
+              </p>
               <SubjectRadar data={radarData} className="min-h-0 flex-1" />
             </div>
           </div>
