@@ -9,8 +9,7 @@ const MOBILE_USER_AGENT =
 export function proxy(request: NextRequest) {
   const host = request.headers.get("host")?.split(":")[0].toLowerCase();
   if (host && LEGACY_HOSTS.has(host)) {
-    const url = new URL(`https://${MOTHER_HOST}/`);
-    return NextResponse.redirect(url, 308);
+    return NextResponse.redirect(new URL(`https://${MOTHER_HOST}/`), 308);
   }
 
   const { pathname } = request.nextUrl;
