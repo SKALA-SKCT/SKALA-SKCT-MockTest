@@ -5,19 +5,29 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
 }
 
+function normalizeUrl(value: string | undefined, fallback: string) {
+  const candidate = value?.trim();
+  if (!candidate) return fallback;
+  try {
+    return trimTrailingSlash(new URL(candidate).toString());
+  } catch {
+    return fallback;
+  }
+}
+
 export function getMotherUrl() {
-  return trimTrailingSlash(
+  return normalizeUrl(
     process.env.NEXT_PUBLIC_MOTHER_URL ??
-      process.env.MOTHER_URL ??
-      DEFAULT_MOTHER_URL
+      process.env.MOTHER_URL,
+    DEFAULT_MOTHER_URL
   );
 }
 
 export function getAppUrl() {
-  return trimTrailingSlash(
+  return normalizeUrl(
     process.env.NEXT_PUBLIC_APP_URL ??
-      process.env.APP_URL ??
-      DEFAULT_APP_URL
+      process.env.APP_URL,
+    DEFAULT_APP_URL
   );
 }
 
