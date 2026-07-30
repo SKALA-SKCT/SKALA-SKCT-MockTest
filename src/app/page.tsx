@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { unstable_cache } from "next/cache";
 import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -10,10 +11,9 @@ import {
   responses,
   SECTION_MINUTES,
   SUBJECTS,
-  users,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
-import SubjectRadar from "@/components/SubjectRadar";
+import { getMotherLoginUrl } from "@/lib/mother-auth";
 import TrendChart from "@/components/TrendChart";
 import ExamStartButton from "@/components/ExamStartButton";
 
@@ -135,7 +135,7 @@ const landingGuideSections = [
   {
     eyebrow: "Weak Points",
     title: "유형별 고오답률 문항 분석",
-    body: "내 응시를 제외한 전체 응시자 기준으로 많이 틀린 문항을 모아, 복습 우선순위를 정할 수 있습니다.",
+    body: "내 응시를 포함한 전체 응시자 기준으로 많이 틀린 문항을 모아, 복습 우선순위를 정할 수 있습니다.",
     image: "/help/hard-questions.png",
     imageWidth: 2588,
     imageHeight: 990,
@@ -288,7 +288,7 @@ function LandingPage() {
 
 export default async function Dashboard() {
   const user = await getCurrentUser();
-  if (!user) return <LandingPage />;
+  if (!user) redirect(getMotherLoginUrl("/"));
 
   // 서로 의존이 없는 쿼리는 병렬 실행(순차 왕복 2회 → 1회).
   const [examList, examSubjectTotals] = await Promise.all([
@@ -306,11 +306,8 @@ export default async function Dashboard() {
           userId: attempts.userId,
           examId: attempts.examId,
           finishedAt: attempts.finishedAt,
-          campus: users.campus,
-          classNumber: users.classNumber,
         })
         .from(attempts)
-        .innerJoin(users, eq(users.id, attempts.userId))
         .where(
           and(
             isNotNull(attempts.finishedAt),
@@ -359,10 +356,6 @@ export default async function Dashboard() {
     );
   }
   const scoreOf = (attemptId: number) => scoreByAttempt.get(attemptId) ?? 0;
-  const isSameCampus = (attempt: (typeof finished)[number]) =>
-    attempt.campus === user.campus;
-  const isSameClass = (attempt: (typeof finished)[number]) =>
-    attempt.campus === user.campus && attempt.classNumber === user.classNumber;
   const avgScore = (items: (typeof finished)[number][]) =>
     items.length
       ? items.reduce((acc, item) => acc + scoreOf(item.id), 0) / items.length
@@ -406,20 +399,14 @@ export default async function Dashboard() {
   }[] = [];
   if (latest) {
     const peers = attemptsByExam.get(latest.examId) ?? [];
-    const campusPeers = peers.filter(isSameCampus);
-    const classPeers = peers.filter(isSameClass);
     const myScore = scoreOf(latest.id);
     const total = totalOfExam(latest.examId);
     const groupAvg = avgScore(peers);
-    const campusAvg = avgScore(campusPeers);
-    const classAvg = avgScore(classPeers);
     const rank = rankOfAttempt(latest).rank;
     const averageRank =
       myFinished.reduce((acc, attempt) => acc + rankOfAttempt(attempt).rank, 0) /
       (myFinished.length || 1);
     const diff = Math.round(myScore - groupAvg);
-    const campusDiff = Math.round(myScore - campusAvg);
-    const classDiff = Math.round(myScore - classAvg);
     tiles = [
       {
         label: "최근 회차 점수",
@@ -442,22 +429,10 @@ export default async function Dashboard() {
         sub: "점 (내 점수-평균)",
         accent: diff >= 0 ? "up" : "down",
       },
-      {
-        label: "내 캠퍼스 평균과 차이",
-        value: `${campusDiff > 0 ? "+" : ""}${campusDiff}`,
-        sub: `${user.campus} 평균 기준`,
-        accent: campusDiff >= 0 ? "up" : "down",
-      },
-      {
-        label: "내 분반 평균과 차이",
-        value: `${classDiff > 0 ? "+" : ""}${classDiff}`,
-        sub: `${user.campus} ${user.classNumber}반 평균 기준`,
-        accent: classDiff >= 0 ? "up" : "down",
-      },
     ];
   }
 
-  // 회차 목록: 1~12회차. 제목("N회차 모의고사")으로 매핑
+  // 모의고사 세트 목록: 1~12세트. 제목("N회차 모의고사")으로 매핑
   const ROUNDS = 12;
   const examByRound = new Map<number, (typeof examList)[number]>();
   for (const [index, e] of examList.entries()) {
@@ -469,22 +444,18 @@ export default async function Dashboard() {
     }
   }
 
-  // ── 추이: X축은 항상 1~12회차, 내 점수는 완료한 회차만 표시
+  // ── 추이: X축은 항상 1~12세트, 내 점수는 완료한 세트만 표시
   const trendData = Array.from({ length: ROUNDS }, (_, index) => {
     const round = index + 1;
     const exam = examByRound.get(round);
     const mine = exam ? myFinishedByExam.get(exam.id) : undefined;
     const peers = exam ? (attemptsByExam.get(exam.id) ?? []) : [];
-    const campusPeers = peers.filter(isSameCampus);
-    const classPeers = peers.filter(isSameClass);
     const total = exam ? totalOfExam(exam.id) || 1 : 1;
     const scoreToPoint = (score: number) => Math.round((score / total) * 100);
     return {
-      name: `${round}회차`,
+      name: `${round}세트`,
       나: mine ? scoreToPoint(scoreOf(mine.id)) : null,
       그룹평균: peers.length ? scoreToPoint(avgScore(peers)) : null,
-      캠퍼스평균: campusPeers.length ? scoreToPoint(avgScore(campusPeers)) : null,
-      분반평균: classPeers.length ? scoreToPoint(avgScore(classPeers)) : null,
     };
   });
 
@@ -493,25 +464,13 @@ export default async function Dashboard() {
     let myC = 0,
       myT = 0,
       gC = 0,
-      gT = 0,
-      campusC = 0,
-      campusT = 0,
-      classC = 0,
-      classT = 0;
+      gT = 0;
     for (const a of finished) {
       const t = totalOfSubject(a.examId, s);
       if (t === 0) continue;
       const c = correctOf.get(`${a.id}:${s}`) ?? 0;
       gC += c;
       gT += t;
-      if (isSameCampus(a)) {
-        campusC += c;
-        campusT += t;
-      }
-      if (isSameClass(a)) {
-        classC += c;
-        classT += t;
-      }
       if (a.userId === user.id) {
         myC += c;
         myT += t;
@@ -521,8 +480,6 @@ export default async function Dashboard() {
       subject: s,
       나: myT ? Math.round((myC / myT) * 100) : 0,
       그룹평균: gT ? Math.round((gC / gT) * 100) : 0,
-      캠퍼스평균: campusT ? Math.round((campusC / campusT) * 100) : 0,
-      분반평균: classT ? Math.round((classC / classT) * 100) : 0,
     };
   });
 
@@ -548,12 +505,12 @@ export default async function Dashboard() {
   }
 
   return (
-    <div className="grid gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-stretch">
+    <div className="mx-auto grid w-full max-w-[78rem] gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-stretch">
       {/* ── 중앙: 분석 대시보드 */}
       <div className="flex min-w-0 flex-1 flex-col gap-4 xl:h-full xl:min-h-0">
         {/* 스탯 타일 */}
         {tiles.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             {tiles.map((t) => (
               <div key={t.label} className="metric-card px-4 py-3">
                 <p className="text-xs font-medium text-ink-3">{t.label}</p>
@@ -580,20 +537,14 @@ export default async function Dashboard() {
 
         {/* 차트 */}
         {myFinished.length > 0 ? (
-          <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
+          <div className="grid min-h-0 flex-1 gap-3">
             <div className="chart-card flex min-h-0 flex-col p-3.5">
-              <h2 className="text-sm font-semibold text-ink">
-                회차별 점수 추이
-              </h2>
-              <p className="mb-2 text-xs text-ink-3">
-                완료한 {myFinished.length}회차 기준, 100점 만점
-              </p>
-              <TrendChart data={trendData} className="min-h-0 flex-1" />
-            </div>
-            <div className="chart-card flex min-h-0 flex-col p-3.5">
-              <h2 className="text-sm font-semibold text-ink">유형별 점수</h2>
-              <p className="mb-2 text-xs text-ink-3">전체 회차 누적, 100점 만점</p>
-              <SubjectRadar data={radarData} className="min-h-0 flex-1" />
+              <TrendChart
+                data={trendData}
+                className="min-h-0 flex-1"
+                title="회차별 점수 추이"
+                description="완료한 모의고사의 1회차 기준, 100점 만점"
+              />
             </div>
           </div>
         ) : (
@@ -621,8 +572,6 @@ export default async function Dashboard() {
             <div className="grid grid-cols-5 gap-2">
               {radarData.map((r) => {
                 const diff = r.나 - r.그룹평균;
-                const campusDiff = r.나 - (r.캠퍼스평균 ?? 0);
-                const classDiff = r.나 - (r.분반평균 ?? 0);
                 return (
                   <div
                     key={r.subject}
@@ -650,12 +599,7 @@ export default async function Dashboard() {
                         {diff}점
                       </p>
                       <p className="text-ink-3">
-                        캠퍼스 {campusDiff > 0 ? "+" : ""}
-                        {campusDiff}점
-                      </p>
-                      <p className="text-ink-3">
-                        분반 {classDiff > 0 ? "+" : ""}
-                        {classDiff}점
+                        전체 평균 대비
                       </p>
                     </div>
                   </div>

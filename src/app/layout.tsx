@@ -5,6 +5,7 @@ import "./globals.css";
 import { getCurrentUser } from "@/lib/session";
 import AccountMenu from "@/components/AccountMenu";
 import HelpGuideButton from "@/components/HelpGuideButton";
+import BrandMark from "@/components/BrandMark";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://skala-skct.vercel.app"),
@@ -83,14 +84,9 @@ export default async function RootLayout({
         <div className="desktop-app-shell flex min-h-full flex-col">
           {user && (
             <header className="sticky top-0 z-10 border-b border-hairline bg-surface/90 backdrop-blur">
-              <nav className="mx-auto flex h-16 w-full max-w-[90rem] items-center gap-4 px-6">
-                <Link href="/" className="flex items-baseline gap-1.5">
-                  <span className="text-xl font-black tracking-tight text-brand">
-                    SKCT
-                  </span>
-                  <span className="text-sm font-semibold text-ink-2">
-                    모의고사
-                  </span>
+              <nav className="mx-auto flex h-16 w-full max-w-[78rem] items-center gap-4 px-6">
+                <Link href="/" className="flex items-center">
+                  <BrandMark />
                 </Link>
                 <div className="ml-auto flex items-center gap-2">
                   {user.isAdmin && (
@@ -104,15 +100,13 @@ export default async function RootLayout({
                   <AccountMenu
                     nickname={user.nickname}
                     name={user.name}
-                    campus={user.campus}
-                    classNumber={user.classNumber}
                   />
                   <HelpGuideButton />
                 </div>
               </nav>
             </header>
           )}
-          <main className="mx-auto w-full max-w-[90rem] flex-1 px-6 py-5">
+          <main className="mx-auto w-full max-w-[78rem] flex-1 px-6 py-5">
             {children}
           </main>
         </div>

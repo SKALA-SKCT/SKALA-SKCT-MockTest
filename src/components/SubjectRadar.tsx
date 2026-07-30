@@ -15,36 +15,80 @@ export type RadarDatum = {
   subject: string;
   나: number;
   그룹평균: number;
-  캠퍼스평균?: number;
-  분반평균?: number;
 };
 
 const legendItems = [
   { key: "나", label: "나", color: "#e94343" },
   { key: "그룹평균", label: "전체 평균", color: "#c8755a" },
-  { key: "분반평균", label: "분반 평균", color: "#5f8f6b" },
-  { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#d8a12d" },
 ] as const;
 
 export default function SubjectRadar({
   data,
   className = "h-64",
+  title,
+  description,
 }: {
   data: RadarDatum[];
   className?: string;
+  title?: string;
+  description?: string;
 }) {
   const [visible, setVisible] = useState<Record<(typeof legendItems)[number]["key"], boolean>>({
     나: true,
     그룹평균: true,
-    분반평균: true,
-    캠퍼스평균: true,
   });
   const toggleSeries = (key: (typeof legendItems)[number]["key"]) => {
     setVisible((current) => ({ ...current, [key]: !current[key] }));
   };
 
+  const legend = (
+    <div
+      className={`flex flex-nowrap items-center gap-3 whitespace-nowrap text-xs font-medium sm:gap-4 ${
+        title ? "shrink-0 justify-end" : "mt-auto justify-center pt-4"
+      }`}
+    >
+      {legendItems.map((item) => (
+        <label
+          key={item.key}
+          className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 transition ${
+            visible[item.key] ? "" : "opacity-45"
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={visible[item.key]}
+            onChange={() => toggleSeries(item.key)}
+            className="peer sr-only"
+          />
+          <span
+            className="flex h-3.5 w-3.5 items-center justify-center rounded border text-[10px] font-black leading-none text-white peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2"
+            style={{
+              backgroundColor: visible[item.key] ? item.color : "#fff",
+              borderColor: visible[item.key] ? item.color : "var(--border)",
+              outlineColor: item.color,
+            }}
+          >
+            {visible[item.key] ? "✓" : ""}
+          </span>
+          <span style={{ color: item.color }}>{item.label}</span>
+        </label>
+      ))}
+    </div>
+  );
+
   return (
     <div className={`flex w-full flex-col ${className}`}>
+      {title && (
+        <div className="mb-2 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-ink">{title}</h2>
+            {description && (
+              <p className="mt-1 text-xs text-ink-3">{description}</p>
+            )}
+          </div>
+          {legend}
+        </div>
+      )}
       <div className="min-h-0 flex-1 pb-2">
         <ResponsiveContainer>
           <RadarChart data={data} outerRadius="76%">
@@ -83,57 +127,10 @@ export default function SubjectRadar({
                 fillOpacity={0.07}
               />
             )}
-            {visible.분반평균 && (
-              <Radar
-                name="분반 평균"
-                dataKey="분반평균"
-                stroke="#5f8f6b"
-                strokeWidth={2}
-                fill="#5f8f6b"
-                fillOpacity={0.07}
-              />
-            )}
-            {visible.캠퍼스평균 && (
-              <Radar
-                name="캠퍼스 평균"
-                dataKey="캠퍼스평균"
-                stroke="#d8a12d"
-                strokeWidth={2}
-                fill="#d8a12d"
-                fillOpacity={0.07}
-              />
-            )}
           </RadarChart>
         </ResponsiveContainer>
       </div>
-      <div className="mt-auto flex flex-nowrap items-center justify-center gap-3 whitespace-nowrap pt-4 text-xs font-medium sm:gap-4">
-        {legendItems.map((item) => (
-          <label
-            key={item.key}
-            className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 transition ${
-              visible[item.key] ? "" : "opacity-45"
-            }`}
-          >
-            <input
-              type="checkbox"
-              checked={visible[item.key]}
-              onChange={() => toggleSeries(item.key)}
-              className="peer sr-only"
-            />
-            <span
-              className="flex h-3.5 w-3.5 items-center justify-center rounded border text-[10px] font-black leading-none text-white peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2"
-              style={{
-                backgroundColor: visible[item.key] ? item.color : "#fff",
-                borderColor: visible[item.key] ? item.color : "var(--border)",
-                outlineColor: item.color,
-              }}
-            >
-              {visible[item.key] ? "✓" : ""}
-            </span>
-            <span style={{ color: item.color }}>{item.label}</span>
-          </label>
-        ))}
-      </div>
+      {!title && legend}
     </div>
   );
 }

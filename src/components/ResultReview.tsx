@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ResultReviewChatbot from "@/components/ResultReviewChatbot";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
 import {
   formatReviewExplanation,
@@ -47,12 +48,22 @@ type SubjectSummary = {
 type HardQuestionPreview = {
   id: number;
   number: number;
+  localNumber: number;
   subject: string;
   wrongRate: number;
   note: string;
   elapsedSeconds: number | null;
   isSample: boolean;
 };
+
+function getSubjectQuestionNumber(question: ReviewQuestion, questions: ReviewQuestion[]) {
+  return (
+    questions
+      .filter((item) => item.subject === question.subject)
+      .sort((a, b) => a.number - b.number)
+      .findIndex((item) => item.id === question.id) + 1
+  );
+}
 
 function ResultPill({ question }: { question: ReviewQuestion }) {
   return (
@@ -125,9 +136,11 @@ function splitQuestionBody(question: ReviewQuestion & { supplementImageUrl?: str
 function QuestionCard({
   question,
   examId,
+  localNumber,
 }: {
   question: ReviewQuestion;
   examId: number;
+  localNumber: number;
 }) {
   const choiceRates = question.choiceRates;
   const displayQuestion = applyQuestionContentOverride(examId, question);
@@ -153,11 +166,10 @@ function QuestionCard({
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
-        <ResultPill question={question} />
-        <span className="font-medium text-zinc-500">문제 {question.number}</span>
         <span className="font-semibold text-zinc-500">
-          {formatElapsedSeconds(question.elapsedSeconds)}
+          {question.subject} {localNumber}번
         </span>
+        <ResultPill question={question} />
         <span className="ml-auto font-medium">
           <WrongRate value={question.peerWrongRate} />
         </span>
@@ -279,12 +291,12 @@ export default function ResultReview({
   examId,
   questions,
   subjects,
-  peerCount,
+  participantCount,
 }: {
   examId: number;
   questions: ReviewQuestion[];
   subjects: SubjectSummary[];
-  peerCount: number;
+  participantCount: number;
 }) {
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
@@ -312,6 +324,7 @@ export default function ResultReview({
       const actual = subject.hardQuestions.map((question) => ({
         id: question.id,
         number: question.number,
+        localNumber: getSubjectQuestionNumber(question, questions),
         subject: question.subject,
         wrongRate: question.peerWrongRate ?? 0,
         note: question.isCorrect ? "정답 문항" : question.myChoice == null ? "무응답 문항" : "오답 문항",
@@ -321,7 +334,7 @@ export default function ResultReview({
       map.set(subject.subject, actual);
     }
     return map;
-  }, [subjects]);
+  }, [questions, subjects]);
 
   const wrongCount = questions.filter((q) => !q.isCorrect).length;
   const correctCount = questions.length - wrongCount;
@@ -349,13 +362,11 @@ export default function ResultReview({
           <div>
             <h2 className="text-lg font-bold">유형별 고오답률 문항</h2>
             <p className="mt-1 text-xs text-zinc-400">
-              {peerCount > 0
-                ? `내 응시를 제외한 ${peerCount}명의 오답률 기준`
-                : "아직 다른 응시자 데이터가 없어 내 완료 기록을 기준으로 표시합니다."}
+              내 응시를 포함한 {participantCount}명의 오답률 기준
             </p>
           </div>
           <span className="rounded-full bg-zinc-50 px-3 py-1 text-xs font-bold text-zinc-500">
-            {peerCount > 0 ? "전체 기준" : "내 기록 기준"}
+            전체 기준
           </span>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -382,7 +393,7 @@ export default function ResultReview({
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-semibold text-zinc-700">
-                              {q.number}번
+                              {q.localNumber}번
                             </span>
                             <span className="font-extrabold text-brand">
                               {q.wrongRate}%
@@ -407,112 +418,119 @@ export default function ResultReview({
       </section>
 
       <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold">문항별 리뷰</h2>
-            <p className="mt-1 text-xs text-zinc-400">
-              문제 원문, 자료, 보기, 해설을 함께 확인합니다.
-            </p>
-          </div>
-          <div className="flex flex-wrap rounded-xl border border-hairline bg-white p-1 text-xs font-semibold shadow-sm">
-            <button
-              type="button"
-              onClick={() => setReviewFilter("all")}
-              className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "all" ? "bg-brand text-white" : "text-zinc-500"
-              }`}
-            >
-              전체 {questions.length}
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewFilter("wrong")}
-              className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "wrong" ? "bg-[#8f7d73] text-white" : "text-zinc-500"
-              }`}
-            >
-              틀린 문제 {wrongCount}
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewFilter("correct")}
-              className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "correct" ? "bg-[#f59a8e] text-white" : "text-zinc-500"
-              }`}
-            >
-              맞춘 문제 {correctCount}
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewFilter("easy-mistake")}
-              className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "easy-mistake" ? "bg-brand text-white" : "text-zinc-500"
-              }`}
-            >
-              쉬운 문제 실수 {easyMistakeCount}
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewFilter("unanswered")}
-              className={`rounded-lg px-3 py-1.5 ${
-                reviewFilter === "unanswered" ? "bg-[#8f7d73] text-white" : "text-zinc-500"
-              }`}
-            >
-              미응답 {unansweredCount}
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {visibleBySubject.map((subject) => (
-            <details
-              key={subject.subject}
-              open={
-                reviewFilter === "all"
-                  ? openSubjects[subject.subject]
-                  : subject.questions.length > 0
-              }
-              onToggle={(event) => {
-                const isOpen = event.currentTarget.open;
-                setOpenSubjects((prev) => ({
-                  ...prev,
-                  [subject.subject]: isOpen,
-                }));
-              }}
-              className="chart-card"
-            >
-              <summary className="flex cursor-pointer select-none items-center px-5 py-4 font-semibold">
-                <span aria-hidden="true" className="review-chevron mr-3 text-lg font-bold leading-none text-ink-2">
-                  ▸
-                </span>
-                <span>
-                  {subject.subject}{" "}
-                  <span className="ml-1 text-sm font-normal text-zinc-400">
-                  {subject.mine}/{subject.total}
-                  {reviewFilter !== "all" && ` · 표시 ${subject.questions.length}문항`}
-                  </span>
-                </span>
-                <span className="ml-auto text-sm font-normal text-zinc-400">
-                  {formatSubjectElapsedSeconds(subject.elapsedSeconds)}
-                </span>
-              </summary>
-              <div className="divide-y divide-zinc-100 border-t border-zinc-100">
-                {subject.questions.length > 0 ? (
-                  subject.questions.map((question) => (
-                    <QuestionCard
-                      key={question.id}
-                      question={question}
-                      examId={examId}
-                    />
-                  ))
-                ) : (
-                  <div className="px-5 py-8 text-center text-sm text-zinc-400">
-                    표시할 문항이 없습니다.
-                  </div>
-                )}
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_400px]">
+          <div className="min-w-0">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold">문항별 리뷰</h2>
+                <p className="mt-1 text-xs text-zinc-400">
+                  문제 원문, 자료, 보기, 해설을 함께 확인합니다.
+                </p>
               </div>
-            </details>
-          ))}
+              <div className="flex flex-wrap rounded-xl border border-hairline bg-white p-1 text-xs font-semibold shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("all")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    reviewFilter === "all" ? "bg-brand text-white" : "text-zinc-500"
+                  }`}
+                >
+                  전체 {questions.length}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("wrong")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    reviewFilter === "wrong" ? "bg-[#8f7d73] text-white" : "text-zinc-500"
+                  }`}
+                >
+                  틀린 문제 {wrongCount}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("correct")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    reviewFilter === "correct" ? "bg-[#f59a8e] text-white" : "text-zinc-500"
+                  }`}
+                >
+                  맞춘 문제 {correctCount}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("easy-mistake")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    reviewFilter === "easy-mistake" ? "bg-brand text-white" : "text-zinc-500"
+                  }`}
+                >
+                  쉬운 문제 실수 {easyMistakeCount}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("unanswered")}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    reviewFilter === "unanswered" ? "bg-[#8f7d73] text-white" : "text-zinc-500"
+                  }`}
+                >
+                  미응답 {unansweredCount}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {visibleBySubject.map((subject) => (
+                <details
+                  key={subject.subject}
+                  open={
+                    reviewFilter === "all"
+                      ? openSubjects[subject.subject]
+                      : subject.questions.length > 0
+                  }
+                  onToggle={(event) => {
+                    const isOpen = event.currentTarget.open;
+                    setOpenSubjects((prev) => ({
+                      ...prev,
+                      [subject.subject]: isOpen,
+                    }));
+                  }}
+                  className="chart-card"
+                >
+                  <summary className="flex cursor-pointer select-none items-center px-5 py-4 font-semibold">
+                    <span aria-hidden="true" className="review-chevron mr-3 text-lg font-bold leading-none text-ink-2">
+                      ▸
+                    </span>
+                    <span>
+                      {subject.subject}{" "}
+                      <span className="ml-1 text-sm font-normal text-zinc-400">
+                      {subject.mine}/{subject.total}
+                      {reviewFilter !== "all" && ` · 표시 ${subject.questions.length}문항`}
+                      </span>
+                    </span>
+                    <span className="ml-auto text-sm font-normal text-zinc-400">
+                      {formatSubjectElapsedSeconds(subject.elapsedSeconds)}
+                    </span>
+                  </summary>
+                  <div className="divide-y divide-zinc-100 border-t border-zinc-100">
+                    {subject.questions.length > 0 ? (
+                      subject.questions.map((question) => (
+                        <QuestionCard
+                          key={question.id}
+                          question={question}
+                          examId={examId}
+                          localNumber={getSubjectQuestionNumber(question, questions)}
+                        />
+                      ))
+                    ) : (
+                      <div className="px-5 py-8 text-center text-sm text-zinc-400">
+                        표시할 문항이 없습니다.
+                      </div>
+                    )}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+
+          <ResultReviewChatbot questions={questions} participantCount={participantCount} />
         </div>
       </section>
     </div>
