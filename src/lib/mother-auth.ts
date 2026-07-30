@@ -1,5 +1,5 @@
 const DEFAULT_MOTHER_URL = "https://www.skala-skct.com";
-const DEFAULT_APP_URL = "https://skala-skct.vercel.app";
+const DEFAULT_APP_URL = "https://www.mock.skala-skct.com";
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
@@ -36,7 +36,8 @@ export function getAppUrl() {
 }
 
 export function getMotherLoginUrl(path = "/") {
-  const target = new URL(path, `${getAppUrl()}/`);
+  const target = new URL("/api/auth/mother/callback", `${getAppUrl()}/`);
+  target.searchParams.set("next", new URL(path, `${getAppUrl()}/`).pathname);
   const login = new URL("/login", `${getMotherUrl()}/`);
   login.searchParams.set("redirect", target.toString());
   return login.toString();
