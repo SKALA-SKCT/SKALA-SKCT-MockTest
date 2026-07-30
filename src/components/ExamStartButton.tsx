@@ -34,7 +34,7 @@ export default function ExamStartButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`rounded-lg bg-brand font-semibold text-white transition hover:opacity-85 disabled:opacity-50 ${
+        className={`rounded-[10px] bg-ink font-medium text-white transition hover:bg-brand hover:-translate-y-px disabled:opacity-50 ${
           compact ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-sm"
         }`}
       >
@@ -83,14 +83,14 @@ export default function ExamStartButton({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50"
+                className="rounded-[10px] border border-black/10 bg-white px-[18px] py-2 text-sm font-medium text-ink hover:bg-black/[0.04]"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={startExam}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-85"
+                className="rounded-[10px] bg-ink px-[18px] py-2 text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px"
               >
                 시작하기
               </button>

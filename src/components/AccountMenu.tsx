@@ -125,7 +125,7 @@ export default function AccountMenu({
                   type="button"
                   onClick={() => void handleDeleteAccount()}
                   disabled={busy || confirmNickname.trim() !== nickname}
-                  className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                  className="rounded-[10px] bg-ink px-[18px] py-2.5 text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px disabled:opacity-50"
                 >
                   {busy ? "탈퇴 중..." : "회원탈퇴"}
                 </button>
@@ -140,7 +140,7 @@ export default function AccountMenu({
     <>
       <DropdownMenu.Root open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenu.Trigger asChild>
-          <button className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-page focus:outline-none focus-visible:outline-none focus-visible:ring-0">
+          <button className="inline-flex min-h-[38px] items-center justify-center rounded-[10px] bg-ink px-[18px] py-[6px] text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px focus:outline-none focus-visible:outline-none focus-visible:ring-0">
             {name}님
           </button>
         </DropdownMenu.Trigger>

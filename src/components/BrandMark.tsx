@@ -1,13 +1,10 @@
 export default function BrandMark() {
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="inline-flex h-5 items-center gap-1.5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="h-[26px] w-auto" src="/assets/sk-logo.svg" alt="SK" />
-      <span className="whitespace-nowrap text-[22px] font-bold leading-none text-ink">
+      <img className="h-full w-auto" src="/assets/sk-logo.svg" alt="SK" />
+      <span className="whitespace-nowrap text-[17px] font-bold leading-none text-ink">
         SKALA-SKCT
-      </span>
-      <span className="whitespace-nowrap text-sm font-semibold text-ink-2">
-        실전 모의고사
       </span>
     </span>
   );

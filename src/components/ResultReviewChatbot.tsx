@@ -359,7 +359,7 @@ export default function ResultReviewChatbot({
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="h-10 rounded-xl bg-brand text-xs font-black text-white transition hover:bg-red-600 disabled:opacity-40"
+            className="h-10 rounded-[10px] bg-ink text-xs font-medium text-white transition hover:bg-brand hover:-translate-y-px disabled:opacity-40"
           >
             전송
           </button>

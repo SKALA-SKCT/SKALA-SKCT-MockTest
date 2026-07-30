@@ -153,7 +153,7 @@ export default function SimpleActionForm({
           skipNextBlurValidationRef.current = true;
         }}
         disabled={submitDisabled}
-        className="rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+        className="rounded-[10px] bg-ink py-2.5 text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px disabled:opacity-50"
       >
         {pending ? "처리 중..." : submitLabel}
       </button>

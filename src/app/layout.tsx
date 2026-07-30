@@ -83,8 +83,8 @@ export default async function RootLayout({
         )}
         <div className="desktop-app-shell flex min-h-full flex-col">
           {user && (
-            <header className="sticky top-0 z-10 border-b border-hairline bg-surface/90 backdrop-blur">
-              <nav className="mx-auto flex h-16 w-full max-w-[78rem] items-center gap-4 px-6">
+            <header className="sticky top-0 z-[60] bg-[rgba(247,247,245,0.86)] [backdrop-filter:blur(18px)_saturate(160%)]">
+              <nav className="mx-auto flex h-[68px] w-[min(1200px,calc(100vw-48px))] items-center gap-4">
                 <Link href="/" className="flex items-center">
                   <BrandMark />
                 </Link>
@@ -92,7 +92,7 @@ export default async function RootLayout({
                   {user.isAdmin && (
                     <Link
                       href="/admin"
-                      className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-sm font-semibold text-ink-2 transition hover:bg-page"
+                      className="inline-flex min-h-[38px] items-center justify-center rounded-[10px] px-[18px] py-[6px] text-sm font-medium text-ink transition hover:bg-black/[0.04]"
                     >
                       관리자
                     </Link>
@@ -106,7 +106,7 @@ export default async function RootLayout({
               </nav>
             </header>
           )}
-          <main className="mx-auto w-full max-w-[78rem] flex-1 px-6 py-5">
+          <main className="mx-auto w-full max-w-[1248px] flex-1 px-6 py-5">
             {children}
           </main>
         </div>

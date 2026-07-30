@@ -779,7 +779,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <div className="flex items-end">
                 <button
                   type="submit"
-                  className="h-10 w-full rounded-lg bg-brand px-4 text-sm font-bold text-white shadow-sm transition hover:bg-red-600"
+                  className="h-10 w-full rounded-[10px] bg-ink px-[18px] text-sm font-medium text-white shadow-sm transition hover:bg-brand hover:-translate-y-px"
                 >
                   적용
                 </button>

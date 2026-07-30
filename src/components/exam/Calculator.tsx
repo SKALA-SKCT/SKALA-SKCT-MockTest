@@ -192,7 +192,7 @@ export default function Calculator() {
         {["1", "2", "3"].map((digit) => (
           <CalcButton key={digit} label={digit} onClick={() => input(digit)} className="border border-zinc-200 bg-white" />
         ))}
-        <CalcButton label="=" onClick={equals} className="row-span-2 h-full bg-red-600 text-white" />
+        <CalcButton label="=" onClick={equals} className="row-span-2 h-full bg-brand text-white" />
         <CalcButton label="0" onClick={() => input("0")} className="col-span-2 border border-zinc-200 bg-white" />
         <CalcButton label="." onClick={() => input(".")} className="border border-zinc-200 bg-white" />
       </div>

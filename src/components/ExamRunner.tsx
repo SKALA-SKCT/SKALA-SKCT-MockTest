@@ -217,7 +217,7 @@ export default function ExamRunner({
           <p className="text-lg font-semibold">모든 과목을 완료했습니다!</p>
           <button
             onClick={() => router.replace(`/exam/${examId}/result`)}
-            className="mt-4 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-semibold text-white"
+            className="mt-4 rounded-[10px] bg-ink px-[18px] py-2.5 text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px"
           >
             결과 보기
           </button>
@@ -284,8 +284,8 @@ export default function ExamRunner({
             }}
             className={`rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
               confirmRequest.tone === "danger"
-                ? "bg-red-600 hover:bg-red-700"
-                : "bg-zinc-900 hover:bg-zinc-700"
+                ? "bg-brand hover:bg-[#c90026]"
+                : "bg-ink hover:bg-brand"
             }`}
           >
             {confirmRequest.confirmText}
@@ -326,7 +326,7 @@ export default function ExamRunner({
                   setBusy(false);
                 }
               }}
-              className="mt-6 w-full rounded-lg bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              className="mt-6 w-full rounded-[10px] bg-ink py-3 text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px disabled:opacity-50"
             >
               {busy ? "준비 중..." : "시작하기"}
             </button>
@@ -395,7 +395,7 @@ export default function ExamRunner({
                 onClick={() => setIdx(i)}
                 className={`h-7 w-7 rounded text-xs font-medium transition ${
                   i === idx
-                    ? "bg-red-600 text-white"
+                    ? "bg-brand text-white"
                     : answers[qq.id] != null
                       ? "bg-zinc-800 text-white"
                       : "bg-white text-zinc-500 ring-1 ring-zinc-200 hover:bg-zinc-100"
@@ -481,7 +481,7 @@ export default function ExamRunner({
               disabled={busy}
               onClick={isLast ? moveToNextSubject : goNext}
               className={`rounded-lg px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50 ${
-                isLast ? "bg-zinc-900 hover:bg-zinc-700" : "bg-red-600 hover:bg-red-700"
+                isLast ? "bg-ink hover:bg-brand" : "bg-brand hover:bg-[#c90026]"
               }`}
             >
               {busy ? "처리 중..." : isLast ? "과목 제출" : "다음 →"}

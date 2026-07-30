@@ -282,7 +282,7 @@ export default function AuthForm({
             emailStatus === "taken" ||
             emailStatus === "invalid"
           }
-          className="mt-1 rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+          className="mt-1 rounded-[10px] bg-ink py-2.5 text-sm font-medium text-white transition hover:bg-brand hover:-translate-y-px disabled:opacity-50"
         >
           {pending ? "처리 중..." : submitLabel}
         </button>
