@@ -15,15 +15,11 @@ export type TrendDatum = {
   name: string;
   나: number | null;
   그룹평균: number | null;
-  캠퍼스평균?: number | null;
-  분반평균?: number | null;
 };
 
 const legendItems = [
   { key: "나", label: "나", color: "#e94343" },
   { key: "그룹평균", label: "전체 평균", color: "#c8755a" },
-  { key: "분반평균", label: "분반 평균", color: "#5f8f6b" },
-  { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#d8a12d" },
 ] as const;
 
 export default function TrendChart({
@@ -36,8 +32,6 @@ export default function TrendChart({
   const [visible, setVisible] = useState<Record<(typeof legendItems)[number]["key"], boolean>>({
     나: true,
     그룹평균: true,
-    분반평균: true,
-    캠퍼스평균: true,
   });
   const toggleSeries = (key: (typeof legendItems)[number]["key"]) => {
     setVisible((current) => ({ ...current, [key]: !current[key] }));
@@ -97,28 +91,6 @@ export default function TrendChart({
                 dataKey="그룹평균"
                 type="monotone"
                 stroke="#c8755a"
-                strokeWidth={2.2}
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-            )}
-            {visible.분반평균 && (
-              <Line
-                name="분반 평균"
-                dataKey="분반평균"
-                type="monotone"
-                stroke="#5f8f6b"
-                strokeWidth={2.2}
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-            )}
-            {visible.캠퍼스평균 && (
-              <Line
-                name="캠퍼스 평균"
-                dataKey="캠퍼스평균"
-                type="monotone"
-                stroke="#d8a12d"
                 strokeWidth={2.2}
                 dot={false}
                 activeDot={{ r: 4 }}

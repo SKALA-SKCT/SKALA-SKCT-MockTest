@@ -189,8 +189,6 @@ export async function register(
 ): Promise<AuthFormState> {
   const nickname = String(formData.get("nickname") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
-  const campus = String(formData.get("campus") ?? "").trim();
-  const classNumber = Number(formData.get("classNumber") ?? "");
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const emailCode = String(formData.get("emailCode") ?? "").trim();
   const pin = String(formData.get("pin") ?? "");
@@ -201,8 +199,6 @@ export async function register(
   if (err) return { error: err };
   const nameErr = validateName(name);
   if (nameErr) return { error: nameErr };
-  const campusErr = validateCampusClass(campus, classNumber);
-  if (campusErr) return { error: campusErr };
   if (!validateEmail(email)) return { error: "이메일을 올바르게 입력해주세요." };
   if (!/^\d{6}$/.test(emailCode))
     return { error: "이메일 인증번호 6자리를 입력해주세요." };
@@ -253,8 +249,6 @@ export async function register(
     .values({
       nickname,
       name,
-      campus: campus as Campus,
-      classNumber,
       email,
       emailVerifiedAt: new Date(),
       pinHash,

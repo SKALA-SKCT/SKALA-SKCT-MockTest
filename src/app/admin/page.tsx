@@ -5,7 +5,6 @@ import {
   attempts,
   CAMPUSES,
   exams,
-  maxClassForCampus,
   questions,
   responses,
   SUBJECTS,
@@ -74,6 +73,15 @@ function firstParam(value: string | string[] | undefined) {
 
 function normalizeTab(value: string | undefined) {
   return value === "users" || value === "analytics" ? value : "stats";
+}
+
+function campusLabel(value: string | null) {
+  return value ?? "미지정";
+}
+
+function classLabel(campus: string | null, classNumber: number | null) {
+  if (!campus || classNumber == null) return "미지정";
+  return `${campus} ${classNumber}반`;
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -173,7 +181,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     : 0;
 
   const campusCounts = userRows.reduce<Record<string, number>>((acc, user) => {
-    acc[user.campus] = (acc[user.campus] ?? 0) + 1;
+    const key = campusLabel(user.campus);
+    acc[key] = (acc[key] ?? 0) + 1;
     return acc;
   }, {});
 
@@ -205,14 +214,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
     const campusFinished = examFinished.reduce<Record<string, number>>(
       (acc, attempt) => {
-        acc[attempt.campus] = (acc[attempt.campus] ?? 0) + 1;
+        const key = campusLabel(attempt.campus);
+        acc[key] = (acc[key] ?? 0) + 1;
         return acc;
       },
       {}
     );
     const classFinished = examFinished.reduce<Record<string, number>>(
       (acc, attempt) => {
-        const key = `${attempt.campus} ${attempt.classNumber}반`;
+        const key = classLabel(attempt.campus, attempt.classNumber);
         acc[key] = (acc[key] ?? 0) + 1;
         return acc;
       },
@@ -257,8 +267,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const groupScores = completedAttempts.reduce<
     Record<string, { completed: number; scoreSum: number }>
   >((acc, attempt) => {
-    const campusKey = `campus:${attempt.campus}`;
-    const classKey = `class:${attempt.campus} ${attempt.classNumber}반`;
+    const campusKey = `campus:${campusLabel(attempt.campus)}`;
+    const classKey = `class:${classLabel(attempt.campus, attempt.classNumber)}`;
     const score = scoreByAttempt.get(attempt.id) ?? 0;
     for (const key of [campusKey, classKey]) {
       const item = acc[key] ?? { completed: 0, scoreSum: 0 };
@@ -268,7 +278,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     }
     return acc;
   }, {});
-  const campusChartData = ["판교", "울산", "광주"].map((campus) => {
+  const campusChartData = ["판교", "울산", "광주", "미지정"].map((campus) => {
     const item = groupScores[`campus:${campus}`] ?? { completed: 0, scoreSum: 0 };
     return {
       name: campus,
@@ -309,6 +319,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       userRows
         .filter((user) => campusFilter === "all" || user.campus === campusFilter)
         .map((user) => user.classNumber)
+        .filter((classNumber): classNumber is number => classNumber != null)
     )
   ).sort((a, b) => a - b);
 
@@ -364,8 +375,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         user.name,
         user.nickname,
         user.email ?? "",
-        user.campus,
-        `${user.classNumber}반`,
+        campusLabel(user.campus),
+        user.classNumber == null ? "" : `${user.classNumber}반`,
       ]
         .join(" ")
         .toLowerCase();
@@ -377,10 +388,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       return true;
     });
 
-  const allClassNumbers = Array.from(
-    { length: Math.max(...CAMPUSES.map((campus) => maxClassForCampus(campus))) },
-    (_, index) => index + 1
-  );
   const selectedUser =
     Number.isInteger(selectedUserId) && selectedUserId > 0
       ? filteredUsers.find((user) => user.id === selectedUserId) ??
@@ -857,7 +864,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           </p>
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5 text-ink">
-                          {user.campus} {user.classNumber}반
+                          {classLabel(user.campus, user.classNumber)}
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
                           {user.started}
@@ -925,13 +932,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       name: selectedUser.name,
                       nickname: selectedUser.nickname,
                       email: selectedUser.email,
-                      campus: selectedUser.campus,
-                      classNumber: selectedUser.classNumber,
                       emailVerified: Boolean(selectedUser.emailVerifiedAt),
                       isAdmin: selectedUser.isAdmin,
                     }}
-                    campuses={CAMPUSES}
-                    classNumbers={allClassNumbers}
                     lockAdminToggle={
                       selectedUser.id === currentAdmin.id && selectedUser.isAdmin
                     }

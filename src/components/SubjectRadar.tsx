@@ -15,15 +15,11 @@ export type RadarDatum = {
   subject: string;
   나: number;
   그룹평균: number;
-  캠퍼스평균?: number;
-  분반평균?: number;
 };
 
 const legendItems = [
   { key: "나", label: "나", color: "#e94343" },
   { key: "그룹평균", label: "전체 평균", color: "#c8755a" },
-  { key: "분반평균", label: "분반 평균", color: "#5f8f6b" },
-  { key: "캠퍼스평균", label: "캠퍼스 평균", color: "#d8a12d" },
 ] as const;
 
 export default function SubjectRadar({
@@ -36,8 +32,6 @@ export default function SubjectRadar({
   const [visible, setVisible] = useState<Record<(typeof legendItems)[number]["key"], boolean>>({
     나: true,
     그룹평균: true,
-    분반평균: true,
-    캠퍼스평균: true,
   });
   const toggleSeries = (key: (typeof legendItems)[number]["key"]) => {
     setVisible((current) => ({ ...current, [key]: !current[key] }));
@@ -80,26 +74,6 @@ export default function SubjectRadar({
                 stroke="#c8755a"
                 strokeWidth={2}
                 fill="#c8755a"
-                fillOpacity={0.07}
-              />
-            )}
-            {visible.분반평균 && (
-              <Radar
-                name="분반 평균"
-                dataKey="분반평균"
-                stroke="#5f8f6b"
-                strokeWidth={2}
-                fill="#5f8f6b"
-                fillOpacity={0.07}
-              />
-            )}
-            {visible.캠퍼스평균 && (
-              <Radar
-                name="캠퍼스 평균"
-                dataKey="캠퍼스평균"
-                stroke="#d8a12d"
-                strokeWidth={2}
-                fill="#d8a12d"
                 fillOpacity={0.07}
               />
             )}

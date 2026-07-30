@@ -10,7 +10,6 @@ import {
   responses,
   SECTION_MINUTES,
   SUBJECTS,
-  users,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 import SubjectRadar from "@/components/SubjectRadar";
@@ -306,11 +305,8 @@ export default async function Dashboard() {
           userId: attempts.userId,
           examId: attempts.examId,
           finishedAt: attempts.finishedAt,
-          campus: users.campus,
-          classNumber: users.classNumber,
         })
         .from(attempts)
-        .innerJoin(users, eq(users.id, attempts.userId))
         .where(
           and(
             isNotNull(attempts.finishedAt),
@@ -359,10 +355,6 @@ export default async function Dashboard() {
     );
   }
   const scoreOf = (attemptId: number) => scoreByAttempt.get(attemptId) ?? 0;
-  const isSameCampus = (attempt: (typeof finished)[number]) =>
-    attempt.campus === user.campus;
-  const isSameClass = (attempt: (typeof finished)[number]) =>
-    attempt.campus === user.campus && attempt.classNumber === user.classNumber;
   const avgScore = (items: (typeof finished)[number][]) =>
     items.length
       ? items.reduce((acc, item) => acc + scoreOf(item.id), 0) / items.length
@@ -406,20 +398,14 @@ export default async function Dashboard() {
   }[] = [];
   if (latest) {
     const peers = attemptsByExam.get(latest.examId) ?? [];
-    const campusPeers = peers.filter(isSameCampus);
-    const classPeers = peers.filter(isSameClass);
     const myScore = scoreOf(latest.id);
     const total = totalOfExam(latest.examId);
     const groupAvg = avgScore(peers);
-    const campusAvg = avgScore(campusPeers);
-    const classAvg = avgScore(classPeers);
     const rank = rankOfAttempt(latest).rank;
     const averageRank =
       myFinished.reduce((acc, attempt) => acc + rankOfAttempt(attempt).rank, 0) /
       (myFinished.length || 1);
     const diff = Math.round(myScore - groupAvg);
-    const campusDiff = Math.round(myScore - campusAvg);
-    const classDiff = Math.round(myScore - classAvg);
     tiles = [
       {
         label: "최근 회차 점수",
@@ -442,18 +428,6 @@ export default async function Dashboard() {
         sub: "점 (내 점수-평균)",
         accent: diff >= 0 ? "up" : "down",
       },
-      {
-        label: "내 캠퍼스 평균과 차이",
-        value: `${campusDiff > 0 ? "+" : ""}${campusDiff}`,
-        sub: `${user.campus} 평균 기준`,
-        accent: campusDiff >= 0 ? "up" : "down",
-      },
-      {
-        label: "내 분반 평균과 차이",
-        value: `${classDiff > 0 ? "+" : ""}${classDiff}`,
-        sub: `${user.campus} ${user.classNumber}반 평균 기준`,
-        accent: classDiff >= 0 ? "up" : "down",
-      },
     ];
   }
 
@@ -475,16 +449,12 @@ export default async function Dashboard() {
     const exam = examByRound.get(round);
     const mine = exam ? myFinishedByExam.get(exam.id) : undefined;
     const peers = exam ? (attemptsByExam.get(exam.id) ?? []) : [];
-    const campusPeers = peers.filter(isSameCampus);
-    const classPeers = peers.filter(isSameClass);
     const total = exam ? totalOfExam(exam.id) || 1 : 1;
     const scoreToPoint = (score: number) => Math.round((score / total) * 100);
     return {
       name: `${round}세트`,
       나: mine ? scoreToPoint(scoreOf(mine.id)) : null,
       그룹평균: peers.length ? scoreToPoint(avgScore(peers)) : null,
-      캠퍼스평균: campusPeers.length ? scoreToPoint(avgScore(campusPeers)) : null,
-      분반평균: classPeers.length ? scoreToPoint(avgScore(classPeers)) : null,
     };
   });
 
@@ -493,25 +463,13 @@ export default async function Dashboard() {
     let myC = 0,
       myT = 0,
       gC = 0,
-      gT = 0,
-      campusC = 0,
-      campusT = 0,
-      classC = 0,
-      classT = 0;
+      gT = 0;
     for (const a of finished) {
       const t = totalOfSubject(a.examId, s);
       if (t === 0) continue;
       const c = correctOf.get(`${a.id}:${s}`) ?? 0;
       gC += c;
       gT += t;
-      if (isSameCampus(a)) {
-        campusC += c;
-        campusT += t;
-      }
-      if (isSameClass(a)) {
-        classC += c;
-        classT += t;
-      }
       if (a.userId === user.id) {
         myC += c;
         myT += t;
@@ -521,8 +479,6 @@ export default async function Dashboard() {
       subject: s,
       나: myT ? Math.round((myC / myT) * 100) : 0,
       그룹평균: gT ? Math.round((gC / gT) * 100) : 0,
-      캠퍼스평균: campusT ? Math.round((campusC / campusT) * 100) : 0,
-      분반평균: classT ? Math.round((classC / classT) * 100) : 0,
     };
   });
 
@@ -623,8 +579,6 @@ export default async function Dashboard() {
             <div className="grid grid-cols-5 gap-2">
               {radarData.map((r) => {
                 const diff = r.나 - r.그룹평균;
-                const campusDiff = r.나 - (r.캠퍼스평균 ?? 0);
-                const classDiff = r.나 - (r.분반평균 ?? 0);
                 return (
                   <div
                     key={r.subject}
@@ -652,12 +606,7 @@ export default async function Dashboard() {
                         {diff}점
                       </p>
                       <p className="text-ink-3">
-                        캠퍼스 {campusDiff > 0 ? "+" : ""}
-                        {campusDiff}점
-                      </p>
-                      <p className="text-ink-3">
-                        분반 {classDiff > 0 ? "+" : ""}
-                        {classDiff}점
+                        전체 평균 대비
                       </p>
                     </div>
                   </div>

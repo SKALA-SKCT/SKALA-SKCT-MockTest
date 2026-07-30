@@ -10,10 +10,6 @@ import {
   type AuthFormState,
 } from "@/lib/actions/auth";
 
-const CAMPUS_OPTIONS = ["판교", "울산", "광주"] as const;
-const classOptionsForCampus = (campus: string) =>
-  Array.from({ length: campus === "판교" ? 10 : 4 }, (_, i) => i + 1);
-
 export default function AuthForm({
   action,
   title,
@@ -37,8 +33,6 @@ export default function AuthForm({
   const [emailStatus, setEmailStatus] = useState<
     "idle" | "checking" | "available" | "taken" | "invalid"
   >("idle");
-  const [campus, setCampus] = useState<(typeof CAMPUS_OPTIONS)[number]>("판교");
-  const [classNumber, setClassNumber] = useState(1);
   const [email, setEmail] = useState("");
   const [emailCodeStatus, setEmailCodeStatus] = useState<
     "idle" | "sending" | "sent" | "error"
@@ -139,39 +133,6 @@ export default function AuthForm({
             required
             className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm outline-none focus:border-red-500"
           />
-        )}
-        {isRegister && (
-          <div className="grid grid-cols-[1fr_96px] gap-2">
-            <select
-              name="campus"
-              value={campus}
-              onChange={(event) => {
-                setCampus(event.target.value as (typeof CAMPUS_OPTIONS)[number]);
-                setClassNumber(1);
-              }}
-              required
-              className="select-control rounded-lg border border-zinc-300 py-2.5 pl-4 text-sm outline-none focus:border-red-500"
-            >
-              {CAMPUS_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            <select
-              name="classNumber"
-              value={classNumber}
-              onChange={(event) => setClassNumber(Number(event.target.value))}
-              required
-              className="select-control rounded-lg border border-zinc-300 py-2.5 pl-3 text-sm outline-none focus:border-red-500"
-            >
-              {classOptionsForCampus(campus).map((classNumber) => (
-                <option key={classNumber} value={classNumber}>
-                  {classNumber}반
-                </option>
-              ))}
-            </select>
-          </div>
         )}
         <div>
           <input

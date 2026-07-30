@@ -9,13 +9,9 @@ type AccountInfoFormProps = {
     name: string;
     nickname: string;
     email: string | null;
-    campus: string;
-    classNumber: number;
     emailVerified: boolean;
     isAdmin: boolean;
   };
-  campuses: readonly string[];
-  classNumbers: number[];
   // 본인 계정이면서 관리자일 때는 자기 권한을 회수할 수 없어 토글을 잠근다.
   lockAdminToggle: boolean;
 };
@@ -24,8 +20,6 @@ const initialState: UserInfoState = { ok: false };
 
 export default function AccountInfoForm({
   user,
-  campuses,
-  classNumbers,
   lockAdminToggle,
 }: AccountInfoFormProps) {
   const [state, formAction, isPending] = useActionState(
@@ -38,8 +32,6 @@ export default function AccountInfoForm({
   const [name, setName] = useState(user.name);
   const [nickname, setNickname] = useState(user.nickname);
   const [email, setEmail] = useState(user.email ?? "");
-  const [campus, setCampus] = useState(user.campus);
-  const [classNumber, setClassNumber] = useState(String(user.classNumber));
   const [isAdmin, setIsAdmin] = useState(user.isAdmin);
 
   // 원본(서버 최신값)과 다를 때만 저장 버튼 활성화.
@@ -48,8 +40,6 @@ export default function AccountInfoForm({
     name !== user.name ||
     nickname !== user.nickname ||
     email !== (user.email ?? "") ||
-    campus !== user.campus ||
-    classNumber !== String(user.classNumber) ||
     isAdmin !== user.isAdmin;
 
   return (
@@ -101,42 +91,6 @@ export default function AccountInfoForm({
             className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
           />
         </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-              캠퍼스
-            </span>
-            <select
-              name="campus"
-              value={campus}
-              onChange={(e) => setCampus(e.target.value)}
-              className="select-control h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-            >
-              {campuses.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-ink-3">
-              반
-            </span>
-            <select
-              name="classNumber"
-              value={classNumber}
-              onChange={(e) => setClassNumber(e.target.value)}
-              className="select-control h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition focus:border-brand"
-            >
-              {classNumbers.map((option) => (
-                <option key={option} value={option}>
-                  {option}반
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
       </form>
 
       <div className="mt-4 flex items-center justify-between gap-3">

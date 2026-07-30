@@ -5,11 +5,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
   attempts,
-  CAMPUSES,
-  maxClassForCampus,
   responses,
   users,
-  type Campus,
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
 
@@ -36,8 +33,6 @@ export async function updateUserInfo(
     const targetUserId = normalizeId(formData, "userId");
     const nickname = String(formData.get("nickname") ?? "").trim();
     const name = String(formData.get("name") ?? "").trim();
-    const campus = String(formData.get("campus") ?? "").trim();
-    const classNumber = Number(formData.get("classNumber"));
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const emailVerified = formData.get("emailVerified") === "true";
     const nextIsAdmin = formData.get("isAdmin") === "true";
@@ -47,13 +42,6 @@ export async function updateUserInfo(
     }
     if (name.length < 1 || name.length > 20) {
       throw new Error("이름은 1~20자로 입력해주세요.");
-    }
-    if (!CAMPUSES.includes(campus as Campus)) {
-      throw new Error("캠퍼스를 선택해주세요.");
-    }
-    const maxClass = maxClassForCampus(campus as Campus);
-    if (!Number.isInteger(classNumber) || classNumber < 1 || classNumber > maxClass) {
-      throw new Error(`${campus} 캠퍼스는 1~${maxClass}반까지 선택할 수 있습니다.`);
     }
     if (email && !validateEmail(email)) {
       throw new Error("이메일을 올바르게 입력해주세요.");
@@ -108,8 +96,6 @@ export async function updateUserInfo(
       .set({
         nickname,
         name,
-        campus: campus as Campus,
-        classNumber,
         isAdmin: nextIsAdmin,
         email: email || null,
         emailVerifiedAt: email
