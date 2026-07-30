@@ -104,6 +104,16 @@ export default function ExamRunner({
 
   const [remaining, setRemaining] = useState<number | null>(null);
 
+  const clearStoredProgress = useCallback(() => {
+    const prefix = `mocktest-progress:${examId}:`;
+    for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.sessionStorage.key(index);
+      if (key?.startsWith(prefix)) {
+        window.sessionStorage.removeItem(key);
+      }
+    }
+  }, [examId]);
+
   useEffect(() => {
     if (!sectionStartedAt) return;
     document.body.classList.add("exam-session-active");
@@ -121,12 +131,13 @@ export default function ExamRunner({
         onConfirm: async () => {
           await Promise.allSettled([...pendingSavesRef.current]);
           await abandonAttempt(examId);
+          clearStoredProgress();
           shouldCleanupOnUnloadRef.current = false;
           window.location.assign(destination);
         },
       });
     },
-    [examId]
+    [clearStoredProgress, examId]
   );
 
   useLayoutEffect(() => {
@@ -219,6 +230,7 @@ export default function ExamRunner({
   useEffect(() => {
     const cleanupAttempt = () => {
       if (!shouldCleanupOnUnloadRef.current) return;
+      clearStoredProgress();
       const url = `/api/exam/${examId}/abandon`;
       if (navigator.sendBeacon) {
         navigator.sendBeacon(url, new Blob([], { type: "application/octet-stream" }));
@@ -235,7 +247,7 @@ export default function ExamRunner({
     return () => {
       window.removeEventListener("pagehide", cleanupAttempt);
     };
-  }, [examId]);
+  }, [clearStoredProgress, examId]);
 
   useEffect(() => {
     if (!currentSubject) return;

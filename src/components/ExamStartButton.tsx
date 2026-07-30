@@ -26,6 +26,13 @@ export default function ExamStartButton({
   const [open, setOpen] = useState(false);
   const totalMinutes = subjects.length * sectionMinutes;
   const startExam = () => {
+    const prefix = `mocktest-progress:${examId}:`;
+    for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.sessionStorage.key(index);
+      if (key?.startsWith(prefix)) {
+        window.sessionStorage.removeItem(key);
+      }
+    }
     window.location.assign(`/exam/${examId}/take`);
   };
 
