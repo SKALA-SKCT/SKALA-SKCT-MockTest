@@ -36,16 +36,14 @@ export function getAppUrl() {
 }
 
 export function getMotherLoginUrl(path = "/") {
-  const target = new URL("/api/auth/mother/callback", `${getAppUrl()}/`);
-  target.searchParams.set("next", new URL(path, `${getAppUrl()}/`).pathname);
+  const target = new URL(path, `${getAppUrl()}/`);
+  target.searchParams.set("sso", "1");
   const login = new URL("/login", `${getMotherUrl()}/`);
   login.searchParams.set("redirect", target.toString());
   return login.toString();
 }
 
-export function getMotherLogoutUrl(path = "/login") {
+export function getMotherLogoutUrl(path = "/") {
   const target = new URL(path, `${getMotherUrl()}/`);
-  const logout = new URL("/api/auth/logout", `${getMotherUrl()}/`);
-  logout.searchParams.set("redirect", target.toString());
-  return logout.toString();
+  return target.toString();
 }

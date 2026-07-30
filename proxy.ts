@@ -1,11 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+const MOTHER_HOST = "www.skala-skct.com";
+const LEGACY_HOSTS = new Set(["skala-skct.vercel.app"]);
 const DESKTOP_ONLY_PATH = "/desktop-only";
 const MOBILE_USER_AGENT =
   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i;
 
 export function proxy(request: NextRequest) {
+  const host = request.headers.get("host")?.split(":")[0].toLowerCase();
+  if (host && LEGACY_HOSTS.has(host)) {
+    const url = new URL(`https://${MOTHER_HOST}/`);
+    return NextResponse.redirect(url, 308);
+  }
+
   const { pathname } = request.nextUrl;
+  if (pathname.startsWith("/api/")) return NextResponse.next();
   if (pathname === DESKTOP_ONLY_PATH) return NextResponse.next();
 
   const userAgent = request.headers.get("user-agent") ?? "";
@@ -21,5 +30,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

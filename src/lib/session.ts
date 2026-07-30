@@ -17,6 +17,15 @@ const SESSION_COOKIE_OPTIONS = {
   path: "/",
 } as const;
 
+type MotherClaims = {
+  uid?: number;
+  sub?: string;
+  nick?: string;
+  skctUserId?: number;
+  skalaHandle?: string;
+  admin?: boolean;
+};
+
 function getSessionSecret() {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32) {
@@ -36,6 +45,7 @@ export async function createSession(userId: number) {
   store.set(COOKIE, token, {
     maxAge: 60 * 60 * 24 * 30,
     ...SESSION_COOKIE_OPTIONS,
+    domain: process.env.SESSION_COOKIE_DOMAIN || undefined,
   });
 }
 
@@ -43,8 +53,49 @@ export async function destroySession() {
   const store = await cookies();
   store.set(COOKIE, "", {
     ...SESSION_COOKIE_OPTIONS,
+    domain: process.env.SESSION_COOKIE_DOMAIN || undefined,
     maxAge: 0,
   });
+}
+
+async function findOrCreateMotherUser(claims: MotherClaims) {
+  const linkedId = typeof claims.skctUserId === "number" ? claims.skctUserId : claims.uid;
+  if (typeof linkedId === "number") {
+    const [linkedUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, linkedId));
+    if (linkedUser) return linkedUser;
+  }
+
+  const nickname = (claims.skalaHandle || claims.sub || "").trim();
+  if (!nickname) return null;
+
+  const [existing] = await db
+    .select()
+    .from(users)
+    .where(eq(users.nickname, nickname));
+  if (existing) return existing;
+
+  const name = claims.nick?.trim() || nickname;
+  try {
+    const [created] = await db
+      .insert(users)
+      .values({
+        nickname,
+        name,
+        pinHash: "mother:shared-session",
+        isAdmin: !!claims.admin,
+      })
+      .returning();
+    return created;
+  } catch {
+    const [raced] = await db
+      .select()
+      .from(users)
+      .where(eq(users.nickname, nickname));
+    return raced ?? null;
+  }
 }
 
 export const getSessionUserId = cache(async (): Promise<number | null> => {
@@ -53,7 +104,9 @@ export const getSessionUserId = cache(async (): Promise<number | null> => {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSessionSecret());
-    return typeof payload.uid === "number" ? payload.uid : null;
+    if (typeof payload.uid === "number") return payload.uid;
+    const user = await findOrCreateMotherUser(payload as MotherClaims);
+    return user?.id ?? null;
   } catch {
     return null;
   }
