@@ -11,12 +11,12 @@ import { getMotherUrl } from "@/lib/mother-auth";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://skala-skct.vercel.app"),
-  title: "SKCT 모의고사",
-  description: "SKALA 내 SKCT 모의고사 응시 및 비교 분석 사이트",
+  title: "SKCT 실전 모의고사",
+  description: "SKCT 실전 모의고사",
   openGraph: {
-    title: "SKCT 모의고사",
-    description: "SKALA 내 SKCT 모의고사 응시 및 비교 분석 사이트",
-    siteName: "SKCT 모의고사",
+    title: "SKCT 실전 모의고사",
+    description: "SKCT 실전 모의고사",
+    siteName: "SKCT 실전 모의고사",
     type: "website",
     url: "https://skala-skct.vercel.app",
     images: [
@@ -32,8 +32,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "SKCT 모의고사",
-    description: "SKALA 내 SKCT 모의고사 응시 및 비교 분석 사이트",
+    title: "SKCT 실전 모의고사",
+    description: "SKCT 실전 모의고사",
     images: [
       {
         url: "/api/og-image",
