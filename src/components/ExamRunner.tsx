@@ -459,6 +459,7 @@ export default function ExamRunner({
         message:
           "다음 문제로 이동하면 이 문제에는 다시 돌아올 수 없습니다.",
         confirmText: "넘어가기",
+        tone: "danger",
         onConfirm: advanceQuestion,
       });
       return;
@@ -470,8 +471,16 @@ export default function ExamRunner({
     <>
       <div className="sticky top-0 z-50 mb-5 border-b border-zinc-200 bg-page/95 backdrop-blur">
         <div className="mx-auto grid h-16 w-[min(1200px,calc(100vw-48px))] grid-cols-[1fr_auto_1fr] items-center">
-          <div className="flex items-center gap-3 justify-self-start">
-            <span className="text-sm font-bold text-zinc-800">{currentSubject}</span>
+          <p className="justify-self-start text-sm font-bold text-zinc-800">
+            {examTitle}
+          </p>
+          <div className={`text-center ${urgent ? "text-brand" : "text-zinc-900"}`}>
+            <p className="text-[10px] font-semibold text-zinc-400">남은 시간</p>
+            <p className="font-mono text-2xl font-bold tabular-nums">
+              {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
+            </p>
+          </div>
+          <div className="justify-self-end">
             <div className="flex items-center rounded-lg border border-zinc-200 bg-white p-0.5">
               <button
                 type="button"
@@ -496,15 +505,6 @@ export default function ExamRunner({
               </button>
             </div>
           </div>
-          <div className={`text-center ${urgent ? "text-brand" : "text-zinc-900"}`}>
-            <p className="text-[10px] font-semibold text-zinc-400">남은 시간</p>
-            <p className="font-mono text-2xl font-bold tabular-nums">
-              {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
-            </p>
-          </div>
-          <p className="justify-self-end text-sm font-semibold text-zinc-500">
-            문제 <span className="text-brand">{idx + 1}</span> / {sectionQuestions.length}
-          </p>
         </div>
       </div>
 
@@ -517,7 +517,7 @@ export default function ExamRunner({
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="mb-3 flex items-baseline">
             <p className="text-sm font-bold text-red-600">
-              문제 {idx + 1}{" "}
+              {currentSubject} 영역 {idx + 1}{" "}
               <span className="text-xs font-normal text-zinc-400">
                 / {sectionQuestions.length}
               </span>
@@ -592,14 +592,8 @@ export default function ExamRunner({
       </div>
 
       {/* 오른쪽: 실제 시험처럼 고정 도구 패널 */}
-      <aside className="w-full md:sticky md:top-20 md:mt-10">
+      <aside className="w-full md:sticky md:top-20">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2">
-            <div>
-              <p className="text-[11px] text-zinc-400">{examTitle}</p>
-              <p className="text-sm font-bold">{currentSubject}</p>
-            </div>
-          </div>
           <div className="flex flex-col gap-3">
             <MemoPad key={`memo:${q.id}`} resetKey={q.id} />
             <Calculator key={`calculator:${q.id}`} />
