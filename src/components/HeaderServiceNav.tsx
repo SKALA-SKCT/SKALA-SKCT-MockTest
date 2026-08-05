@@ -24,13 +24,12 @@ export default function HeaderServiceNav({
       <a href={practiceUrl} className="text-ink transition-colors hover:text-brand">
         모의고사 문제 연습
       </a>
-      <button
-        type="button"
-        onClick={() => window.alert("서비스 준비 중입니다!")}
+      <a
+        href="https://tutorial.skala-skct.com"
         className="text-ink transition-colors hover:text-brand"
       >
         유형별 문제 연습
-      </button>
+      </a>
     </div>
   );
 }
