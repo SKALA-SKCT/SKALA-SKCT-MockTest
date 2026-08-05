@@ -294,18 +294,18 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
 
   return (
     <div className="mx-auto w-full max-w-[78rem]">
-      <div className="mb-5">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          실전 모의고사
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-ink-3">
-          실제 시험과 같은 구성과 제한 시간 안에서 문제를 풀고 결과를
-          분석하며 실전 감각을 익힐 수 있습니다.
-        </p>
-      </div>
-      <div className="grid gap-4 xl:h-[min(720px,calc(100vh-13rem))] xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-stretch">
+      <div className="grid gap-4 xl:h-[min(720px,calc(100vh-8rem))] xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-stretch">
       {/* ── 중앙: 분석 대시보드 */}
       <div className="flex min-w-0 flex-1 flex-col gap-4 xl:h-full xl:min-h-0">
+        <div className="mb-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">
+            실전 모의고사
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-ink-3">
+            실제 시험과 같은 구성과 제한 시간 안에서 문제를 풀고 결과를
+            분석하며 실전 감각을 익힐 수 있습니다.
+          </p>
+        </div>
         {/* 스탯 타일 */}
         {tiles.length > 0 && (
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
