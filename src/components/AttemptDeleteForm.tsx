@@ -8,7 +8,13 @@ import {
 
 const initialState: AdminActionState = {};
 
-export default function AttemptDeleteForm({ attemptId }: { attemptId: number }) {
+export default function AttemptDeleteForm({
+  attemptId,
+  compact = false,
+}: {
+  attemptId: number;
+  compact?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(
     deleteAttemptRecord,
     initialState
@@ -35,7 +41,10 @@ export default function AttemptDeleteForm({ attemptId }: { attemptId: number }) 
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-bold text-brand transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label={`${attemptId}번 응시 기록 삭제`}
+        className={`rounded-md border border-red-200 bg-red-50 font-bold text-brand transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 ${
+          compact ? "h-6 px-1.5 text-[10px]" : "px-2.5 py-1.5 text-xs"
+        }`}
       >
         {pending ? "삭제 중…" : "삭제"}
       </button>

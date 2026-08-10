@@ -53,6 +53,23 @@ function formatDate(value: Date | null) {
   return `${parts.year}.${parts.month}.${parts.day} ${parts.hour}:${parts.minute}`;
 }
 
+function formatCompactDate(value: Date) {
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  })
+    .formatToParts(value)
+    .reduce<Record<string, string>>((acc, part) => {
+      acc[part.type] = part.value;
+      return acc;
+    }, {});
+  return `${parts.month}.${parts.day} ${parts.hour}:${parts.minute}`;
+}
+
 function compactSubject(subject: string) {
   const names: Record<string, string> = {
     언어이해: "언어",
@@ -942,7 +959,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <table className="data-table table-fixed text-left text-xs">
                         <thead>
                           <tr>
-                            <th className="w-[200px] whitespace-nowrap px-3 py-2 font-semibold">
+                            <th className="w-[170px] whitespace-nowrap px-3 py-2 font-semibold">
                               시험
                             </th>
                             <th className="whitespace-nowrap px-3 py-2 font-semibold">
@@ -953,7 +970,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         <tbody>
                           {selectedUserExamRows.map((examRow) => (
                               <tr key={examRow.examId} className="align-middle">
-                                <td className="w-[200px] px-3 py-2.5">
+                                <td className="w-[170px] px-3 py-2">
                                   <p
                                     className="truncate font-semibold text-ink"
                                     title={examRow.examTitle}
@@ -971,21 +988,24 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                         {examRow.attempts.map((attempt) => (
                                           <div
                                             key={attempt.id}
-                                            className="w-[240px] shrink-0 px-3 py-2"
+                                            className="w-[148px] shrink-0 px-2 py-1.5"
                                           >
-                                            <div className="flex items-center justify-between gap-2">
-                                              <p className="font-semibold text-ink">
-                                                {attempt.attemptRound}번째 응시
+                                            <div className="flex items-center justify-between gap-1.5">
+                                              <p className="text-[11px] font-semibold text-ink">
+                                                {attempt.attemptRound}회 응시
                                               </p>
-                                              <AttemptDeleteForm attemptId={attempt.id} />
+                                              <AttemptDeleteForm
+                                                attemptId={attempt.id}
+                                                compact
+                                              />
                                             </div>
-                                            <p className="mt-1 whitespace-nowrap tabular-nums text-ink-2">
+                                            <p className="mt-0.5 whitespace-nowrap text-[11px] tabular-nums text-ink-2">
                                               {attempt.finishedAt ? "완료" : "진행"}
                                               {attempt.finishedAt &&
                                                 ` · ${attempt.score}/${attempt.totalQuestions}`}
                                             </p>
-                                            <p className="mt-0.5 whitespace-nowrap text-[11px] text-ink-3">
-                                              {formatDate(attempt.startedAt)} · {formatMinutes(attempt.duration)}
+                                            <p className="whitespace-nowrap text-[10px] text-ink-3">
+                                              {formatCompactDate(attempt.startedAt)} · {formatMinutes(attempt.duration)}
                                             </p>
                                           </div>
                                         ))}
