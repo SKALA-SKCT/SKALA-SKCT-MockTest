@@ -412,32 +412,19 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         })
     : [];
   const selectedUserExamRows = selectedUser
-    ? examList.flatMap((exam, examIndex) => {
+    ? examList.map((exam, examIndex) => {
         const examAttempts = selectedUserAttempts.filter(
           (attempt) => attempt.examId === exam.id
         );
-        if (!examAttempts.length) {
-          return [{
-            id: 0,
-            userId: selectedUser.id,
-            examId: exam.id,
-            examTitle: exam.title,
-            examRound: examIndex + 1,
-            attemptRound: 0,
-            startedAt: new Date(0),
-            finishedAt: null,
-            campus: selectedUser.campus,
-            classNumber: selectedUser.classNumber,
-            score: 0,
-            totalQuestions: totalByExam.get(exam.id) ?? 0,
-            duration: 0,
-          }];
-        }
-        return examAttempts.map((attempt, attemptIndex) => ({
-          ...attempt,
+        return {
+          examId: exam.id,
+          examTitle: exam.title,
           examRound: examIndex + 1,
-          attemptRound: examAttempts.length - attemptIndex,
-        }));
+          attempts: examAttempts.map((attempt, attemptIndex) => ({
+            ...attempt,
+            attemptRound: examAttempts.length - attemptIndex,
+          })),
+        };
       })
     : [];
 
@@ -955,59 +942,57 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <table className="data-table table-fixed text-left text-xs">
                         <thead>
                           <tr>
-                            <th className="w-[43%] whitespace-nowrap px-3 py-2 font-semibold">
+                            <th className="w-[200px] whitespace-nowrap px-3 py-2 font-semibold">
                               시험
                             </th>
-                            <th className="w-[16%] whitespace-nowrap px-3 py-2 text-right font-semibold">
-                              상태/점수
-                            </th>
-                            <th className="w-[28%] whitespace-nowrap px-3 py-2 text-right font-semibold">
-                              시작
-                            </th>
-                            <th className="w-[13%] whitespace-nowrap px-3 py-2 text-right font-semibold">
-                              관리
+                            <th className="whitespace-nowrap px-3 py-2 font-semibold">
+                              응시 기록
                             </th>
                           </tr>
                         </thead>
                         <tbody>
-                          {selectedUserExamRows.map((attempt) => (
-                              <tr key={attempt.id || `exam-${attempt.examId}`} className="align-top">
-                                <td className="px-3 py-2">
+                          {selectedUserExamRows.map((examRow) => (
+                              <tr key={examRow.examId} className="align-middle">
+                                <td className="w-[200px] px-3 py-2.5">
                                   <p
                                     className="truncate font-semibold text-ink"
-                                    title={attempt.examTitle}
+                                    title={examRow.examTitle}
                                   >
-                                    {attempt.examTitle}
+                                    {examRow.examTitle}
                                   </p>
                                   <p className="mt-0.5 text-[11px] text-ink-3">
-                                    {attempt.id
-                                      ? `${attempt.examRound}회차 · ${attempt.attemptRound}번째 응시 · attempt #${attempt.id}`
-                                      : `${attempt.examRound}회차 · 기록 없음`}
+                                    {examRow.examRound}회차
                                   </p>
                                 </td>
-                                <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-                                  <p>
-                                    {!attempt.id
-                                      ? "미응시"
-                                      : attempt.finishedAt
-                                        ? "완료"
-                                        : "진행"}
-                                  </p>
-                                  <p className="mt-0.5 text-[11px] text-ink-3">
-                                    {attempt.id && attempt.finishedAt
-                                      ? `${attempt.score}/${attempt.totalQuestions}`
-                                      : "-"}
-                                  </p>
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-2 text-right text-ink-3">
-                                  {attempt.id ? formatDate(attempt.startedAt) : "-"}
-                                  <p className="mt-0.5 text-[11px]">
-                                    {formatMinutes(attempt.duration)}
-                                  </p>
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-2 text-right">
-                                  {attempt.id && (
-                                    <AttemptDeleteForm attemptId={attempt.id} />
+                                <td className="min-w-0 p-0">
+                                  {examRow.attempts.length ? (
+                                    <div className="max-w-full overflow-x-auto">
+                                      <div className="flex min-w-max divide-x divide-hairline">
+                                        {examRow.attempts.map((attempt) => (
+                                          <div
+                                            key={attempt.id}
+                                            className="w-[240px] shrink-0 px-3 py-2"
+                                          >
+                                            <div className="flex items-center justify-between gap-2">
+                                              <p className="font-semibold text-ink">
+                                                {attempt.attemptRound}번째 응시
+                                              </p>
+                                              <AttemptDeleteForm attemptId={attempt.id} />
+                                            </div>
+                                            <p className="mt-1 whitespace-nowrap tabular-nums text-ink-2">
+                                              {attempt.finishedAt ? "완료" : "진행"}
+                                              {attempt.finishedAt &&
+                                                ` · ${attempt.score}/${attempt.totalQuestions}`}
+                                            </p>
+                                            <p className="mt-0.5 whitespace-nowrap text-[11px] text-ink-3">
+                                              {formatDate(attempt.startedAt)} · {formatMinutes(attempt.duration)}
+                                            </p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p className="px-3 py-3 text-ink-3">미응시</p>
                                   )}
                                 </td>
                               </tr>
