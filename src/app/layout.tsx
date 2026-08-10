@@ -4,7 +4,6 @@ import Script from "next/script";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/session";
 import AccountMenu from "@/components/AccountMenu";
-import HelpGuideButton from "@/components/HelpGuideButton";
 import BrandMark from "@/components/BrandMark";
 import HeaderServiceNav from "@/components/HeaderServiceNav";
 import { getMotherUrl } from "@/lib/mother-auth";
@@ -110,7 +109,6 @@ export default async function RootLayout({
                     nickname={user.nickname}
                     name={user.name}
                   />
-                  <HelpGuideButton />
                 </div>
               </nav>
             </header>
