@@ -11,10 +11,11 @@ import {
   users,
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
-import { deleteAttemptRecord } from "@/lib/actions/admin";
 import AdminCharts from "@/components/AdminCharts";
 import AdminAnalytics from "@/components/AdminAnalytics";
 import AccountInfoForm from "@/components/AccountInfoForm";
+import AdminUserModal from "@/components/AdminUserModal";
+import AttemptDeleteForm from "@/components/AttemptDeleteForm";
 
 export const dynamic = "force-dynamic";
 
@@ -411,18 +412,33 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         })
     : [];
   const selectedUserExamRows = selectedUser
-    ? examList.map((exam) =>
-        selectedUserAttempts.find((attempt) => attempt.examId === exam.id) ?? {
-          id: null,
-          examId: exam.id,
-          examTitle: exam.title,
-          startedAt: null,
-          finishedAt: null,
-          score: 0,
-          totalQuestions: totalByExam.get(exam.id) ?? 0,
-          duration: 0,
+    ? examList.flatMap((exam, examIndex) => {
+        const examAttempts = selectedUserAttempts.filter(
+          (attempt) => attempt.examId === exam.id
+        );
+        if (!examAttempts.length) {
+          return [{
+            id: 0,
+            userId: selectedUser.id,
+            examId: exam.id,
+            examTitle: exam.title,
+            examRound: examIndex + 1,
+            attemptRound: 0,
+            startedAt: new Date(0),
+            finishedAt: null,
+            campus: selectedUser.campus,
+            classNumber: selectedUser.classNumber,
+            score: 0,
+            totalQuestions: totalByExam.get(exam.id) ?? 0,
+            duration: 0,
+          }];
         }
-      )
+        return examAttempts.map((attempt, attemptIndex) => ({
+          ...attempt,
+          examRound: examIndex + 1,
+          attemptRound: examAttempts.length - attemptIndex,
+        }));
+      })
     : [];
 
   const userTabParams = new URLSearchParams();
@@ -900,21 +916,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </div>
           </section>
           {selectedUser && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-6">
-              <Link
-                href={userTabHref}
-                aria-label="닫기"
-                className="fixed inset-0 cursor-default"
-              />
-              <div className="relative w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <AdminUserModal closeHref={userTabHref}>
                 <div className="flex items-start justify-between gap-4 border-b border-hairline px-5 py-4">
                   <div>
-                    <p className="text-xs font-bold uppercase text-brand">
-                      Account
-                    </p>
-                    <h2 className="mt-1 text-2xl font-black text-ink">
+                    <h2 id="admin-user-modal-title" className="text-2xl font-black text-ink">
                       {selectedUser.name}
                     </h2>
+                    <p className="mt-1 text-xs font-semibold text-ink-3">
+                      회원 정보와 회차별 응시 기록
+                    </p>
                   </div>
                   <Link
                     href={userTabHref}
@@ -924,7 +934,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   </Link>
                 </div>
 
-                <div className="grid items-start gap-5 p-5 lg:grid-cols-[0.9fr_1.6fr]">
+                <div className="grid max-h-[calc(100vh-137px)] items-start gap-5 overflow-y-auto p-5 lg:grid-cols-[0.9fr_1.6fr]">
                   <AccountInfoForm
                     key={selectedUser.id}
                     user={{
@@ -961,7 +971,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         </thead>
                         <tbody>
                           {selectedUserExamRows.map((attempt) => (
-                              <tr key={attempt.id ?? `exam-${attempt.examId}`} className="align-top">
+                              <tr key={attempt.id || `exam-${attempt.examId}`} className="align-top">
                                 <td className="px-3 py-2">
                                   <p
                                     className="truncate font-semibold text-ink"
@@ -971,8 +981,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                   </p>
                                   <p className="mt-0.5 text-[11px] text-ink-3">
                                     {attempt.id
-                                      ? `attempt #${attempt.id}`
-                                      : "기록 없음"}
+                                      ? `${attempt.examRound}회차 · ${attempt.attemptRound}번째 응시 · attempt #${attempt.id}`
+                                      : `${attempt.examRound}회차 · 기록 없음`}
                                   </p>
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
@@ -990,26 +1000,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                   </p>
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-right text-ink-3">
-                                  {formatDate(attempt.startedAt)}
+                                  {attempt.id ? formatDate(attempt.startedAt) : "-"}
                                   <p className="mt-0.5 text-[11px]">
                                     {formatMinutes(attempt.duration)}
                                   </p>
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-right">
                                   {attempt.id && (
-                                    <form action={deleteAttemptRecord}>
-                                      <input
-                                        type="hidden"
-                                        name="attemptId"
-                                        value={attempt.id}
-                                      />
-                                      <button
-                                        type="submit"
-                                        className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-bold text-brand transition hover:bg-red-100"
-                                      >
-                                        삭제
-                                      </button>
-                                    </form>
+                                    <AttemptDeleteForm attemptId={attempt.id} />
                                   )}
                                 </td>
                               </tr>
@@ -1019,8 +1017,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </div>
                   </section>
                 </div>
-              </div>
-            </div>
+            </AdminUserModal>
           )}
         </>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { updateUserInfo, type UserInfoState } from "@/lib/actions/admin";
 
 type AccountInfoFormProps = {
@@ -33,6 +33,14 @@ export default function AccountInfoForm({
   const [nickname, setNickname] = useState(user.nickname);
   const [email, setEmail] = useState(user.email ?? "");
   const [isAdmin, setIsAdmin] = useState(user.isAdmin);
+
+  useEffect(() => {
+    if (state.error) {
+      window.alert(state.error);
+    } else if (state.ok && state.message) {
+      window.alert(state.message);
+    }
+  }, [state]);
 
   // 원본(서버 최신값)과 다를 때만 저장 버튼 활성화.
   // 저장 성공 시 revalidate로 user prop이 갱신되면 자동으로 다시 비활성화된다.
@@ -120,13 +128,6 @@ export default function AccountInfoForm({
       </div>
 
       <div className="mt-auto pt-4">
-        {state.error ? (
-          <p className="mb-2 text-xs font-semibold text-brand">{state.error}</p>
-        ) : state.ok ? (
-          <p className="mb-2 text-xs font-semibold text-emerald-600">
-            저장되었습니다.
-          </p>
-        ) : null}
         <button
           type="submit"
           form="update-user-info"

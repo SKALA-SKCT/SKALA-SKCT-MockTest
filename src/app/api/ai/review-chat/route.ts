@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/session";
+import {
+  formatReviewChatKnowledge,
+  getFixedReviewChatAnswer,
+  retrieveReviewChatKnowledge,
+  type RetrievedReviewKnowledge,
+} from "@/lib/review-chat-knowledge";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +54,15 @@ const SKCT_KEYWORDS = [
   "풀이",
   "해설",
   "오답",
+  "감점",
+  "채점",
+  "점수",
+  "선택률",
+  "메모장",
+  "계산기",
+  "뒤로가기",
+  "챗봇",
+  "채팅",
   "정답",
   "무응답",
   "유형",
@@ -136,11 +151,23 @@ function checkRateLimit(userId: number) {
   return { allowed: true, retryAfter: 0 };
 }
 
-function buildPrompt(input: Required<ReviewChatInput>) {
+type ReviewChatPromptInput = Required<ReviewChatInput> & {
+  knowledge: RetrievedReviewKnowledge[];
+};
+
+function buildPrompt(input: ReviewChatPromptInput) {
   return `너는 SKCT 문항 리뷰 튜터다. 사용자의 질문에 한국어로 답하라.
 답변 범위는 SKCT 시험, SKCT 학습 전략, SKCT 문항 유형, 모의고사 결과 리뷰, 시간관리, 오답 분석으로 제한한다.
 SKCT 범위를 벗어난 질문에는 "SKCT 학습과 문항 리뷰에 관한 질문만 도와드릴 수 있어요."라고 짧게 답하라.
 최근 대화 맥락이 있으면 현재 질문이 "좀 더", "자세히", "왜?", "그럼?"처럼 짧아도 직전 SKCT 주제를 이어서 답하라.
+"여기", "이 서비스", "이 모의고사"는 실제 SKCT가 아니라 SKALA-SKCT 실전 모의고사 서비스를 뜻한다.
+SKCT의 정확한 명칭은 "SKCT(SK Competency Test), SK그룹 종합역량검사"다. 다른 명칭을 만들지 마라.
+시험·응시·서비스 관련 사실은 아래 검색 근거에 있는 내용만 사용하라. 검색 근거가 없으면 추측하지 말고 최신 공식 응시 안내를 확인해야 한다고 답하라.
+서비스 정보와 실제 SKCT 정보를 섞지 마라. 서비스 질문에는 service 범위 근거를 최우선으로 사용하라.
+교재의 시험 구성은 2024년 기준을 2025년판 교재가 정리한 내용이므로 현재도 동일하다고 단정하지 마라.
+실제 시험의 감점 폭이나 계산식은 자료에 없으므로 수치를 만들지 마라. 서비스의 오답은 0점이며 추가 감점이 없다.
+결과 화면의 선택지별 수치는 점수가 아니라 응시자 선택률(%)이다.
+풀이 팁을 묻는 경우 검색된 study 근거를 사용해 접근 순서, 시간 기준, 함정을 구체적으로 설명하라.
 문항 데이터가 제공된 경우 반드시 제공된 문항 데이터와 사용자 풀이 기록만 근거로 사용하고, 없는 원문/조건/통계를 만들어내지 마라.
 사용자가 말한 "자료해석 12번" 같은 번호는 displayLabel 또는 localNumber 기준이다. number는 DB 원본 전체 번호이므로 사용자 질문 번호와 달라도 같은 문항으로 취급하라.
 mentionedQuestions가 비어 있지 않으면 "데이터가 없다"고 답하지 말고, 제공된 문항 데이터로 답하라.
@@ -151,6 +178,7 @@ mentionedQuestions가 비어 있지 않으면 "데이터가 없다"고 답하지
 답변은 마크다운 형식으로 작성하라. 2~4개 bullet 또는 짧은 문단으로 끝까지 완성하라.
 문장을 중간에 끊지 말고 반드시 완결된 문장으로 끝내라.
 수식이 필요한 경우 간단히 단계화하라.
+시험·서비스의 사실을 답했다면 마지막에 검색 근거의 출처명을 한 줄로 짧게 표시하라. 제공되지 않은 출처는 쓰지 마라.
 문항별 상세 분석이 필요한 경우에만 @문제번호 또는 @문제유형으로 질문하라고 안내하라.
 
 전체 기준 응시자 수: ${input.participantCount}명
@@ -158,7 +186,9 @@ mentionedQuestions가 비어 있지 않으면 "데이터가 없다"고 답하지
 ${JSON.stringify(input.history)}
 사용자 질문: ${input.question}
 언급된 문항 데이터:
-${JSON.stringify(input.mentionedQuestions)}`;
+${JSON.stringify(input.mentionedQuestions)}
+검색된 시험·서비스·학습 근거:
+${formatReviewChatKnowledge(input.knowledge)}`;
 }
 
 type GeminiResult = {
@@ -169,6 +199,7 @@ type GeminiResult = {
 
 function isLikelyTruncated(answer: string, finishReason?: string) {
   if (finishReason === "MAX_TOKENS") return true;
+  if (finishReason && finishReason !== "MAX_TOKENS") return false;
   return !/[.!?。！？요다함음됨임죠네세요어요습니다]$/.test(answer.trim());
 }
 
@@ -272,6 +303,11 @@ export async function POST(request: Request) {
     });
   }
 
+  const fixedAnswer = getFixedReviewChatAnswer(question, history);
+  if (fixedAnswer) {
+    return NextResponse.json({ answer: fixedAnswer });
+  }
+
   const rateLimit = checkRateLimit(user.id);
   if (!rateLimit.allowed) {
     return NextResponse.json(
@@ -297,11 +333,13 @@ export async function POST(request: Request) {
   const models = Array.from(
     new Set([primaryModel, "gemini-flash-lite-latest", "gemini-flash-latest"])
   );
+  const knowledge = retrieveReviewChatKnowledge(question, history, 4);
   const prompt = buildPrompt({
     question,
     history,
     participantCount: payload.participantCount ?? 0,
     mentionedQuestions,
+    knowledge,
   });
 
   let model = models[0];

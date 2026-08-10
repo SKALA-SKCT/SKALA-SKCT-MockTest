@@ -34,6 +34,7 @@ export type ClientQuestion = {
 };
 
 const CIRCLED = ["①", "②", "③", "④", "⑤"];
+const NEXT_SECTION_WAIT_SECONDS = 60;
 
 function splitQuestionBodyText(value: string) {
   const [firstBlock, ...restBlocks] = value.split(/\n{2,}/);
@@ -61,6 +62,7 @@ export default function ExamRunner({
   examTitle,
   subjects,
   questionsBySubject,
+  attemptStartedAt,
   initialSectionState,
   initialAnswers,
 }: {
@@ -68,6 +70,7 @@ export default function ExamRunner({
   examTitle: string;
   subjects: Subject[];
   questionsBySubject: Record<string, ClientQuestion[]>;
+  attemptStartedAt: string;
   initialSectionState: SectionState;
   initialAnswers: Record<number, number | null>;
 }) {
@@ -96,6 +99,22 @@ export default function ExamRunner({
     () => (currentSubject ? questionsBySubject[currentSubject] ?? [] : []),
     [currentSubject, questionsBySubject]
   );
+  const currentSubjectIndex = currentSubject
+    ? subjects.indexOf(currentSubject)
+    : -1;
+  const previousSubject =
+    currentSubjectIndex > 0 ? subjects[currentSubjectIndex - 1] : null;
+  const previousSectionFinishedAt = previousSubject
+    ? sectionState[previousSubject]?.finishedAt
+    : null;
+  const sectionIntroStartedAt =
+    previousSectionFinishedAt ??
+    (currentSubjectIndex === 0 ? attemptStartedAt : null);
+  const nextSectionStartsAtMs =
+    !section && sectionIntroStartedAt
+      ? new Date(sectionIntroStartedAt).getTime() +
+        NEXT_SECTION_WAIT_SECONDS * 1000
+      : null;
 
   const endsAtMs = section
     ? new Date(section.startedAt).getTime() + SECTION_MINUTES * 60 * 1000
@@ -103,6 +122,9 @@ export default function ExamRunner({
   const sectionStartedAt = section?.startedAt;
 
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [nextSectionRemaining, setNextSectionRemaining] = useState<number | null>(
+    null
+  );
 
   const clearStoredProgress = useCallback(() => {
     const prefix = `mocktest-progress:${examId}:`;
@@ -209,6 +231,45 @@ export default function ExamRunner({
     },
     [busy, examId, router]
   );
+
+  const startCurrentSection = useCallback(async () => {
+    if (busy || !currentSubject || section) return;
+    setBusy(true);
+    try {
+      const res = await startSection(examId, currentSubject);
+      setIdx(0);
+      setSectionState(res.sectionState);
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, currentSubject, examId, section]);
+
+  const autoStartRef = useRef(false);
+  useEffect(() => {
+    autoStartRef.current = false;
+  }, [currentSubject]);
+
+  useEffect(() => {
+    if (!nextSectionStartsAtMs || !currentSubject || section || busy) {
+      return;
+    }
+
+    const tick = () => {
+      const left = Math.max(
+        0,
+        Math.ceil((nextSectionStartsAtMs - Date.now()) / 1000)
+      );
+      setNextSectionRemaining(left);
+      if (left <= 0 && !autoStartRef.current) {
+        autoStartRef.current = true;
+        void startCurrentSection();
+      }
+    };
+
+    tick();
+    const timer = window.setInterval(tick, 250);
+    return () => window.clearInterval(timer);
+  }, [busy, currentSubject, nextSectionStartsAtMs, section, startCurrentSection]);
 
   const finishingRef = useRef(false);
   useEffect(() => {
@@ -379,13 +440,14 @@ export default function ExamRunner({
 
   // 과목 시작 전 안내 화면
   if (!section) {
-    const subjectIndex = subjects.indexOf(currentSubject);
+    const nextSectionMinutes = Math.floor((nextSectionRemaining ?? 60) / 60);
+    const nextSectionSeconds = (nextSectionRemaining ?? 60) % 60;
     return (
       <>
         <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center pb-24">
           <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
             <p className="text-xs font-medium text-zinc-400">
-              {examTitle} · {subjectIndex + 1}/{subjects.length}교시
+              {examTitle} · {currentSubjectIndex + 1}/{subjects.length}교시
             </p>
             <h1 className="mt-2 text-3xl font-bold">{currentSubject}</h1>
             <p className="mt-3 text-sm text-zinc-500">
@@ -396,18 +458,15 @@ export default function ExamRunner({
               <li>· 메모장/그림판은 문제를 넘기면 지워집니다.</li>
               <li>· 시간이 끝나면 자동 제출됩니다.</li>
             </ul>
+            {nextSectionStartsAtMs && (
+              <p className="mt-5 text-sm font-semibold text-brand">
+                {String(nextSectionMinutes).padStart(2, "0")}:
+                {String(nextSectionSeconds).padStart(2, "0")} 후 자동으로 시작됩니다.
+              </p>
+            )}
             <button
               disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  const res = await startSection(examId, currentSubject);
-                  setIdx(0);
-                  setSectionState(res.sectionState);
-                } finally {
-                  setBusy(false);
-                }
-              }}
+              onClick={startCurrentSection}
               className="mt-6 w-full rounded-[10px] bg-brand py-3 text-sm font-medium text-white transition hover:bg-[#c90026] hover:-translate-y-px disabled:opacity-50"
             >
               {busy ? "준비 중..." : "시작하기"}

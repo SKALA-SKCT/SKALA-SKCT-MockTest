@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:review-chat": "tsx --test tests/review-chat-knowledge.test.ts",
     "db:push": "drizzle-kit push",
     "db:import": "tsx src/db/import.ts",
     "db:import:reset": "ALLOW_DB_RESET=true tsx src/db/import.ts",

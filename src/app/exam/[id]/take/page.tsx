@@ -67,6 +67,7 @@ export default async function TakePage({
       examTitle={exam.title}
       subjects={subjects as Subject[]}
       questionsBySubject={questionsBySubject}
+      attemptStartedAt={attempt.startedAt.toISOString()}
       initialSectionState={attempt.sectionState}
       initialAnswers={initialAnswers}
     />

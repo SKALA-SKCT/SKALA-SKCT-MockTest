@@ -22,7 +22,13 @@ function normalizeId(formData: FormData, key: string) {
   return id;
 }
 
-export type UserInfoState = { ok: boolean; error?: string };
+export type AdminActionState = {
+  ok?: boolean;
+  error?: string;
+  message?: string;
+};
+
+export type UserInfoState = AdminActionState;
 
 export async function updateUserInfo(
   _prevState: UserInfoState,
@@ -106,8 +112,16 @@ export async function updateUserInfo(
       })
       .where(eq(users.id, targetUserId));
 
+    const adminRoleChanged = target.isAdmin !== nextIsAdmin;
     revalidatePath("/admin");
-    return { ok: true };
+    return {
+      ok: true,
+      message: adminRoleChanged
+        ? nextIsAdmin
+          ? "관리자 권한을 부여했습니다."
+          : "관리자 권한을 회수했습니다."
+        : "회원 정보를 저장했습니다.",
+    };
   } catch (error) {
     return {
       ok: false,
@@ -116,17 +130,28 @@ export async function updateUserInfo(
   }
 }
 
-export async function deleteAttemptRecord(formData: FormData) {
-  await requireAdmin();
-  const attemptId = normalizeId(formData, "attemptId");
-  const [target] = await db
-    .select({ id: attempts.id })
-    .from(attempts)
-    .where(eq(attempts.id, attemptId));
-  if (!target) throw new Error("응시 기록을 찾을 수 없습니다.");
+export async function deleteAttemptRecord(
+  _prevState: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  try {
+    await requireAdmin();
+    const attemptId = normalizeId(formData, "attemptId");
+    const [target] = await db
+      .select({ id: attempts.id })
+      .from(attempts)
+      .where(eq(attempts.id, attemptId));
+    if (!target) throw new Error("응시 기록을 찾을 수 없습니다.");
 
-  await db.delete(responses).where(eq(responses.attemptId, attemptId));
-  await db.delete(attempts).where(eq(attempts.id, attemptId));
+    await db.delete(responses).where(eq(responses.attemptId, attemptId));
+    await db.delete(attempts).where(eq(attempts.id, attemptId));
 
-  revalidatePath("/admin");
+    revalidatePath("/admin");
+    return { ok: true, message: "응시 기록을 삭제했습니다." };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "삭제에 실패했습니다.",
+    };
+  }
 }

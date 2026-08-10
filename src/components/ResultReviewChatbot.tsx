@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import type { ReviewQuestion } from "@/components/ResultReview";
+import { applyQuestionContentOverride } from "@/lib/question-overrides";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -56,24 +57,29 @@ function getSubjectLocalNumber(question: ReviewQuestion, questions: ReviewQuesti
   );
 }
 
-function questionSummary(question: ReviewQuestion, questions: ReviewQuestion[]) {
+function questionSummary(
+  question: ReviewQuestion,
+  questions: ReviewQuestion[],
+  examId: number
+) {
   const localNumber = getSubjectLocalNumber(question, questions);
+  const displayQuestion = applyQuestionContentOverride(examId, question);
   return {
-    subject: question.subject,
-    number: question.number,
+    subject: displayQuestion.subject,
+    number: displayQuestion.number,
     localNumber,
-    displayLabel: `${question.subject} ${localNumber}번`,
-    body: question.body,
-    choices: question.choices.map((choice, index) => ({
+    displayLabel: `${displayQuestion.subject} ${localNumber}번`,
+    body: displayQuestion.body,
+    choices: displayQuestion.choices.map((choice, index) => ({
       number: index + 1,
       label: CIRCLED[index],
       text: choice,
       selectedRatePercent: question.choiceRates?.[index] ?? null,
       isMyChoice: question.myChoice === index + 1,
-      isAnswer: question.answer === index + 1,
+      isAnswer: displayQuestion.answer === index + 1,
     })),
-    answer: question.answer,
-    explanation: question.explanation,
+    answer: displayQuestion.answer,
+    explanation: displayQuestion.explanation,
     myChoice: question.myChoice,
     myChoiceLabel: question.myChoice ? CIRCLED[question.myChoice - 1] : null,
     isCorrect: question.isCorrect,
@@ -142,9 +148,11 @@ function MarkdownMessage({ content }: { content: string }) {
 }
 
 export default function ResultReviewChatbot({
+  examId,
   questions,
   participantCount,
 }: {
+  examId: number;
   questions: ReviewQuestion[];
   participantCount: number;
 }) {
@@ -191,7 +199,7 @@ export default function ResultReviewChatbot({
           history: messages.slice(-6),
           participantCount,
           mentionedQuestions: mentionedQuestions.map((question) =>
-            questionSummary(question, questions)
+            questionSummary(question, questions, examId)
           ),
         }),
       });

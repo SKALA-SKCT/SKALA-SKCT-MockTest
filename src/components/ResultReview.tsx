@@ -227,7 +227,7 @@ function QuestionCard({
               <span className="col-start-2 flex flex-wrap items-center gap-2 text-xs">
                 {choiceRates && (
                   <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-semibold text-zinc-500">
-                    선택 {choiceRates[index] ?? 0}점
+                    선택 {choiceRates[index] ?? 0}%
                   </span>
                 )}
                 {isAnswer && (
@@ -530,7 +530,11 @@ export default function ResultReview({
             </div>
           </div>
 
-          <ResultReviewChatbot questions={questions} participantCount={participantCount} />
+          <ResultReviewChatbot
+            examId={examId}
+            questions={questions}
+            participantCount={participantCount}
+          />
         </div>
       </section>
     </div>
