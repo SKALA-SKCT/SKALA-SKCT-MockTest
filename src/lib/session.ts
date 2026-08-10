@@ -113,25 +113,39 @@ async function findOrCreateMotherUser(claims: MotherClaims) {
   }
 }
 
-export const getSessionUserId = cache(async (): Promise<number | null> => {
-  const store = await cookies();
-  const token = store.get(COOKIE)?.value;
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, getSessionSecret());
-    if (typeof payload.uid === "number") return payload.uid;
-    const user = await findOrCreateMotherUser(payload as MotherClaims);
-    return user?.id ?? null;
-  } catch {
-    return null;
+type SessionUser = typeof users.$inferSelect;
+
+// Mother 세션은 사용자를 찾는 과정에서 users 행을 이미 읽는다. 그 행을 들고 다녀야
+// getCurrentUser가 같은 요청에서 users를 한 번 더 조회하지 않는다.
+const resolveSession = cache(
+  async (): Promise<{ userId: number | null; user: SessionUser | null }> => {
+    const store = await cookies();
+    const token = store.get(COOKIE)?.value;
+    if (!token) return { userId: null, user: null };
+    try {
+      const { payload } = await jwtVerify(token, getSessionSecret());
+      if (typeof payload.uid === "number") {
+        return { userId: payload.uid, user: null };
+      }
+      const user = await findOrCreateMotherUser(payload as MotherClaims);
+      return { userId: user?.id ?? null, user: user ?? null };
+    } catch {
+      return { userId: null, user: null };
+    }
   }
+);
+
+export const getSessionUserId = cache(async (): Promise<number | null> => {
+  const { userId } = await resolveSession();
+  return userId;
 });
 
 export const getCurrentUser = cache(async () => {
-  const uid = await getSessionUserId();
-  if (uid == null) return null;
-  const [user] = await db.select().from(users).where(eq(users.id, uid));
-  return user ?? null;
+  const { userId, user } = await resolveSession();
+  if (user) return user;
+  if (userId == null) return null;
+  const [row] = await db.select().from(users).where(eq(users.id, userId));
+  return row ?? null;
 });
 
 export async function requireUser() {

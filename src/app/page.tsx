@@ -5,9 +5,9 @@ import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
+  attemptResults,
   exams,
   questions,
-  responses,
   SECTION_MINUTES,
   SUBJECTS,
 } from "@/db/schema";
@@ -87,6 +87,8 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
   const publishedExamIds = examList.map((exam) => exam.id);
 
   // 통계는 유저·시험별 첫 '완료' 응시 1개만 사용해 재응시 점수가 대시보드에 섞이지 않게 한다.
+  // 총점·과목별 점수는 채점 시 저장한 스냅샷(attempt_results)에 이미 들어 있으므로
+  // responses를 다시 집계하지 않고 조인 한 번으로 가져온다.
   const finishedRows = publishedExamIds.length
     ? await db
         .select({
@@ -94,8 +96,13 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
           userId: attempts.userId,
           examId: attempts.examId,
           finishedAt: attempts.finishedAt,
+          totalScore: attemptResults.totalScore,
+          subjectScores: sql<
+            Partial<Record<(typeof SUBJECTS)[number], number>>
+          >`${attemptResults.snapshot} -> 'subjectScores'`,
         })
         .from(attempts)
+        .innerJoin(attemptResults, eq(attemptResults.attemptId, attempts.id))
         .where(
           and(
             isNotNull(attempts.finishedAt),
@@ -113,7 +120,6 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
   const myFinished = finished.filter((a) => a.userId === user.id);
   const myFinishedByExam = new Map(myFinished.map((attempt) => [attempt.examId, attempt]));
   const myFinishedExamIds = new Set(myFinished.map((a) => a.examId));
-  const attemptIds = finished.map((a) => a.id);
   const attemptsByExam = new Map<number, typeof finished>();
   for (const attempt of finished) {
     const items = attemptsByExam.get(attempt.examId) ?? [];
@@ -122,26 +128,16 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
   }
 
   // 응시별·과목별 정답 수
-  const subjectCorrect = attemptIds.length
-    ? await db
-        .select({
-          attemptId: responses.attemptId,
-          subject: questions.subject,
-          correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
-        })
-        .from(responses)
-        .innerJoin(questions, eq(questions.id, responses.questionId))
-        .where(inArray(responses.attemptId, attemptIds))
-        .groupBy(responses.attemptId, questions.subject)
-    : [];
   const correctOf = new Map<string, number>();
   const scoreByAttempt = new Map<number, number>();
-  for (const r of subjectCorrect) {
-    correctOf.set(`${r.attemptId}:${r.subject}`, r.correct);
-    scoreByAttempt.set(
-      r.attemptId,
-      (scoreByAttempt.get(r.attemptId) ?? 0) + r.correct
-    );
+  for (const attempt of finished) {
+    scoreByAttempt.set(attempt.id, attempt.totalScore);
+    for (const subject of SUBJECTS) {
+      correctOf.set(
+        `${attempt.id}:${subject}`,
+        attempt.subjectScores?.[subject] ?? 0
+      );
+    }
   }
   const scoreOf = (attemptId: number) => scoreByAttempt.get(attemptId) ?? 0;
   const avgScore = (items: (typeof finished)[number][]) =>
