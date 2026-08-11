@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:review-chat": "tsx --test tests/review-chat-knowledge.test.ts",
+    "test:calculator": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/calculator.test.mjs",
     "db:push": "drizzle-kit push",
     "db:import": "tsx src/db/import.ts",
     "db:import:reset": "ALLOW_DB_RESET=true tsx src/db/import.ts",
