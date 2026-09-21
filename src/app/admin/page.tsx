@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
@@ -17,6 +17,8 @@ import AdminAnalytics from "@/components/AdminAnalytics";
 import AccountInfoForm from "@/components/AccountInfoForm";
 import AdminUserModal from "@/components/AdminUserModal";
 import AttemptDeleteForm from "@/components/AttemptDeleteForm";
+import { AdminQuestionPicker } from "@/components/AdminQuestionPicker";
+import AdminQuestionView from "@/components/AdminQuestionView";
 import { updateQuestionReportStatus } from "@/lib/actions/admin";
 import { ensureQuestionReportsSchema } from "@/db/ensure-question-reports";
 
@@ -93,7 +95,7 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 function normalizeTab(value: string | undefined) {
-  return value === "users" || value === "analytics" || value === "reports" ? value : "stats";
+  return value === "users" || value === "analytics" || value === "reports" || value === "questions" ? value : "stats";
 }
 
 const REPORT_REASONS = ["문제 내용 오류", "정답 오류", "해설 오류", "이미지·표시 오류", "기타"];
@@ -118,6 +120,18 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const roleFilter = firstParam(params.role) ?? "all";
   const reportStatusFilter = firstParam(params.reportStatus) ?? "all";
   const reportReasonFilter = firstParam(params.reportReason) ?? "all";
+  const questionExam = Math.min(12, Math.max(1, Number(firstParam(params.exam) ?? 1) || 1));
+  const questionSubject = (SUBJECTS as readonly string[]).includes(firstParam(params.subject) ?? "")
+    ? (firstParam(params.subject) as (typeof SUBJECTS)[number])
+    : SUBJECTS[0];
+  const questionNumber = firstParam(params.number) ?? "all";
+  const questionRows = activeTab === "questions"
+    ? await db
+        .select()
+        .from(questions)
+        .where(and(eq(questions.examId, questionExam), eq(questions.subject, questionSubject)))
+        .orderBy(asc(questions.number))
+    : [];
   const reportSubjectFilter = firstParam(params.reportSubject) ?? "all";
   const selectedUserId = Number(firstParam(params.userId) ?? "");
 
@@ -548,9 +562,36 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         >
           신고 {reportRows.filter((report) => report.status === "pending").length > 0 && <span className="ml-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] text-red-600">{reportRows.filter((report) => report.status === "pending").length}</span>}
         </Link>
+        <Link
+          href="/admin?tab=questions"
+          className={`border-b-2 px-4 py-3 text-sm font-bold transition ${
+            activeTab === "questions" ? "border-brand text-brand" : "border-transparent text-ink-3 hover:text-ink"
+          }`}
+        >
+          문항
+        </Link>
       </nav>
 
-      {activeTab === "reports" ? (
+      {activeTab === "questions" ? (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-xl font-black text-ink">문항 보기</h2>
+            <p className="mt-1 text-sm text-ink-3">회차와 영역을 고르면 실제 화면과 같은 지문·선지·정답·해설을 그대로 보여줍니다. 응시 기록은 만들지 않습니다.</p>
+          </div>
+          <AdminQuestionPicker
+            exam={questionExam}
+            subject={questionSubject}
+            number={questionNumber}
+            subjects={SUBJECTS}
+            numbers={questionRows.map((row) => (row.number - 1) % 20 + 1)}
+          />
+          {questionRows
+            .filter((row) => questionNumber === "all" || String((row.number - 1) % 20 + 1) === questionNumber)
+            .map((row) => (
+              <AdminQuestionView key={row.id} examId={questionExam} question={row} />
+            ))}
+        </section>
+      ) : activeTab === "reports" ? (
         <section className="space-y-3">
           <div><h2 className="text-xl font-black text-ink">문항 신고</h2><p className="mt-1 text-sm text-ink-3">신고 내용을 펼쳐 확인하고 처리 상태를 변경합니다.</p></div>
           <form className="chart-card flex flex-wrap items-end gap-3 p-4" method="get">

@@ -96,60 +96,10 @@ export function normalizeQuestionDisplayText(value: string | null | undefined) {
     .replace(/([.?!])\s*([㉠㉡㉢㉣㉤㉥])/gu, "$1\n$2");
 }
 
-const COMPACT_FRACTION_DENOMINATORS = [
-  "17",
-  "23",
-  "31",
-  "32",
-  "35",
-  "37",
-  "10",
-  "13",
-  "15",
-  "19",
-  "25",
-  "27",
-  "28",
-  "45",
-  "56",
-  "74",
-  "126",
-  "143",
-];
-
-function expandCompactFraction(value: string) {
-  const compact = value.replace(/\s+/g, "");
-  for (const denominator of COMPACT_FRACTION_DENOMINATORS) {
-    if (!compact.endsWith(denominator)) continue;
-    const numerator = compact.slice(0, -denominator.length);
-    if (/^[1-9]\d{0,2}$/.test(numerator)) return `${numerator}/${denominator}`;
-  }
-  return value;
-}
-
 export function normalizeChoiceTexts(choices: string[]) {
-  const fractionLikeChoiceCount = choices.filter((choice) => {
-    const compact = choice.trim().replace(/\s+/g, "");
-    return (
-      /^\d+$/.test(compact) &&
-      COMPACT_FRACTION_DENOMINATORS.some(
-        (denominator) =>
-          compact.endsWith(denominator) &&
-          compact.length > denominator.length
-      )
-    );
-  }).length;
-  const hasFractionLikeChoice = fractionLikeChoiceCount >= 2;
-
-  if (!hasFractionLikeChoice) {
-    return choices.map((choice) => normalizeKoreanSpacing(normalizeQuestionText(choice)));
-  }
-
-  return choices.map((choice) => {
-    const trimmed = normalizeKoreanSpacing(normalizeQuestionText(choice));
-    if (!/^\d[\d\s]*$/.test(trimmed)) return trimmed;
-    return expandCompactFraction(trimmed);
-  });
+  // Missing fraction bars cannot be inferred from digits (8325 may be an integer).
+  // Restore damaged choices only through question-specific PDF transcriptions.
+  return choices.map((choice) => normalizeKoreanSpacing(normalizeQuestionText(choice)));
 }
 
 export function normalizeReviewText(value: string | null | undefined) {
@@ -430,95 +380,8 @@ function normalizeKoreanSpacing(value: string) {
     .trim();
 }
 
-function hasFinalAnswer(text: string) {
-  return /정답\s*은?\s*[①②③④⑤1-5]/.test(text.slice(-100));
-}
-
-function buildAnswerExplanation(answer: number, answerChoice?: string) {
-  const circled = ["①", "②", "③", "④", "⑤"][answer - 1] ?? `${answer}번`;
-  const normalizedChoice = normalizeQuestionText(answerChoice).replace(/\s+/g, " ").trim();
-  return normalizedChoice
-    ? `정답은 ${circled} '${normalizedChoice}'이다.`
-    : `정답은 ${circled}이다.`;
-}
-
-function isDanglingExplanationTail(text: string) {
-  if (!text) return false;
-  if (/[.!?)]$/.test(text) || /(?:다|요|임|음|함|됨)$/.test(text)) {
-    return /(?:이므|으므|따라|따라서|고르|가장\s*적|가장\s*알맞|시기와|관리)$/.test(text);
-  }
-
-  return true;
-}
-
-function dropDanglingTail(text: string) {
-  const explicitRepairs: Array<[RegExp, string]> = [
-    [/가장\s*적$/u, "가장 적절하다."],
-    [/가장\s*적절\s*하$/u, "가장 적절하다."],
-    [/적절\s*하$/u, "적절하다."],
-    [/중심\s*내용으로\s*가$/u, "중심 내용이다."],
-    [/주제로\s*가$/u, "주제이다."],
-    [/따라서\s*<보기>\s*에서$/u, ""],
-    [/알\s*수\s*있$/u, "알 수 있다."],
-    [/알\s*수\s*없$/u, "알 수 없다."],
-    [/추론할\s*수\s*없$/u, "추론할 수 없다."],
-    [/이므$/u, "이므로"],
-    [/으므$/u, "으므로"],
-    [/따$/u, "따라서"],
-    [/따라$/u, "따라서"],
-    [/글에\s*이어질\s*$/u, ""],
-  ];
-
-  for (const [pattern, replacement] of explicitRepairs) {
-    if (pattern.test(text)) return text.replace(pattern, replacement).trim();
-  }
-
-  const sentenceEnds = ["다.", "요.", "임.", "음.", "함.", "됨.", ")."];
-  const lastSentenceEnd = Math.max(
-    ...sentenceEnds.map((ending) => text.lastIndexOf(ending))
-  );
-
-  if (lastSentenceEnd > 0) {
-    return text.slice(0, lastSentenceEnd + 2).trim();
-  }
-
-  return text
-    .replace(
-      /(?:따라서\s*)?(?:글의\s*)?(?:주제로는|주제로|중심\s*내용으로는|중심\s*내용으로|내용으로는|옳은\s*것만을\s*모두\s*고르면|옳지\s*않은\s*것만을\s*모두\s*고르면|모두\s*고르|정답은).*$/u,
-      ""
-    )
-    .replace(
-      /(?:글에\s*이어질|이므로|이므|으므로|으므|따라서|따라|따|가장|고르|시기와|관리)$/u,
-      ""
-    )
-    .replace(/(?:글에\s*이어질)\s*$/u, "")
-    .trim();
-}
-
-export function formatReviewExplanation(
-  value: string | null | undefined,
-  answer: number,
-  answerChoice?: string
-) {
-  const answerText = buildAnswerExplanation(answer, answerChoice);
-
-  let text = normalizeKoreanSpacing(String(value ?? ""));
-  if (!text) return answerText;
-
-  text = text
-    .replace(/오답분석\s*/g, "\n\n오답분석\n")
-    .replace(/([.!?다])\s*([①②③④⑤])\s*/g, "$1\n$2 ")
-    .replace(/([①②③④⑤])\s+/g, "$1 ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-
-  if (hasFinalAnswer(text)) return text;
-
-  if (isDanglingExplanationTail(text)) {
-    text = dropDanglingTail(text);
-  }
-
-  if (!text || text.length < 18) return answerText;
-
-  return `${text}\n${answerText}`.trim();
+export function formatReviewExplanation(value: string | null | undefined) {
+  // Preserve source text, including formulas and incomplete source sentences.
+  // Corrections must be verified against the PDF, never inferred here.
+  return value?.trim() ?? "";
 }

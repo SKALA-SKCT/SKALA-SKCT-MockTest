@@ -3,12 +3,14 @@
 import { useMemo, useState } from "react";
 import ResultReviewTools from "@/components/ResultReviewTools";
 import QuestionReportButton from "@/components/QuestionReportButton";
+import PdfPassage from "@/components/PdfPassage";
+import ShortestPathDiagram from "@/components/ShortestPathDiagram";
+import PdfExplanation from "@/components/PdfExplanation";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
 import {
   formatReviewExplanation,
   normalizeChoiceTexts,
   normalizeQuestionDisplayText,
-  normalizeReviewText,
   repairQuestionBody,
 } from "@/lib/question-text";
 
@@ -101,8 +103,8 @@ function WrongRate({ value }: { value: number | null }) {
   );
 }
 
-function splitQuestionBody(question: ReviewQuestion & { supplementImageUrl?: string }) {
-  const normalized = normalizeQuestionDisplayText(
+function splitQuestionBody(question: ReviewQuestion & { supplementImageUrl?: string; pdfVerifiedBody?: boolean }) {
+  const normalized = question.pdfVerifiedBody ? question.body.trim() : normalizeQuestionDisplayText(
     repairQuestionBody(question.body, {
       hasMaterialImage: Boolean(question.imageUrl || question.supplementImageUrl),
       subject: question.subject,
@@ -134,7 +136,7 @@ function splitQuestionBody(question: ReviewQuestion & { supplementImageUrl?: str
   };
 }
 
-function QuestionCard({
+export function QuestionCard({
   question,
   examId,
   localNumber,
@@ -146,23 +148,13 @@ function QuestionCard({
   const choiceRates = question.choiceRates;
   const displayQuestion = applyQuestionContentOverride(examId, question);
   const { prompt, passage } = splitQuestionBody(displayQuestion);
-  const displayChoices = normalizeChoiceTexts(displayQuestion.choices);
+  const displayChoices = displayQuestion.pdfVerifiedChoices ? displayQuestion.choices : normalizeChoiceTexts(displayQuestion.choices);
   const supplementImageUrl =
     displayQuestion.supplementImageUrl &&
     displayQuestion.supplementImageUrl !== displayQuestion.imageUrl
       ? displayQuestion.supplementImageUrl
       : null;
-  const explanation = formatReviewExplanation(
-    displayQuestion.explanation,
-    displayQuestion.answer,
-    displayChoices[displayQuestion.answer - 1]
-  );
-  const reviewExplanation = sanitizeExplanationForReview(
-    explanation,
-    displayQuestion.subject,
-    displayQuestion.answer,
-    displayChoices[displayQuestion.answer - 1]
-  );
+  const reviewExplanation = formatReviewExplanation(displayQuestion.explanation);
 
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
@@ -187,10 +179,11 @@ function QuestionCard({
         {passage && (
           <div className="mt-3 border-t border-zinc-200 pt-3">
             <p className="whitespace-pre-line text-sm leading-7 text-zinc-700 [overflow-wrap:anywhere]">
-              {passage}
+              <PdfPassage text={passage} round={examId} number={question.number} />
             </p>
           </div>
         )}
+        {displayQuestion.materialCaption && <p className="mt-3 whitespace-pre-line text-sm text-zinc-700">{displayQuestion.materialCaption}</p>}
         {displayQuestion.imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -227,7 +220,7 @@ function QuestionCard({
             >
               <span className="shrink-0 font-bold">{CIRCLED[index]}</span>
               <span className="min-w-0 whitespace-pre-line [overflow-wrap:anywhere]">
-                {normalizeReviewText(choice)}
+                {choice}
               </span>
               <span className="col-start-2 flex flex-wrap items-center gap-2 text-xs">
                 {choiceRates && (
@@ -255,41 +248,23 @@ function QuestionCard({
       {reviewExplanation && (
         <div className="mt-3 rounded-lg bg-zinc-50 px-4 py-3">
           <p className="text-sm font-bold text-zinc-700">해설</p>
-          <p className="mt-2 whitespace-pre-line text-sm leading-7 text-zinc-600 [overflow-wrap:anywhere]">
-            {reviewExplanation}
-          </p>
+          {examId === 4 && question.number === 45 ? (
+            <>
+              <p className="mt-2 text-sm leading-7 text-zinc-600">{reviewExplanation.split("\n\n")[0]}</p>
+              <ShortestPathDiagram />
+              <p className="whitespace-pre-line text-sm leading-7 text-zinc-600">{reviewExplanation.split("\n\n").slice(1).join("\n\n")}</p>
+            </>
+          ) : examId === 2 && question.number >= 61 && question.number <= 80 ? (
+            <PdfExplanation text={reviewExplanation} />
+          ) : (
+            <p className="mt-2 whitespace-pre-line text-sm leading-7 text-zinc-600 [overflow-wrap:anywhere]">
+              {reviewExplanation}
+            </p>
+          )}
         </div>
       )}
     </div>
   );
-}
-
-function sanitizeExplanationForReview(
-  explanation: string,
-  subject: string,
-  answer: number,
-  answerChoice?: string
-) {
-  if (!explanation) return "";
-  const circled = CIRCLED[answer - 1] ?? `${answer}번`;
-  const choice = normalizeReviewText(answerChoice).replace(/\s+/g, " ").trim();
-  const answerSentence = choice
-    ? `정답은 ${circled} '${choice}'이다.`
-    : `정답은 ${circled}이다.`;
-
-  if (subject === "수열추리") {
-    return choice
-      ? `수열의 규칙을 적용하면 빈칸에 들어갈 값은 ${choice}이다.\n${answerSentence}`
-      : answerSentence;
-  }
-
-  if (subject === "창의수리") {
-    return choice
-      ? `조건을 식으로 정리하면 계산 결과는 ${choice}이다.\n${answerSentence}`
-      : answerSentence;
-  }
-
-  return explanation;
 }
 
 export default function ResultReview({

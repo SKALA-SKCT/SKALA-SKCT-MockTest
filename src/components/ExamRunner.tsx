@@ -17,6 +17,7 @@ import {
 import Calculator from "@/components/exam/Calculator";
 import MemoPad from "@/components/exam/MemoPad";
 import QuestionReportButton from "@/components/QuestionReportButton";
+import PdfPassage from "@/components/PdfPassage";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
 import {
   normalizeChoiceTexts,
@@ -487,7 +488,7 @@ export default function ExamRunner({
   }
 
   const q = applyQuestionContentOverride(examId, sectionQuestions[idx]);
-  const questionBody = normalizeQuestionDisplayText(
+  const questionBody = q.pdfVerifiedBody ? q.body.trim() : normalizeQuestionDisplayText(
     repairQuestionBody(q.body, {
       hasMaterialImage: Boolean(q.imageUrl || q.supplementImageUrl),
       subject: q.subject,
@@ -495,7 +496,7 @@ export default function ExamRunner({
   );
   const { prompt: questionPrompt, passage: questionPassage } =
     splitQuestionBodyText(questionBody);
-  const displayChoices = normalizeChoiceTexts(q.choices);
+  const displayChoices = q.pdfVerifiedChoices ? q.choices : normalizeChoiceTexts(q.choices);
   const supplementImageUrl =
     q.supplementImageUrl && q.supplementImageUrl !== q.imageUrl
       ? q.supplementImageUrl
@@ -608,11 +609,12 @@ export default function ExamRunner({
             {questionPassage && (
               <div className="mt-3 border-t border-zinc-200 pt-3">
                 <p className="whitespace-pre-line text-sm leading-7 text-zinc-700 [overflow-wrap:anywhere]">
-                  {questionPassage}
+                  <PdfPassage text={questionPassage} round={examId} number={q.number} />
                 </p>
               </div>
             )}
           </div>
+          {q.materialCaption && <p className="mt-3 whitespace-pre-line text-sm text-zinc-700">{q.materialCaption}</p>}
           {q.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img

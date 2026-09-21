@@ -1,8 +1,13 @@
+import pdfVerifiedChoices from "./pdf-verified-choices.json";
+import pdfVerifiedText from "./pdf-verified-text.json";
+
 export type QuestionContentOverride = {
   body?: string;
   choices?: string[];
   explanation?: string;
+  imageUrl?: string | null;
   supplementImageUrl?: string;
+  materialCaption?: string;
 };
 
 const textBlock = (value: string) => value.trim();
@@ -69,72 +74,72 @@ export const questionContentOverrides: Record<string, QuestionContentOverride> =
     "choices": ["㉠", "㉡", "㉠, ㉡", "㉡, ㉢", "㉠, ㉡, ㉢"]
   },
   "2:81": {
-    "supplementImageUrl": "/exam-assets/round-2/q-81.png"
+    "supplementImageUrl": undefined
   },
   "2:82": {
-    "supplementImageUrl": "/exam-assets/round-2/q-82.png"
+    "supplementImageUrl": undefined
   },
   "2:83": {
-    "supplementImageUrl": "/exam-assets/round-2/q-83.png"
+    "supplementImageUrl": undefined
   },
   "2:84": {
-    "supplementImageUrl": "/exam-assets/round-2/q-84.png"
+    "supplementImageUrl": undefined
   },
   "2:85": {
-    "supplementImageUrl": "/exam-assets/round-2/q-85.png"
+    "supplementImageUrl": undefined
   },
   "2:86": {
     "choices": ["85.1", "85.3", "85.7", "86.0", "86.2"],
-    "supplementImageUrl": "/exam-assets/round-2/q-86.png"
+    "supplementImageUrl": undefined
   },
   "2:87": {
     "choices": ["27/160", "3/8", "27/80", "2/3", "3/4"],
-    "supplementImageUrl": "/exam-assets/round-2/q-87.png"
+    "supplementImageUrl": undefined
   },
   "2:88": {
     "choices": ["3/8", "3/7", "2", "7/3", "8/3"],
-    "supplementImageUrl": "/exam-assets/round-2/q-88.png"
+    "supplementImageUrl": undefined
   },
   "2:89": {
     "choices": ["-81", "-81/2", "81/2", "81/4", "81/12"],
-    "supplementImageUrl": "/exam-assets/round-2/q-89.png"
+    "supplementImageUrl": undefined
   },
   "2:90": {
     "choices": ["1/3", "4/39", "2/13", "13/72", "8/39"],
-    "supplementImageUrl": "/exam-assets/round-2/q-90.png"
+    "supplementImageUrl": undefined
   },
   "2:91": {
     "choices": ["22/67", "13/31", "27/62", "34/45", "62/27"],
-    "supplementImageUrl": "/exam-assets/round-2/q-91.png"
+    "supplementImageUrl": undefined
   },
   "2:92": {
     "choices": ["1/2160", "1/1800", "1/1080", "1/720", "1/540"],
-    "supplementImageUrl": "/exam-assets/round-2/q-92.png"
+    "supplementImageUrl": undefined
   },
   "2:93": {
-    "supplementImageUrl": "/exam-assets/round-2/q-93.png"
+    "supplementImageUrl": undefined
   },
   "2:94": {
-    "supplementImageUrl": "/exam-assets/round-2/q-94.png"
+    "supplementImageUrl": undefined
   },
   "2:95": {
     "choices": ["55", "66", "88", "99", "100"],
-    "supplementImageUrl": "/exam-assets/round-2/q-95.png"
+    "supplementImageUrl": undefined
   },
   "2:96": {
-    "supplementImageUrl": "/exam-assets/round-2/q-96.png"
+    "supplementImageUrl": undefined
   },
   "2:97": {
-    "supplementImageUrl": "/exam-assets/round-2/q-97.png"
+    "supplementImageUrl": undefined
   },
   "2:98": {
-    "supplementImageUrl": "/exam-assets/round-2/q-98.png"
+    "supplementImageUrl": undefined
   },
   "2:99": {
-    "supplementImageUrl": "/exam-assets/round-2/q-99.png"
+    "supplementImageUrl": undefined
   },
   "2:100": {
-    "supplementImageUrl": "/exam-assets/round-2/q-100.png"
+    "supplementImageUrl": undefined
   },
   "3:3": {
     "body": "다음 글을 읽고 추론한 내용으로 적절하지 않은 것은?\n\n심리학자들의 연구에 따르면, 정치 성향, 학력과 같이 의미 있고 중요한 유사성뿐만 아니라 좋아하는 브랜드의 제품이나 취미 등의 일상적인 유사성도 모두 사람들과 가까워지는 데 큰 역할을 한다. 그러므로 사회에서 누군가를 처음 만나게 되면 서로가 가진 비슷한 특성, 이를테면 성별이나 나이, 출신 지역 등에서 공통점을 찾아 이를 주제로 대화하는 방식으로 빠르게 친해질 수 있다. 즉, 이런 현상이 발생하는 것을 심리학에서는 '유사성 효과'로 설명하고 있다. 유사성 효과는 자신과 유사한 특성을 공유하는 상대에 대하여 더 긍정적으로 받아들이는 현상을 의미하며, 이 개념은 한 미국의 심리학자에 의해 소개되었다. 유사성 효과는 인지 부조화로 인해 발생하기도 하는데, 인지 부조화는 사람들이 믿는 것과 실제로 보는 것 사이에 불일치나 부조화가 있을 때 발생한다. 사람들은 이러한 불일치 상태를 꺼리는 경우가 많으므로, 결과적으로 자신과 유사한 특성을 가진 상대에게 더욱 긍정적인 평가를 내리게 되는 유사성 효과가 발생하게 되는 것이다.",
@@ -1912,13 +1917,13 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
     "supplementImageUrl": "/exam-assets/overrides/round-1/q-78.png"
   },
   "2:72": {
-    "supplementImageUrl": "/exam-assets/overrides/round-2/q-72.png"
+    "supplementImageUrl": undefined
   },
   "2:76": {
-    "supplementImageUrl": "/exam-assets/overrides/round-2/q-76.png"
+    "supplementImageUrl": undefined
   },
   "2:80": {
-    "supplementImageUrl": "/exam-assets/overrides/round-2/q-80.png"
+    "supplementImageUrl": undefined
   },
   "3:69": {
     "supplementImageUrl": "/exam-assets/overrides/round-3/q-69.png"
@@ -2063,6 +2068,56 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
 
 const finalQuestionContentOverrides: Record<string, QuestionContentOverride> = {
   ...questionContentOverrides,
+  "2:39": {
+    ...questionContentOverrides["2:39"],
+    imageUrl: "/exam-assets/pdf-verified/round-2/q-39-material.png",
+  },
+  "2:42": {
+    ...questionContentOverrides["2:42"],
+    explanation: "9명이 원형 테이블에 앉는 경우의 수는 (9 - 1)! = 8 × 7 × 6 × 5 × 4 × 3 × 2 × 1 = 40,320가지이다. 팀별로 이웃하여 원형 테이블에 앉는 경우의 수는 (4 - 1)! × 2! × 2! × 3! × 2! = 3 × 2 × 1 × 2 × 1 × 2 × 1 × 3 ×\n88가지이다. 따라서 각 팀별로 이웃하여 앉는 확률은 288/40,320 = 1/140이므로 정답은 ①이다.",
+  },
+  "2:51": {
+    ...questionContentOverrides["2:51"],
+    body: "1시간 동안 A는 1/10의 일을 하고, B는 1/5의 일을 한다. A와 B가 같이 일을 할 때, 일을 끝내는데 걸리는 시간은 몇 분인가?",
+    explanation: "A와 B가 같이 일한 시간을 x시간이라고 하면 다음과 같은 식이 성립한다.\n(1/10 + 1/5) × x = 1\n∴ x = 10/3 = 200/60\n따라서 A와 B가 같이 일을 끝내는데 걸리는 시간은 200분이므로 정답은 ②이다.",
+  },
+  "2:52": {
+    ...questionContentOverrides["2:52"],
+    explanation: "10명 중 3명을 선정하는 경우의 수는 ₁₀C₃ = (10 × 9 × 8)/(3 × 2 × 1) = 120가지이고, A가 커피를 사는 경우의 수는 9명 중 2명을 선정하는 경우의 수와 같으므로 ₉C₂ = (9 × 8)/(2 × 1) = 36가지이다. A가 커피를 살 확률은 36/120 = 3/10이다. 따라서 A가 오늘과 내일 모두 커피를 살 확률은 3/10 × 3/10 = 9/100이므로 정답은 ②이다.",
+  },
+  "2:60": {
+    ...questionContentOverrides["2:60"],
+    explanation: "월요일부터 금요일까지 하루에 한 명씩 야근을 하는 경우의 수는 5! = 5 × 4 × 3 × 2 × 1 = 120가지이다. D가 수요일, E가 금요일에 야근을 하는 경우의 수는 3! = 3 × 2 × 1 = 6가지이다. 따라서 D가 수요일, E가 금요일에 야근을 할 확률은 6/120 = 1/20이므로 정답은 ①이다.",
+  },
+  "5:58": {
+    ...questionContentOverrides["5:58"],
+    body: "농도가 15%인 소금물 400g에서 일정량의 물을 증발시켰더니 농도가 20%로 증가했다. 증발된 물의 양은 얼마인가?",
+    explanation: "농도가 15%인 소금물에 들어있는 소금의 양은 15/100 × 400 = 60g이고, 물을 증발시키더라도 소금의 양은 변하지 않으므로 증발된 물의 양이 xg이라고 하면 다음과 같은 식이 성립한다.\n60/(400 - x) × 100 = 20\n∴ x = 100\n따라서 증발된 물의 양은 100g이므로 정답은 ③이다.",
+  },
+  "4:45": {
+    ...questionContentOverrides["4:45"],
+    body: "다음 <보기>의 그림과 같이 A점에서 출발하여 B점에 도착하기까지 최단 거리로 이동하려고 할 때, 경우의 수는 총 몇 가지인가?",
+    supplementImageUrl: "/exam-assets/pdf-verified/round-4/q-45-material.png",
+    explanation: "A점에서 출발하여 B점에 도착하기까지 최단 거리로 이동하기 위해서는 아래 그림과 같이 A점에서 출발하여 1~4점을 각각 지난 후에 B점에 최단 거리로 도착해야 한다.\n\n- 1점을 지나는 경우: A점 → 1점: 1가지, 1점 → B점: 1가지, 총 1 × 1 = 1가지\n- 2점을 지나는 경우: A점 → 2점: (1 + 3)!/(1! × 3!) = 4가지, 2점 → B점: (3 + 1)!/(3! × 1!) = 4가지, 총 4 × 4 = 16가지\n- 3점을 지나는 경우: A점 → 3점: (3 + 1)!/(3! × 1!) = 4가지, 3점 → B점: (1 + 3)!/(1! × 3!) = 4가지, 총 4 × 4 = 16가지\n- 4점을 지나는 경우: A점 → 4점: 1가지, 4점 → B점: 1가지, 총 1 × 1 = 1가지\n따라서 경우의 수는 총 1 + 16 + 16 + 1 = 34가지이므로 정답은 ②이다.",
+  },
+  "5:75": {
+    ...questionContentOverrides["5:75"],
+    body: "1~9까지의 숫자 중 중복되지 않는 4개의 숫자를 사용하여 네 자리 비밀번호를 만들었다. 비밀번호에 대한 정보가 다음 <조건>과 같을 때, 비밀번호는?\n\n<조건>\n㉠ 일의 자리 숫자는 1 또는 5이다.\n㉡ 십의 자리 숫자와 천의 자리 숫자의 곱은 16이다.\n㉢ 백의 자리 숫자와 천의 자리 숫자의 합은 11이다.\n㉣ 백의 자리 숫자는 비밀번호 4개의 숫자 중 두 번째로 작은 숫자이다.",
+    supplementImageUrl: undefined,
+    explanation: "㉡에 의해 천의 자리 숫자와 십의 자리 숫자로 가능한 조합은 (2, 8) 또는 (8, 2)이다. 천의 자리 숫자가 2, 십의 자리 숫자가 8인 경우와 천의 자리 숫자 8, 십의 자리 숫자가 2인 경우로 나누어 검토할 수 있다.\n1) 천의 자리 숫자가 2, 십의 자리 숫자가 8인 경우\n㉢에 의해 백의 자리 숫자는 9인데, 이 경우 ㉣에 위배되므로 가능하지 않은 경우이다.\n2) 천의 자리 숫자 8, 십의 자리 숫자가 2인 경우\n㉢에 의해 백의 자리 숫자는 3이고, ㉣에 의해 일의 자리 숫자는 4 이상이어야 하므로 ㉠에 의해 일의 자리 숫자는 5이다. 그러므로 비밀번호는 8325이다.\n따라서 비밀번호는 8325이므로 정답은 ⑤이다.",
+  },
+  "6:41": {
+    ...questionContentOverrides["6:41"],
+    body: "A사 직원 중 남성은 65%, 여성은 35%이다. A사 직원 중 안경 또는 렌즈를 사용하는 확률과 사용하지 않을 확률이 표와 같다. 임의로 선택한 1명이 안경 또는 렌즈를 사용하는 사람일 때, 그 사람이 여자일 확률은?",
+    supplementImageUrl: "/exam-assets/pdf-verified/round-6/q-41-material.png",
+    explanation: "A사 직원이 a명이라면 남성은 (65/100)a명, 여성은 (35/100)a명이다. 안경 또는 렌즈를 사용하는 남성 직원은 (65/100)a × 2/5 = (26/100)a명, 안경 또는 렌즈를 사용하는 여성 직원은 (35/100)a × 2/3 = (70/300)a이다. 선택한 1명이 안경 또는 렌즈를 사용하는 사람일 때, 그 사람이 여자일 확률은 (70/300)/(26/100 + 70/300) = 70/148 = 35/74이다.\n따라서 정답은 ①이다.",
+  },
+  "7:50": {
+    ...questionContentOverrides["7:50"],
+    body: "다음은 X공장과 Y공장의 구리와 아연을 이용하여 생산하는 제품에 관한 자료이다. 구리 400kg, 아연 200kg를 모두 사용하여 제품을 생산했을 때, 수익은 얼마인가?",
+    supplementImageUrl: "/exam-assets/pdf-verified/round-7/q-50-material.png",
+    explanation: "생산하는 A제품과 B제품을 각각 x개, y개라고 하면 다음과 같은 식이 성립한다.\n4x + 3y = 400\nx + 2y = 200\n∴ x = 40, y = 80\n따라서 수익은 10 × 40 + 8 × 80 = 1,040만 원이므로 정답은 ②이다.",
+  },
   "7:6": {
     body: textBlock(`다음 글을 읽고 추론한 내용으로 적절하지 않은 것은?
 
@@ -2096,12 +2151,18 @@ const finalQuestionContentOverrides: Record<string, QuestionContentOverride> = {
 };
 
 export function getQuestionContentOverride(examRound: number, questionNumber: number) {
-  return finalQuestionContentOverrides[`${examRound}:${questionNumber}`];
+  const key = `${examRound}:${questionNumber}`;
+  const choices = (pdfVerifiedChoices as Record<string, string[]>)[key];
+  const verified = (pdfVerifiedText as Record<string, QuestionContentOverride>)[key];
+  const override = verified
+    ? { ...finalQuestionContentOverrides[key], ...verified }
+    : finalQuestionContentOverrides[key];
+  return choices ? { ...override, choices } : override;
 }
 
 export function applyQuestionContentOverride<
   T extends { number: number; body: string; choices: string[]; explanation?: string | null },
->(examRound: number, question: T): T & { supplementImageUrl?: string } {
+>(examRound: number, question: T): T & { supplementImageUrl?: string; materialCaption?: string; pdfVerifiedBody?: boolean; pdfVerifiedChoices?: boolean } {
   const override = getQuestionContentOverride(examRound, question.number);
   if (!override) return question;
 
@@ -2112,6 +2173,10 @@ export function applyQuestionContentOverride<
       ? [...override.choices, ...question.choices.slice(override.choices.length)]
       : question.choices,
     explanation: override.explanation ?? question.explanation,
+    ...(override.imageUrl !== undefined ? { imageUrl: override.imageUrl } : {}),
     supplementImageUrl: override.supplementImageUrl,
+    materialCaption: override.materialCaption,
+    pdfVerifiedBody: Boolean((pdfVerifiedText as Record<string, QuestionContentOverride>)[`${examRound}:${question.number}`]?.body),
+    pdfVerifiedChoices: Boolean((pdfVerifiedText as Record<string, QuestionContentOverride>)[`${examRound}:${question.number}`]?.choices || (pdfVerifiedChoices as Record<string, string[]>)[`${examRound}:${question.number}`]),
   };
 }
