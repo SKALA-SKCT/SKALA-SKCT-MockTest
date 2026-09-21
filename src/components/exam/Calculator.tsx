@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { appendCalculatorInput, finishCalculation, startNextCalculation } from "./calculatorLogic";
+import { appendCalculatorInput, finishCalculation } from "./calculatorLogic";
 
 function CalcButton({
   label,
@@ -27,7 +27,6 @@ export default function Calculator() {
   const [expression, setExpression] = useState("0");
   const [history, setHistory] = useState<string[]>([]);
   const [justCalculated, setJustCalculated] = useState(false);
-  const [pendingRecord, setPendingRecord] = useState<string | null>(null);
   const displayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,20 +36,10 @@ export default function Calculator() {
 
   const input = useCallback(
     (value: string) => {
-      if (justCalculated) {
-        const next = startNextCalculation(
-          { expression, history, pendingRecord, calculated: true },
-          value
-        );
-        setExpression(next.expression);
-        setHistory(next.history);
-        setPendingRecord(null);
-      } else {
-        setExpression(appendCalculatorInput(expression, value, false));
-      }
+      setExpression(appendCalculatorInput(expression, value, justCalculated));
       setJustCalculated(false);
     },
-    [expression, history, justCalculated, pendingRecord]
+    [expression, justCalculated]
   );
 
   const equals = useCallback(() => {
@@ -58,10 +47,9 @@ export default function Calculator() {
     try {
       const finished = finishCalculation(expression, history);
       setExpression(finished.expression);
-      setPendingRecord(finished.pendingRecord);
+      setHistory(finished.history);
     } catch {
       setExpression("오류");
-      setPendingRecord(null);
     }
     setJustCalculated(true);
   }, [expression, history, justCalculated]);
@@ -69,7 +57,6 @@ export default function Calculator() {
   const clear = useCallback(() => {
     setExpression("0");
     setJustCalculated(false);
-    setPendingRecord(null);
   }, []);
 
   useEffect(() => {
@@ -79,7 +66,7 @@ export default function Calculator() {
 
       const mapped =
         event.key === "*" ? "×" : event.key === "/" ? "÷" : event.key;
-      if (/^\d$/.test(mapped) || [".", "+", "-", "×", "÷", "(", ")", "%"].includes(mapped)) {
+      if (/^\d$/.test(mapped) || [".", "+", "-", "×", "÷", "(", ")"].includes(mapped)) {
         event.preventDefault();
         input(mapped);
       } else if (event.key === "Enter" || event.key === "=") {
@@ -134,7 +121,7 @@ export default function Calculator() {
         {["1", "2", "3"].map((digit) => (
           <CalcButton key={digit} label={digit} onClick={() => input(digit)} className="border border-zinc-200 bg-white" />
         ))}
-        <CalcButton label="%" onClick={() => input("%")} className="bg-zinc-100" />
+        <CalcButton label="." onClick={() => input(".")} className="border border-zinc-200 bg-white" />
         <CalcButton
           label="="
           onClick={equals}
@@ -143,9 +130,8 @@ export default function Calculator() {
         <CalcButton
           label="0"
           onClick={() => input("0")}
-          className="col-span-3 border border-zinc-200 bg-white"
+          className="col-span-4 border border-zinc-200 bg-white"
         />
-        <CalcButton label="." onClick={() => input(".")} className="border border-zinc-200 bg-white" />
       </div>
     </div>
   );

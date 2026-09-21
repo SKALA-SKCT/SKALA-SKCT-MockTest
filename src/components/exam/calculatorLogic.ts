@@ -1,5 +1,5 @@
 export function calculate(source: string) {
-  const tokens = source.match(/\d+(?:\.\d+)?|[()%+\-×÷]/g) ?? [];
+  const tokens = source.match(/\d+(?:\.\d+)?|[()+\-×÷]/g) ?? [];
   if (tokens.join("") !== source || tokens.length === 0) throw new Error("invalid");
 
   let index = 0;
@@ -35,10 +35,6 @@ export function calculate(source: string) {
       value = Number(tokens[index++]);
       if (!Number.isFinite(value)) throw new Error("invalid");
     }
-    while (tokens[index] === "%") {
-      index += 1;
-      value /= 100;
-    }
     return value;
   };
 
@@ -73,7 +69,6 @@ export function appendCalculatorInput(current: string, value: string, justCalcul
 export interface FinishedCalculation {
   expression: string;
   history: string[];
-  pendingRecord: string | null;
   calculated: boolean;
 }
 
@@ -81,17 +76,7 @@ export function finishCalculation(expression: string, history: string[]): Finish
   const result = String(calculate(expression));
   return {
     expression: result,
-    history,
-    pendingRecord: `${expression} = ${result}`,
+    history: [...history, `${expression} = ${result}`].slice(-2),
     calculated: true,
-  };
-}
-
-export function startNextCalculation(state: FinishedCalculation, value: string): FinishedCalculation {
-  return {
-    expression: appendCalculatorInput(state.expression, value, state.calculated),
-    history: state.pendingRecord ? [...state.history, state.pendingRecord].slice(-2) : state.history,
-    pendingRecord: null,
-    calculated: false,
   };
 }
