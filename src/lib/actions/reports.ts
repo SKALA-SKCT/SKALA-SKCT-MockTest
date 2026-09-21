@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { questionReports, questions } from "@/db/schema";
 import { requireUser } from "@/lib/session";
+import { ensureQuestionReportsSchema } from "@/db/ensure-question-reports";
 
 const ALLOWED_REASONS = new Set([
   "문제 내용 오류",
@@ -21,6 +22,7 @@ export async function submitQuestionReport(input: {
   detail: string;
 }) {
   const user = await requireUser();
+  await ensureQuestionReportsSchema();
   const reasons = [...new Set(input.reasons)].filter((reason) => ALLOWED_REASONS.has(reason));
   const detail = input.detail.trim().slice(0, 1000);
   if (!Number.isInteger(input.examId) || !Number.isInteger(input.questionId) || reasons.length === 0) {

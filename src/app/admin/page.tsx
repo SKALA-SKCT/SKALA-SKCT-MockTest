@@ -18,6 +18,7 @@ import AccountInfoForm from "@/components/AccountInfoForm";
 import AdminUserModal from "@/components/AdminUserModal";
 import AttemptDeleteForm from "@/components/AttemptDeleteForm";
 import { updateQuestionReportStatus } from "@/lib/actions/admin";
+import { ensureQuestionReportsSchema } from "@/db/ensure-question-reports";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,7 @@ function classLabel(campus: string | null, classNumber: number | null) {
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const currentAdmin = await requireAdmin();
+  await ensureQuestionReportsSchema();
   const params = await searchParams;
   const activeTab = normalizeTab(firstParam(params.tab));
   const userQuery = (firstParam(params.q) ?? "").trim();

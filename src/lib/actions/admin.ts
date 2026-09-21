@@ -1,6 +1,7 @@
 "use server";
 
 import { eq, sql } from "drizzle-orm";
+import { ensureQuestionReportsSchema } from "@/db/ensure-question-reports";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -17,6 +18,7 @@ function validateEmail(email: string) {
 
 export async function updateQuestionReportStatus(formData: FormData) {
   await requireAdmin();
+  await ensureQuestionReportsSchema();
   const reportId = normalizeId(formData, "reportId");
   const status = String(formData.get("status"));
   if (status !== "pending" && status !== "resolved" && status !== "rejected") {

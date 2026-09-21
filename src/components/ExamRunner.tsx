@@ -16,6 +16,7 @@ import {
 } from "@/lib/actions/exam";
 import Calculator from "@/components/exam/Calculator";
 import MemoPad from "@/components/exam/MemoPad";
+import QuestionReportButton from "@/components/QuestionReportButton";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
 import {
   normalizeChoiceTexts,
@@ -584,7 +585,8 @@ export default function ExamRunner({
         style={{ zoom: `${zoom}%` }}
       >
         {/* 왼쪽: 문제 영역 */}
-        <div className="min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1">
+        <QuestionReportButton examId={examId} questionId={q.id} placement="floating" />
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm max-[760px]:p-3">
           <div className="mb-3 flex items-baseline">
             <p className="text-sm font-bold text-red-600">
