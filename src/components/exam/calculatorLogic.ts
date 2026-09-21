@@ -69,3 +69,29 @@ export function appendCalculatorInput(current: string, value: string, justCalcul
   }
   return current + value;
 }
+
+export interface FinishedCalculation {
+  expression: string;
+  history: string[];
+  pendingRecord: string | null;
+  calculated: boolean;
+}
+
+export function finishCalculation(expression: string, history: string[]): FinishedCalculation {
+  const result = String(calculate(expression));
+  return {
+    expression: result,
+    history,
+    pendingRecord: `${expression} = ${result}`,
+    calculated: true,
+  };
+}
+
+export function startNextCalculation(state: FinishedCalculation, value: string): FinishedCalculation {
+  return {
+    expression: appendCalculatorInput(state.expression, value, state.calculated),
+    history: state.pendingRecord ? [...state.history, state.pendingRecord].slice(-2) : state.history,
+    pendingRecord: null,
+    calculated: false,
+  };
+}

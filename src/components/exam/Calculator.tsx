@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { appendCalculatorInput, calculate } from "./calculatorLogic";
+import { appendCalculatorInput, finishCalculation, startNextCalculation } from "./calculatorLogic";
 
 function CalcButton({
   label,
@@ -27,6 +27,7 @@ export default function Calculator() {
   const [expression, setExpression] = useState("0");
   const [history, setHistory] = useState<string[]>([]);
   const [justCalculated, setJustCalculated] = useState(false);
+  const [pendingRecord, setPendingRecord] = useState<string | null>(null);
   const displayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,30 +37,39 @@ export default function Calculator() {
 
   const input = useCallback(
     (value: string) => {
-      setExpression((current) => {
-        return appendCalculatorInput(current, value, justCalculated);
-      });
+      if (justCalculated) {
+        const next = startNextCalculation(
+          { expression, history, pendingRecord, calculated: true },
+          value
+        );
+        setExpression(next.expression);
+        setHistory(next.history);
+        setPendingRecord(null);
+      } else {
+        setExpression(appendCalculatorInput(expression, value, false));
+      }
       setJustCalculated(false);
     },
-    [justCalculated]
+    [expression, history, justCalculated, pendingRecord]
   );
 
   const equals = useCallback(() => {
-    setExpression((current) => {
-      try {
-        const result = String(calculate(current));
-        setHistory((items) => [`${current} = ${result}`, ...items].slice(0, 2));
-        return result;
-      } catch {
-        return "오류";
-      }
-    });
+    if (justCalculated) return;
+    try {
+      const finished = finishCalculation(expression, history);
+      setExpression(finished.expression);
+      setPendingRecord(finished.pendingRecord);
+    } catch {
+      setExpression("오류");
+      setPendingRecord(null);
+    }
     setJustCalculated(true);
-  }, []);
+  }, [expression, history, justCalculated]);
 
   const clear = useCallback(() => {
     setExpression("0");
     setJustCalculated(false);
+    setPendingRecord(null);
   }, []);
 
   useEffect(() => {
