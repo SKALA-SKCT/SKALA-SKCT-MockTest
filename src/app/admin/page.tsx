@@ -96,6 +96,8 @@ function normalizeTab(value: string | undefined) {
   return value === "users" || value === "analytics" || value === "reports" ? value : "stats";
 }
 
+const REPORT_REASONS = ["문제 내용 오류", "정답 오류", "해설 오류", "이미지·표시 오류", "기타"];
+
 function campusLabel(value: string | null) {
   return value ?? "미지정";
 }
@@ -114,6 +116,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const campusFilter = firstParam(params.campus) ?? "all";
   const classFilter = firstParam(params.classNumber) ?? "all";
   const roleFilter = firstParam(params.role) ?? "all";
+  const reportStatusFilter = firstParam(params.reportStatus) ?? "all";
+  const reportReasonFilter = firstParam(params.reportReason) ?? "all";
+  const reportSubjectFilter = firstParam(params.reportSubject) ?? "all";
   const selectedUserId = Number(firstParam(params.userId) ?? "");
 
   const [examList, userRows, attemptRows, questionTotals, reportRows] = await Promise.all([
@@ -165,7 +170,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       number: questions.number,
       subject: questions.subject,
       examTitle: exams.title,
-      reporter: users.nickname,
+      reporterNickname: users.nickname,
+      reporterName: users.name,
+      reporterCampus: users.campus,
+      reporterClassNumber: users.classNumber,
     }).from(questionReports)
       .innerJoin(questions, eq(questions.id, questionReports.questionId))
       .innerJoin(exams, eq(exams.id, questions.examId))
@@ -478,6 +486,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     return `/admin?${nextParams.toString()}`;
   };
 
+  const filteredReports = reportRows.filter((report) => {
+    if (reportStatusFilter !== "all" && report.status !== reportStatusFilter) return false;
+    if (reportReasonFilter !== "all" && !report.reasons.includes(reportReasonFilter)) return false;
+    if (reportSubjectFilter !== "all" && report.subject !== reportSubjectFilter) return false;
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -538,7 +553,31 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       {activeTab === "reports" ? (
         <section className="space-y-3">
           <div><h2 className="text-xl font-black text-ink">문항 신고</h2><p className="mt-1 text-sm text-ink-3">신고 내용을 펼쳐 확인하고 처리 상태를 변경합니다.</p></div>
-          {reportRows.length ? reportRows.map((report) => (
+          <form className="chart-card flex flex-wrap items-end gap-3 p-4" method="get">
+            <input type="hidden" name="tab" value="reports" />
+            <label className="grid min-w-36 gap-1.5 text-xs font-bold text-zinc-500">
+              처리 상태
+              <select name="reportStatus" defaultValue={reportStatusFilter} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 outline-none focus:border-zinc-400">
+                <option value="all">전체</option><option value="pending">대기중</option><option value="resolved">처리</option><option value="rejected">반려</option>
+              </select>
+            </label>
+            <label className="grid min-w-40 gap-1.5 text-xs font-bold text-zinc-500">
+              신고 사유
+              <select name="reportReason" defaultValue={reportReasonFilter} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 outline-none focus:border-zinc-400">
+                <option value="all">전체</option>{REPORT_REASONS.map((reason) => <option key={reason} value={reason}>{reason}</option>)}
+              </select>
+            </label>
+            <label className="grid min-w-36 gap-1.5 text-xs font-bold text-zinc-500">
+              영역
+              <select name="reportSubject" defaultValue={reportSubjectFilter} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 outline-none focus:border-zinc-400">
+                <option value="all">전체</option>{SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+              </select>
+            </label>
+            <button className="rounded-lg bg-ink px-4 py-2 text-sm font-bold text-white hover:bg-brand">필터 적용</button>
+            <Link href="/admin?tab=reports" className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-500 hover:bg-zinc-50">초기화</Link>
+            <span className="ml-auto pb-2 text-xs font-semibold text-zinc-400">{filteredReports.length}건</span>
+          </form>
+          {filteredReports.length ? filteredReports.map((report) => (
             <details key={report.id} className="chart-card overflow-hidden" open={report.status === "pending"}>
               <summary className="flex cursor-pointer items-center gap-3 px-5 py-4 text-sm">
                 <span className={`rounded-full px-2 py-1 text-xs font-bold ${report.status === "pending" ? "bg-amber-50 text-amber-700" : report.status === "resolved" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{report.status === "pending" ? "대기중" : report.status === "resolved" ? "처리" : "반려"}</span>
@@ -546,10 +585,18 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <span className="text-zinc-500">{report.reasons.join(", ")}</span>
                 <span className="ml-auto text-xs text-zinc-400">{formatDate(report.createdAt)}</span>
               </summary>
-              <div className="border-t border-hairline bg-zinc-50/60 px-5 py-4">
-                <p className="text-sm leading-6 text-zinc-700">{report.detail || "추가 설명 없음"}</p>
-                <p className="mt-2 text-xs text-zinc-400">신고자 {report.reporter} · 문항 ID {report.questionId}</p>
-                <form action={updateQuestionReportStatus} className="mt-4 flex gap-2">
+              <div className="flex flex-col gap-4 border-t border-hairline bg-zinc-50/60 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-sm leading-6 text-zinc-700">{report.detail || "추가 설명 없음"}</p>
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                    <span>이름 <b className="text-zinc-700">{report.reporterName}</b></span>
+                    <span>아이디 <b className="text-zinc-700">{report.reporterNickname}</b></span>
+                    <span>캠퍼스 <b className="text-zinc-700">{campusLabel(report.reporterCampus)}</b></span>
+                    <span>반 <b className="text-zinc-700">{report.reporterClassNumber == null ? "미지정" : `${report.reporterClassNumber}반`}</b></span>
+                    <span>문항 ID <b className="text-zinc-700">{report.questionId}</b></span>
+                  </div>
+                </div>
+                <form action={updateQuestionReportStatus} className="flex shrink-0 justify-end gap-2">
                   <input type="hidden" name="reportId" value={report.id} />
                   <button name="status" value="resolved" className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">처리</button>
                   <button name="status" value="pending" className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-bold text-amber-700">대기중</button>
@@ -557,7 +604,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 </form>
               </div>
             </details>
-          )) : <div className="chart-card px-6 py-14 text-center text-sm text-zinc-400">접수된 신고가 없습니다.</div>}
+          )) : <div className="chart-card px-6 py-14 text-center text-sm text-zinc-400">조건에 맞는 신고가 없습니다.</div>}
         </section>
       ) : activeTab === "stats" ? (
         <>

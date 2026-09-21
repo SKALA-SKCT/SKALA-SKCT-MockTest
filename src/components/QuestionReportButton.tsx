@@ -10,12 +10,13 @@ export default function QuestionReportButton({ examId, questionId, placement = "
   const [reasons, setReasons] = useState<string[]>([]);
   const [detail, setDetail] = useState("");
   const [message, setMessage] = useState("");
+  const [successOpen, setSuccessOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const submit = () => startTransition(async () => {
     const result = await submitQuestionReport({ examId, questionId, reasons, detail });
     if (!result.ok) return setMessage(result.error ?? "신고를 접수하지 못했습니다.");
-    setMessage(""); setOpen(false); setReasons([]); setDetail("");
+    setMessage(""); setOpen(false); setReasons([]); setDetail(""); setSuccessOpen(true);
   });
 
   return <>
@@ -45,6 +46,14 @@ export default function QuestionReportButton({ examId, questionId, placement = "
         </label>
         {message && <p className="mt-2 text-xs font-semibold text-red-600">{message}</p>}
         <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-600">취소</button><button type="button" disabled={pending} onClick={submit} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{pending ? "접수 중..." : "신고 접수"}</button></div>
+      </div>
+    </div>}
+    {successOpen && <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/40 px-4" onMouseDown={(event) => event.target === event.currentTarget && setSuccessOpen(false)}>
+      <div role="alertdialog" aria-modal="true" aria-labelledby={`report-success-title-${questionId}`} className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 text-center shadow-2xl">
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-xl text-red-600">✓</div>
+        <h2 id={`report-success-title-${questionId}`} className="mt-4 text-lg font-black text-zinc-900">신고되었습니다.</h2>
+        <p className="mt-2 text-sm leading-6 text-zinc-500">확인 후 빠른 시일 내에 수정하겠습니다.</p>
+        <button type="button" onClick={() => setSuccessOpen(false)} className="mt-5 w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600">확인</button>
       </div>
     </div>}
   </>;
