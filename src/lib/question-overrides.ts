@@ -1907,15 +1907,6 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
     ],
     "explanation": "6명의 발표 순서를 정하는 전체 경우의 수는 6! = 6 × 5 × 4 × 3 × 2 × 1 = 720가지이다. B가 첫 번째로 발표하지 않고, F가 마지막으로 발표하지 않는 경우의 수는 전체 경우의 수에서 B가 첫 번째로 발표하는 경우의 수와 F가 마지막으로 발표하는 경우의 수를 제외하고, B가 첫 번째로 발표하고 F가 마지막으로 발표하는 경우의 수를 추가하면 구할 수 있다. B가 첫 번째로 발표하는 경우의 수는 5! = 120가지, F가 마지막으로 발표하는 경우의 수는 5! = 120가지, B가 첫 번째로 발표하고 F가 마지막으로 발표하는 경우의 수는 4! = 24가지이다. 따라서 B가 첫 번째로 발표하지 않고 F가 마지막으로 발표하지 않는 경우의 수는 720 - (120 + 120) + 24 = 504가지이고, 확률은 504/720 = 7/10이다. 따라서 정답은 ④이다."
   },
-  "1:73": {
-    "supplementImageUrl": "/exam-assets/overrides/round-1/q-73.png"
-  },
-  "1:76": {
-    "supplementImageUrl": "/exam-assets/overrides/round-1/q-76.png"
-  },
-  "1:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-1/q-78.png"
-  },
   "2:72": {
     "supplementImageUrl": undefined
   },
@@ -1924,18 +1915,6 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
   },
   "2:80": {
     "supplementImageUrl": undefined
-  },
-  "3:69": {
-    "supplementImageUrl": "/exam-assets/overrides/round-3/q-69.png"
-  },
-  "3:72": {
-    "supplementImageUrl": "/exam-assets/overrides/round-3/q-72.png"
-  },
-  "3:75": {
-    "supplementImageUrl": "/exam-assets/overrides/round-3/q-75.png"
-  },
-  "3:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-3/q-78.png"
   },
   "4:62": {
     "supplementImageUrl": "/exam-assets/overrides/round-4/q-62.png"

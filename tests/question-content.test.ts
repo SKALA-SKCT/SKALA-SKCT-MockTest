@@ -120,7 +120,7 @@ test("2회차 창의수리의 누락 수식·본문·선지를 원본대로 복�
   assert.ok(pdfText["2:46"].body.includes("10%가 될 때까지"));
   assert.ok(pdfText["2:53"].body.includes("길이가 8km이다."));
   assert.ok(pdfText["2:56"].body.endsWith("몇 m인가?"));
-  assert.equal(pdfText["2:57"].choices[2], "330개");
+  assert.equal(pdfText["2:57"].choices[2], "360개"); // PDF 300dpi 재판독: ③은 360개
   assert.ok(pdfText["2:55"].explanation.includes("(5,000 − 500) + 330"));
   assert.ok(pdfText["2:58"].explanation.includes("₇C₁ × ₆C₂ × ₄C₂ × ₂C₂"));
 });
@@ -749,4 +749,33 @@ test("PDF 대조로 바로잡은 10~12회차 선지를 유지한다", () => {
   assert.deepEqual(pdfText["12:84"].choices, ["1 5/17", "1 6/17", "1 5/16", "1 3/8", "1 7/16"]);
   assert.equal(pdfText["12:9"].choices[4], "(다) - (라) - (마) - (가) - (나)");
   assert.equal(pdfText["8:28"].choices[1], "㉠, ㉢");
+});
+
+test("1~12회차 1,200문항의 복원 해설은 모두 PDF 정답 문장으로 끝난다", () => {
+  const circled = ["①", "②", "③", "④", "⑤"];
+  let checked = 0;
+  for (const [key, entry] of Object.entries(pdfText as Record<string, { explanation?: string }>)) {
+    if (!entry.explanation) continue;
+    checked += 1;
+    assert.ok(
+      circled.some((mark) => entry.explanation!.replace(/\s/g, "").includes(`정답은${mark}이다`)),
+      `${key} 해설이 정답 문장으로 끝나지 않음`,
+    );
+  }
+  assert.ok(checked > 1000, `복원 해설 수가 부족함: ${checked}`);
+});
+
+test("PDF 재판독으로 바로잡은 1~7회차 선지를 유지한다", () => {
+  assert.equal(pdfText["1:34"].choices[2], "2018~2021년 내내 제조업 근로자수의 전년 대비 증감 추이와 운수·창고 및 통신업은 정반대이다.");
+  assert.equal(pdfText["1:38"].choices[2], "2022년 S사 자회사 중 소각·매립 처리량이 재활용 처리량보다 많은 자회사는 2개이다.");
+  assert.deepEqual(pdfText["4:85"].choices, ["15 1/32", "15 1/31", "16 1/32", "16 1/31", "16 1/30"]);
+  assert.equal(pdfText["7:83"].choices[4], "1/3");
+});
+
+test("중복 캡처였던 언어추리 보충 이미지는 더 이상 참조하지 않는다", () => {
+  for (const key of ["1:73", "1:76", "1:78", "3:69", "3:72", "3:75", "3:78"]) {
+    const [round, number] = key.split(":").map(Number);
+    const q = applyQuestionContentOverride(round, { number, body: "", choices: [] as string[], answer: 1 });
+    assert.equal(q.supplementImageUrl, undefined, key);
+  }
 });
