@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
   attempts,
+  questionReports,
   responses,
   users,
 } from "@/db/schema";
@@ -12,6 +13,17 @@ import { requireAdmin } from "@/lib/session";
 
 function validateEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export async function updateQuestionReportStatus(formData: FormData) {
+  await requireAdmin();
+  const reportId = normalizeId(formData, "reportId");
+  const status = String(formData.get("status"));
+  if (status !== "pending" && status !== "resolved" && status !== "rejected") {
+    throw new Error("잘못된 신고 상태입니다.");
+  }
+  await db.update(questionReports).set({ status, updatedAt: new Date() }).where(eq(questionReports.id, reportId));
+  revalidatePath("/admin");
 }
 
 function normalizeId(formData: FormData, key: string) {

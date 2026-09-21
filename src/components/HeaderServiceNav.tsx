@@ -5,9 +5,11 @@ import Link from "next/link";
 export default function HeaderServiceNav({
   motherUrl,
   practiceUrl,
+  communityUrl,
 }: {
   motherUrl: string;
   practiceUrl: string;
+  communityUrl: string;
 }) {
   return (
     <div className="flex items-center gap-[34px] text-[16px] font-normal leading-[1.7]">
@@ -30,6 +32,7 @@ export default function HeaderServiceNav({
       >
         유형별 문제 연습
       </a>
+      <a href={communityUrl} className="text-ink transition-colors hover:text-brand">공지 게시판</a>
     </div>
   );
 }

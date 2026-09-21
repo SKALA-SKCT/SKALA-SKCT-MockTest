@@ -6,6 +6,7 @@ import {
   CAMPUSES,
   exams,
   questions,
+  questionReports,
   responses,
   SUBJECTS,
   users,
@@ -16,6 +17,7 @@ import AdminAnalytics from "@/components/AdminAnalytics";
 import AccountInfoForm from "@/components/AccountInfoForm";
 import AdminUserModal from "@/components/AdminUserModal";
 import AttemptDeleteForm from "@/components/AttemptDeleteForm";
+import { updateQuestionReportStatus } from "@/lib/actions/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +92,7 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 function normalizeTab(value: string | undefined) {
-  return value === "users" || value === "analytics" ? value : "stats";
+  return value === "users" || value === "analytics" || value === "reports" ? value : "stats";
 }
 
 function campusLabel(value: string | null) {
@@ -112,7 +114,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const roleFilter = firstParam(params.role) ?? "all";
   const selectedUserId = Number(firstParam(params.userId) ?? "");
 
-  const [examList, userRows, attemptRows, questionTotals] = await Promise.all([
+  const [examList, userRows, attemptRows, questionTotals, reportRows] = await Promise.all([
     db.select().from(exams).orderBy(asc(exams.createdAt)),
     db
       .select({
@@ -151,6 +153,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       })
       .from(questions)
       .groupBy(questions.examId, questions.subject),
+    db.select({
+      id: questionReports.id,
+      reasons: questionReports.reasons,
+      detail: questionReports.detail,
+      status: questionReports.status,
+      createdAt: questionReports.createdAt,
+      questionId: questions.id,
+      number: questions.number,
+      subject: questions.subject,
+      examTitle: exams.title,
+      reporter: users.nickname,
+    }).from(questionReports)
+      .innerJoin(questions, eq(questions.id, questionReports.questionId))
+      .innerJoin(exams, eq(exams.id, questions.examId))
+      .innerJoin(users, eq(users.id, questionReports.reporterId))
+      .orderBy(desc(questionReports.createdAt)),
   ]);
 
   const finishedAttemptIds = attemptRows
@@ -505,9 +523,41 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         >
           분석
         </Link>
+        <Link
+          href="/admin?tab=reports"
+          className={`border-b-2 px-4 py-3 text-sm font-bold transition ${
+            activeTab === "reports" ? "border-brand text-brand" : "border-transparent text-ink-3 hover:text-ink"
+          }`}
+        >
+          신고 {reportRows.filter((report) => report.status === "pending").length > 0 && <span className="ml-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] text-red-600">{reportRows.filter((report) => report.status === "pending").length}</span>}
+        </Link>
       </nav>
 
-      {activeTab === "stats" ? (
+      {activeTab === "reports" ? (
+        <section className="space-y-3">
+          <div><h2 className="text-xl font-black text-ink">문항 신고</h2><p className="mt-1 text-sm text-ink-3">신고 내용을 펼쳐 확인하고 처리 상태를 변경합니다.</p></div>
+          {reportRows.length ? reportRows.map((report) => (
+            <details key={report.id} className="chart-card overflow-hidden" open={report.status === "pending"}>
+              <summary className="flex cursor-pointer items-center gap-3 px-5 py-4 text-sm">
+                <span className={`rounded-full px-2 py-1 text-xs font-bold ${report.status === "pending" ? "bg-amber-50 text-amber-700" : report.status === "resolved" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{report.status === "pending" ? "대기중" : report.status === "resolved" ? "처리" : "반려"}</span>
+                <b>{report.examTitle} · {report.subject} {report.number}번</b>
+                <span className="text-zinc-500">{report.reasons.join(", ")}</span>
+                <span className="ml-auto text-xs text-zinc-400">{formatDate(report.createdAt)}</span>
+              </summary>
+              <div className="border-t border-hairline bg-zinc-50/60 px-5 py-4">
+                <p className="text-sm leading-6 text-zinc-700">{report.detail || "추가 설명 없음"}</p>
+                <p className="mt-2 text-xs text-zinc-400">신고자 {report.reporter} · 문항 ID {report.questionId}</p>
+                <form action={updateQuestionReportStatus} className="mt-4 flex gap-2">
+                  <input type="hidden" name="reportId" value={report.id} />
+                  <button name="status" value="resolved" className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">처리</button>
+                  <button name="status" value="pending" className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-bold text-amber-700">대기중</button>
+                  <button name="status" value="rejected" className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-600">반려</button>
+                </form>
+              </div>
+            </details>
+          )) : <div className="chart-card px-6 py-14 text-center text-sm text-zinc-400">접수된 신고가 없습니다.</div>}
+        </section>
+      ) : activeTab === "stats" ? (
         <>
       <section className="grid grid-cols-2 gap-4 xl:grid-cols-6">
         {overallTiles.map((tile) => (

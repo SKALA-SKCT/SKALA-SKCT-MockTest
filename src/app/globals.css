@@ -181,21 +181,12 @@ details[open] .review-chevron {
   padding-right: 40px !important;
 }
 
-.mobile-viewport-guard {
-  display: none;
-}
+.mobile-viewport-guard { display: none; }
 
-@media (max-width: 1023px) {
-  .desktop-app-shell {
-    display: none !important;
-  }
-
-  .mobile-viewport-guard {
-    display: flex;
-    min-height: 100vh;
-    width: 100%;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-  }
+@media (max-width: 760px) {
+  .mocktest-question-content { display: none; }
+  .mocktest-choice-list { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .mocktest-choice { display: grid; min-height: 52px; place-items: center; padding: 8px !important; text-align: center !important; }
+  .mocktest-choice-label { margin: 0 !important; font-size: 20px; }
+  .mocktest-choice-text { display: none; }
 }

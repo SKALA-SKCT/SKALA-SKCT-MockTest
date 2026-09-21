@@ -34,6 +34,12 @@ export const tokenPurpose = pgEnum("token_purpose", [
   "password_reset",
 ]);
 
+export const reportStatus = pgEnum("question_report_status", [
+  "pending",
+  "resolved",
+  "rejected",
+]);
+
 export type SectionState = Partial<
   Record<Subject, { startedAt: string; finishedAt?: string }>
 >;
@@ -51,7 +57,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}).enableRLS();
 
 export const authTokens = pgTable(
   "auth_tokens",
@@ -72,7 +78,7 @@ export const authTokens = pgTable(
     index("idx_auth_tokens_user_purpose").on(t.userId, t.purpose),
     index("idx_auth_tokens_email_purpose").on(t.email, t.purpose),
   ]
-);
+).enableRLS();
 
 export const exams = pgTable("exams", {
   id: serial("id").primaryKey(),
@@ -82,7 +88,7 @@ export const exams = pgTable("exams", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}).enableRLS();
 
 export const questions = pgTable(
   "questions",
@@ -103,7 +109,7 @@ export const questions = pgTable(
     uniqueIndex("uq_question").on(t.examId, t.subject, t.number),
     index("idx_question_exam").on(t.examId),
   ]
-);
+).enableRLS();
 
 export const attempts = pgTable(
   "attempts",
@@ -126,7 +132,7 @@ export const attempts = pgTable(
     index("idx_attempt_user_exam").on(t.userId, t.examId),
     index("idx_attempt_exam_finished").on(t.examId, t.finishedAt),
   ]
-);
+).enableRLS();
 
 export const responses = pgTable(
   "responses",
@@ -148,7 +154,34 @@ export const responses = pgTable(
     uniqueIndex("uq_response").on(t.attemptId, t.questionId),
     index("idx_response_question").on(t.questionId),
   ]
-);
+).enableRLS();
+
+export const questionReports = pgTable(
+  "question_reports",
+  {
+    id: serial("id").primaryKey(),
+    questionId: integer("question_id")
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    reporterId: integer("reporter_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reasons: jsonb("reasons").$type<string[]>().notNull(),
+    detail: text("detail"),
+    status: reportStatus("status").notNull().default("pending"),
+    adminNote: text("admin_note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_question_reports_status").on(t.status, t.createdAt),
+    index("idx_question_reports_question").on(t.questionId),
+  ]
+).enableRLS();
 
 export type AttemptResultSnapshot = {
   totalScore: number;
@@ -194,4 +227,4 @@ export const attemptResults = pgTable(
     index("idx_attempt_results_total").on(t.totalScore),
     index("idx_attempt_results_updated").on(t.updatedAt),
   ]
-);
+).enableRLS();

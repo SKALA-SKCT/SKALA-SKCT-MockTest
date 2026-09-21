@@ -541,8 +541,8 @@ export default function ExamRunner({
   return (
     <>
       <div className="sticky top-0 z-50 mb-5 border-b border-zinc-200 bg-page/95 backdrop-blur">
-        <div className="mx-auto grid h-16 w-[min(1200px,calc(100vw-48px))] grid-cols-[1fr_auto_1fr] items-center">
-          <p className="justify-self-start text-sm font-bold text-zinc-800">
+        <div className="mx-auto grid h-16 w-[min(1200px,calc(100vw-32px))] grid-cols-[1fr_auto_1fr] items-center gap-2 max-[640px]:grid-cols-[1fr_auto]">
+          <p className="truncate justify-self-start text-sm font-bold text-zinc-800 max-[640px]:hidden">
             {examTitle}
           </p>
           <div className={`text-center ${urgent ? "text-brand" : "text-zinc-900"}`}>
@@ -551,7 +551,7 @@ export default function ExamRunner({
               {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
             </p>
           </div>
-          <div className="justify-self-end">
+          <div className="justify-self-end max-[640px]:col-start-2">
             <div className="flex items-center rounded-lg border border-zinc-200 bg-white p-0.5">
               <button
                 type="button"
@@ -580,12 +580,12 @@ export default function ExamRunner({
       </div>
 
       <div
-        className="mx-auto grid w-[min(1200px,calc(100vw-48px))] origin-top grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_400px] md:items-start"
+        className="mx-auto grid w-[min(1200px,calc(100vw-32px))] origin-top grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start max-[640px]:w-full"
         style={{ zoom: `${zoom}%` }}
       >
         {/* 왼쪽: 문제 영역 */}
         <div className="min-w-0 flex-1">
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm max-[760px]:p-3">
           <div className="mb-3 flex items-baseline">
             <p className="text-sm font-bold text-red-600">
               {currentSubject} 영역 {idx + 1}{" "}
@@ -599,7 +599,7 @@ export default function ExamRunner({
               {notice}
             </div>
           )}
-          <div className="rounded-xl bg-zinc-50 px-4 py-4">
+          <div className="mocktest-question-content rounded-xl bg-zinc-50 px-4 py-4">
             <p className="whitespace-pre-line text-[15px] font-bold leading-7 text-zinc-900 [overflow-wrap:anywhere]">
               {questionPrompt}
             </p>
@@ -616,7 +616,7 @@ export default function ExamRunner({
             <img
               src={q.imageUrl}
               alt="문제 이미지"
-              className="mt-3 max-w-full rounded-lg border"
+              className="mocktest-question-content mt-3 max-w-full rounded-lg border"
             />
           )}
           {supplementImageUrl && (
@@ -624,10 +624,10 @@ export default function ExamRunner({
             <img
               src={supplementImageUrl}
               alt="문제 조건"
-              className="mt-3 max-w-full rounded-lg border border-zinc-200 bg-white"
+              className="mocktest-question-content mt-3 max-w-full rounded-lg border border-zinc-200 bg-white"
             />
           )}
-          <div className="mt-5 flex flex-col gap-2">
+          <div className="mocktest-choice-list mt-5 flex flex-col gap-2 max-[760px]:mt-3">
             {displayChoices.map((c, i) => {
               const num = i + 1;
               const selected = answers[q.id] === num;
@@ -635,14 +635,14 @@ export default function ExamRunner({
                 <button
                   key={i}
                   onClick={() => select(num)}
-                  className={`rounded-lg border px-4 py-2.5 text-left text-sm transition ${
+                  className={`mocktest-choice rounded-lg border px-4 py-2.5 text-left text-sm transition ${
                     selected
                       ? "border-red-500 bg-red-50 font-semibold text-red-700"
                       : "border-zinc-200 hover:border-zinc-400"
                   }`}
                 >
-                  <span className="mr-2">{CIRCLED[i]}</span>
-                  {c.replace(/^[①②③④⑤]\s*/, "")}
+                  <span className="mocktest-choice-label mr-2">{CIRCLED[i]}</span>
+                  <span className="mocktest-choice-text">{c.replace(/^[①②③④⑤]\s*/, "")}</span>
                 </button>
               );
             })}
@@ -663,7 +663,7 @@ export default function ExamRunner({
       </div>
 
       {/* 오른쪽: 실제 시험처럼 고정 도구 패널 */}
-      <aside className="w-full md:sticky md:top-20">
+      <aside className="w-full lg:sticky lg:top-20">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3">
             <MemoPad key={`memo:${q.id}`} resetKey={q.id} />

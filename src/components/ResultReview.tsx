@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import ResultReviewChatbot from "@/components/ResultReviewChatbot";
+import ResultReviewTools from "@/components/ResultReviewTools";
+import QuestionReportButton from "@/components/QuestionReportButton";
 import { applyQuestionContentOverride } from "@/lib/question-overrides";
 import {
   formatReviewExplanation,
@@ -166,10 +167,14 @@ function QuestionCard({
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+        <QuestionReportButton examId={examId} questionId={question.id} />
         <span className="font-semibold text-zinc-500">
           {question.subject} {localNumber}번
         </span>
         <ResultPill question={question} />
+        <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-semibold tabular-nums text-zinc-500">
+          {formatElapsedSeconds(question.elapsedSeconds)}
+        </span>
         <span className="ml-auto font-medium">
           <WrongRate value={question.peerWrongRate} />
         </span>
@@ -530,7 +535,7 @@ export default function ResultReview({
             </div>
           </div>
 
-          <ResultReviewChatbot
+          <ResultReviewTools
             examId={examId}
             questions={questions}
             participantCount={participantCount}

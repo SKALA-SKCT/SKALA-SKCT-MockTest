@@ -56,6 +56,7 @@ export default async function RootLayout({
   const motherUrl = getMotherUrl();
   const practiceUrl =
     process.env.NEXT_PUBLIC_PRACTICE_URL ?? "https://practice.skala-skct.com";
+  const communityUrl = process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "https://community.skala-skct.com";
 
   return (
     <html lang="ko" className="h-full antialiased">
@@ -88,14 +89,11 @@ export default async function RootLayout({
         <div className="desktop-app-shell flex min-h-full flex-col">
           {user && (
             <header className="app-header sticky top-0 z-[60] bg-[rgba(250,250,249,0.72)] [backdrop-filter:blur(18px)_saturate(160%)] [transition:background-color_0.3s_ease]">
-              <nav className="mx-auto grid h-[68px] w-[min(1200px,calc(100vw-48px))] grid-cols-[1fr_auto_1fr] items-center gap-6">
+              <nav className="mx-auto grid h-[68px] w-[min(1200px,calc(100vw-32px))] grid-cols-[1fr_auto_1fr] items-center gap-6 max-[980px]:grid-cols-[1fr_auto]">
                 <Link href="/" className="flex items-center justify-self-start">
                   <BrandMark />
                 </Link>
-                <HeaderServiceNav
-                  motherUrl={motherUrl}
-                  practiceUrl={practiceUrl}
-                />
+                <div className="max-[980px]:hidden"><HeaderServiceNav motherUrl={motherUrl} practiceUrl={practiceUrl} communityUrl={communityUrl} /></div>
                 <div className="flex items-center justify-self-end gap-2">
                   {user.isAdmin && (
                     <Link
@@ -113,24 +111,9 @@ export default async function RootLayout({
               </nav>
             </header>
           )}
-          <main className="app-main mx-auto w-full max-w-[1248px] flex-1 px-6 py-5">
+          <main className="app-main mx-auto w-full max-w-[1248px] flex-1 px-6 py-5 max-[640px]:px-3">
             {children}
           </main>
-        </div>
-        <div className="mobile-viewport-guard">
-          <section className="w-full max-w-sm rounded-2xl border border-hairline bg-surface p-7 text-center shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">
-              Desktop Only
-            </p>
-            <h1 className="mt-3 text-2xl font-black text-ink">
-              데스크탑에서 이용해주세요.
-            </h1>
-            <p className="mt-4 text-sm leading-6 text-ink-2">
-              SKCT 모의고사는 문제 풀이와 결과 분석을 정확하게 보여주기 위해
-              데스크탑 화면에 맞춰 제공됩니다. 노트북 또는 데스크탑 브라우저로
-              접속해주세요.
-            </p>
-          </section>
         </div>
       </body>
     </html>
