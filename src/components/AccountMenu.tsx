@@ -147,7 +147,7 @@ export default function AccountMenu({
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
-          className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-page focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+          className="min-h-[34px] rounded-[10px] border border-hairline bg-surface px-[13px] py-[7px] text-sm font-semibold leading-none text-ink transition hover:bg-page focus:outline-none focus-visible:outline-none focus-visible:ring-0"
         >
           {name}님
         </button>
