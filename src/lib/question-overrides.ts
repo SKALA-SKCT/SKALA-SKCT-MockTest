@@ -522,42 +522,6 @@ export const questionContentOverrides: Record<string, QuestionContentOverride> =
   "4:45": {
     "supplementImageUrl": "/exam-assets/overrides/round-4/q-45.png"
   },
-  "4:61": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-61.png"
-  },
-  "4:63": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-63.png"
-  },
-  "4:65": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-65.png"
-  },
-  "4:66": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-66.png"
-  },
-  "4:67": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-67.png"
-  },
-  "4:69": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-69.png"
-  },
-  "4:70": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-70.png"
-  },
-  "4:73": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-73.png"
-  },
-  "4:74": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-74.png"
-  },
-  "4:75": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-75.png"
-  },
-  "4:77": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-77.png"
-  },
-  "4:79": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-79.png"
-  },
   "5:1": {
     "body": textBlock(`다음 글의 주제로 가장 적절한 것은?
 
@@ -746,41 +710,8 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
   "5:64": {
     "body": "다음 제시된 전제가 모두 참일 때, 전제들을 통해 내린 결론으로 옳은 것은?\n\n<전제>\nㄱ. 연필을 사지 않으면 지우개를 산다.\nㄴ. 볼펜을 사지 않으면 지우개를 사지 않는다.\nㄷ. 연필을 사면 가위를 사지 않는다.\nㄹ. 풀을 사지 않으면 볼펜을 사지 않는다.\nㅁ. 가위를 산다."
   },
-  "5:65": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-65.png"
-  },
-  "5:66": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-66.png"
-  },
-  "5:67": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-67.png"
-  },
-  "5:68": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-68.png"
-  },
-  "5:69": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-69.png"
-  },
-  "5:70": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-70.png"
-  },
-  "5:71": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-71.png"
-  },
-  "5:72": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-72.png"
-  },
-  "5:73": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-73.png"
-  },
-  "5:74": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-74.png"
-  },
   "5:75": {
     "supplementImageUrl": "/exam-assets/overrides/round-5/q-75.png"
-  },
-  "5:76": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-76.png"
   },
   "5:88": {
     "choices": ["19/6", "7/2", "23/6", "4", "25/6"]
@@ -874,42 +805,6 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
   },
   "6:64": {
     "body": "다음 제시된 전제가 모두 참일 때, 전제들을 통해 내린 결론으로 옳은 것은?\n\n<전제>\nㄱ. 치킨을 먹지 않으면 파스타를 먹는다.\nㄴ. 돈가스를 먹으면 파스타를 먹지 않는다.\nㄷ. 피자를 먹으면 냉면을 먹지 않는다.\nㄹ. 치킨을 먹으면 피자를 먹는다.\nㅁ. 냉면을 먹는다."
-  },
-  "6:65": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-65.png"
-  },
-  "6:66": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-66.png"
-  },
-  "6:67": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-67.png"
-  },
-  "6:68": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-68.png"
-  },
-  "6:69": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-69.png"
-  },
-  "6:70": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-70.png"
-  },
-  "6:71": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-71.png"
-  },
-  "6:72": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-72.png"
-  },
-  "6:73": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-73.png"
-  },
-  "6:74": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-74.png"
-  },
-  "6:75": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-75.png"
-  },
-  "6:76": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-76.png"
   },
   "7:1": {
     "body": "다음 글의 내용과 일치하는 것은?\n\n19세기 중반, 유럽에서 전쟁과 경제 위기가 이어지면서 많은 이민자들이 더 나은 삶을\n로 향했다. 그중 상당수가 영국의 식민지였던 호주에 도착하였고, 특히 빅토리아 주에 정\n시 호주는 교통이 불편하고 기후도 낯설어 이민자들에게 기피되는 지역이었으나, 금의 발\n을 완전히 뒤바꾸는 계기가 되었다. 1851년 6월, 빅토리아 주의 클루니 근처에서 아일랜드\n임스 에스먼드가 금을 발견하면서 골드 러시가 시작되었다. 당시 20대 후반이었던 광부\n발견을 당국에 신고하였고, 이후 밸러랫과 벤디고 등 다른 지역에서도 금광이 발견되면서\n자들이 몰려들었다. 이러한 금광 발견은 호주의 경제를 크게 변화시켰으며, 멜버른을 중심\n가 빠르게 진행되었다. 한편, 유럽계 이민자들의 대규모 유입과 광산 개발은 원주민 사회\n주었다. 원주민들은 수천 년간 이어온 삶의 터전을 무단 점령당했고, 일부 지역에서는 폭터\n발생하기도 했다. 당시 빅토리아 주 정부는 금광 개발을 장려하며, 금을 발견한 이에게 한\n하는 제도를 시행하기도 했다. 이러한 조치들은 골드 러시에 대한 열기를 더욱 부추겼고,\n지에서 산업국가로의 도시화를 맞이하게 되었다."
@@ -1070,36 +965,6 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
   "7:20": {
     "body": "다음 글의 ㉠과 ㉡에 대해 추론한 내용으로 옳은 것은?\n\n전통적인 마케팅 전략인 4P(Product, Price, Place, Promotion)는 기업이 주도적\n설계하고, 가격을 책정하며, 유통 경로를 정하고, 광고 및 판촉 활동을 통해 소비자에게\n적으로 전달하는 방식이다. 기업은 시장 세분화와 목표 설정, 포지셔닝(Positioning)을\n비자증을 겨냥한 제품을 만들고, 적정 가격을 정한 뒤, 유통망을 통해 제품을 공급하\n벤트 등으로 구매를 유도한다. 그러나 이러한 4P는 기업의 입장에서 구성된 전략으로,\n구보다는 기업의 효율성과 수익성을 우선시한다는 한계가 있다. 이에 대해 피터 드러커\n략을 소비자 중심으로 전환해야 한다고 주장하며, CAC(Customer Benefit, Cost, Ca\nCommunication)를 제안하였다. 4C는 기업이 일방적으로 제품을 제공하는 것이 이\n가 느끼는 혜택(Customer Benefit)을 최우선으로 고려해야 하며, 가격은 소비자가 부\n용(Cost)으로 이해되어야 한다. 또한 유통은 소비자가 얼마나 쉽게 접근할 수 있느냐\n(Convenience)으로, 판촉은 일방적 전달이 아니라 쌍방향 소통(Communication)으로 3\n다. 오늘날 많은 기업들은 고객의 관점에서 가치와 관계를 중시하는 방향으로 마케팅 전르\n고 있다."
   },
-  "7:62": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-62.png"
-  },
-  "7:63": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-63.png"
-  },
-  "7:64": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-64.png"
-  },
-  "7:66": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-66.png"
-  },
-  "7:71": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-71.png"
-  },
-  "7:73": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-73.png"
-  },
-  "7:75": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-75.png"
-  },
-  "7:76": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-76.png"
-  },
-  "7:77": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-77.png"
-  },
-  "7:80": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-80.png"
-  },
   "8:1": {
     "body": "다음 글을 읽고 추론한 내용으로 적절 하지 않은 것은?\n\n조르다노 브루노는 16세기 이탈리아의 철학자이자 도미니크 교단 소속 수도사로, 코페르\n동설을 옹호하며 한걸음 더 나아간 우주관을 제시하였다. 브루노는 각각의 별 주위에도\n재하며, 우주는 중심 없는 무한한 공간으로 이루어져 있다고 주장했다. 브루노의 우주에\n나 중심, 주변의 개념이 존재하지 않으며, 모든 천체가 평등한 지위를 갖는다. 그는 이러한\n\"무한의 우주와 세계\"라는 책을 저술하였고, 전통적인 유한 우주관인 아리스토텔레스의\n회의 권위에 정면으로 도전했다. 그의 사상은 인간을 우주의 중심에서 끌어내리는 급진\n으며, 중세적 위계질서를 해체하려는 시도로 받아들여졌다. 교회는 그의 주장에 이단 혐으\n고, 그는 7년간의 수감 생활 끝에 끝내 화형을 당했다. 죽음을 앞두고서도 그는 자신의 주\n지 않았는데, 이는 그가 가진 자신의 우주관에 대한 확신이라고 볼 수 있다."
   },
@@ -1169,35 +1034,8 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
 
 창의적인 아이디어를 내기 위해서는 반드시 고정관념을 깨야 한다. 고정관념은 오랜 경험과 반복된 사고에서 비롯된 익숙한 생각의 틀이며, 이는 우리의 무의식과 행동을 지배한다. 이러한 고정관념은 문제 해결에 있어 빠른 판단과 효율성을 제공하기도 하지만, 동시에 새로운 시각과 참신한 발상을 가로막는 벽이 되기도 한다. 창의성은 기존의 틀을 의심하고, 당연하다고 여겨온 생각을 뒤집는 데서 시작된다. 예를 들어, 심리학자 칼 던커의 '촛불 문제' 실험은 사람들이 물건의 본래 용도에만 집착해 문제를 해결하지 못하는 '기능적 고정관념'을 보여준다. 하지만 이 틀을 벗어난 순간, 상자를 압정통이 아닌 받침대로 활용하는 창의적 해결책이 등장한다. 고정관념을 깨기 위해서는 먼저 자신의 생각의 한계를 자각하고, 다양한 시각과 경험을 받아들이는 노력이 필요하다. 익숙한 패턴에서 벗어나기 위해서는 '왜 이것이 당연한가'라는 질문을 던지고, 반대로 생각해 보거나, 전혀 어울리지 않을 것 같은 요소를 조합해 보는 시도가 도움이 된다. 실제로 브레인스토밍이나 무작위 조합, '낯설게 보기' 등의 방법은 창의적 아이디어를 발굴하는 데 효과적이다.`)
   },
-  "8:64": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-64.png"
-  },
   "8:65": {
     "supplementImageUrl": "/exam-assets/overrides/round-8/q-65.png"
-  },
-  "8:66": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-66.png"
-  },
-  "8:67": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-67.png"
-  },
-  "8:69": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-69.png"
-  },
-  "8:70": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-70.png"
-  },
-  "8:74": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-74.png"
-  },
-  "8:77": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-77.png"
-  },
-  "8:79": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-79.png"
-  },
-  "8:80": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-80.png"
   },
   "9:1": {
     "body": "다음 글을 읽고 추론한 내용으로 적절 하지 않은것은?\n\n코페르니쿠스가 제시한 지동설은 이후 케플러와 갈릴레오에 의해 과학적으로 구체화되었다. 케플러\n는 스승 브라의 관측 자료를 분석해 행성의 공전 궤도가 원이 아닌 타원임을 밝혔으며, 공전 속도가\n일정하지 않다는 면적속도 일정의 법칙도 발견하였다. 그는 이어 행성의 공전주기와 궤도 장반경 사이\n에 일정한 수학적 비례 관계가 존재함을 밝혔는데, 이는 행성 공전주기의 제곱이 장반경의 세제곱에 비\n례한다는 제3법칙으로 정리되었다. 이 법칙은 멀리 있는 행성일수록 공전주기가 길어진다는 사실을 정\n량적으로 설명한다. 케플러의 세 가지 법칙은 훗날 뉴턴의 만유인력 법칙이 정립되는 기반이 되었다. 한\n편 갈릴레오는 망원경으로 금성의 위상 변화와 목성의 위성을 관측하여 지동설을 지지하였으며, 그의\n저서 \"두 개의 주된 우주 체계에 대한 대화\"는 과학적 사고의 대중화를 이끌었다. 이들의 연구는 단순\n한 이론을 넘어 관측과 수학으로 지동설을 실증한 것으로, 중세적 우주관에서 근대적 과학 패러다임\n으로의 전환을 이끌었다."
@@ -1269,38 +1107,8 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
   "9:63": {
     "supplementImageUrl": "/exam-assets/overrides/round-9/q-63.png"
   },
-  "9:64": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-64.png"
-  },
-  "9:65": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-65.png"
-  },
-  "9:68": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-68.png"
-  },
-  "9:69": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-69.png"
-  },
-  "9:70": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-70.png"
-  },
-  "9:71": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-71.png"
-  },
-  "9:72": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-72.png"
-  },
-  "9:73": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-73.png"
-  },
-  "9:76": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-76.png"
-  },
   "9:77": {
     "supplementImageUrl": "/exam-assets/overrides/round-9/q-77.png"
-  },
-  "9:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-78.png"
   },
   "10:1": {
     "body": "다음 글을 읽고 추론한 내용으로 적절 하지 않은 것은?\n\n인공 석굴 사원인 석굴암은 전실, 통로, 주실로 이어지는 체계적인 공간 구조를 갖추고\n듯한 형태의 전실에는 양옆으로 팔부신장이 위치하며, 통로 입구에는 금강역사상이 세우\n을 수호하는 호법신들이 방문객을 가장 먼저 맞이한다. 전실을 지나 주실로 향하는 좁은\n천왕상이 좌우로 배치되어 길목을 엄중히 지키고 있다. 통로 끝에 다다르면 천장이 둥근\n된 원형의 주실이 나타난다. 주실 정중앙에는 본존불이 모셔져 있으며, 그 주위 벽면에는\n천상, 보살상, 십대제자상 등이 입구에서부터 좌우 대칭을 이루며 질서 정연하게 조각되어\n본존불 뒤편의 벽면에는 십일면관음보살상이 새겨져 있어, 관람자의 시선이 중심에 있는\n쳐 뒤쪽의 관음보살상까지 자연스럽게 닿도록 설계되었다."
@@ -1380,41 +1188,8 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
 
 * 번조: 질그릇, 사기그릇 따위를 구워 만들어 내는 일`)
   },
-  "10:62": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-62.png"
-  },
-  "10:63": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-63.png"
-  },
-  "10:66": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-66.png"
-  },
-  "10:69": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-69.png"
-  },
-  "10:70": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-70.png"
-  },
-  "10:71": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-71.png"
-  },
   "10:72": {
     "supplementImageUrl": "/exam-assets/overrides/round-10/q-72.png"
-  },
-  "10:75": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-75.png"
-  },
-  "10:76": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-76.png"
-  },
-  "10:77": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-77.png"
-  },
-  "10:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-78.png"
-  },
-  "10:80": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-80.png"
   },
   "11:1": {
     "body": textBlock(`다음 글을 읽고 추론한 내용으로 적절하지 않은 것은?
@@ -1525,39 +1300,6 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
 
 스놉효과(Snob effect) 혹은 백로효과는 특정 재화에 대한 소비가 대중화될수록 해당 재화에 대한 수요가 오히려 감소하는 현상을 지칭하는 행동경제학적 개념이다. 이는 타인과의 차별성을 추구하는 소비자의 과시적 욕구와 희소성 프리미엄에 기인한다. 다수의 소비자가 특정 상품을 구매해 시장 내 점유율이 상승하면, 초기 구매자나 잠재적 소비자는 해당 상품이 부여하던 독점적 지위가 희석되었다고 판단하여 소비를 철회하거나 대체재를 탐색하게 된다. 기업들은 이러한 소비 심리를 전략적으로 활용하여 한정판(Limited Edition) 마케팅을 전개하거나 진입 장벽이 높은 폐쇄형 멤버십을 운영함으로써 인위적인 희소성을 창출한다. 즉, 스놉효과는 재화의 내재적 가치보다 아무나 소유할 수 없는 상태 자체에서 파생되는 심리적 효용이 소비 선택의 핵심 기제로 작용하는 현상이다.`)
   },
-  "11:61": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-61.png"
-  },
-  "11:63": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-63.png"
-  },
-  "11:66": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-66.png"
-  },
-  "11:69": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-69.png"
-  },
-  "11:70": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-70.png"
-  },
-  "11:71": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-71.png"
-  },
-  "11:72": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-72.png"
-  },
-  "11:75": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-75.png"
-  },
-  "11:77": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-77.png"
-  },
-  "11:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-78.png"
-  },
-  "11:80": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-80.png"
-  },
   "12:1": {
     "body": textBlock(`다음 글의 ㉠과 ㉡에 대해 추론한 내용으로 옳지 않은 것은?
 
@@ -1664,39 +1406,6 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
     "body": textBlock(`다음 글을 읽고 추론한 내용으로 적절하지 않은 것은?
 
 배임죄가 성립하기 위한 핵심 요건 중 하나는 행위자가 '타인의 사무를 처리하는 자'의 지위에 있어야 한다는 점이다. 이와 관련하여 주류적 다수설은 타인의 재산을 보전하고 관리할 의무가 있는 업무를 타인의 사무로 본다. 나아가 본인과 상대방의 이익이 혼재된 양면적인 업무, 즉 자신의 사무인 동시에 상대방의 재산 보호에 협력해야 하는 경우까지도 타인성을 폭넓게 인정하여 배임죄의 적용 범위를 넓히는 경향이 있다. 이를 보여주는 대표적인 사례가 부동산 이중 매매로, 판례는 매수인에게 중도금을 받은 시점부터 매도인을 매수인의 사무를 처리하는 자로 간주한다. 하지만 이러한 적용 체계에 대한 비판적 견해도 존재한다. '사무의 주체가 누구인지'를 엄격히 따지기보다 '재산 보호 의무 자체가 주된 것인지'를 기준으로 삼는 것이 더 효율적이라는 주장과, '단순히 협력하는 사무'와 '본질적인 타인의 사무'를 분리하여 전자의 경우이면서 본인의 사무이기도 한 것은 배임죄 적용에서 아예 배제하자는 주장이 그 예이다. 문제는 기존의 주류적 다수설이나 비판론 모두 현실에서 특정 업무나 의무의 본질적 성격을 명확히 구분해내기 어렵다는 근본적인 한계를 넘지 못한다는 점이다. 애초에 모든 사무를 '나의 것'과 '타인의 것'이라는 이분법적 틀로 단정할 수 있는지에 대한 재검토가 필요하다. 현실의 거래 관계에서 발생하는 업무는 상당수 양면성을 띠며, 본인의 사무인 동시에 타인의 재산 보전에 협력하는 행위를 무조건 '타인의 사무'로 규정지을 명백한 근거도 부족하다. 결과적으로 이처럼 모호한 전제가 범죄 성립의 핵심 잣대로 작용하다 보니, 구체적인 판결 결과가 과연 타당성을 확보하고 있는지에 대한 의문이 지속적으로 발생한다.`)
-  },
-  "12:61": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-61.png"
-  },
-  "12:63": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-63.png"
-  },
-  "12:66": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-66.png"
-  },
-  "12:69": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-69.png"
-  },
-  "12:70": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-70.png"
-  },
-  "12:71": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-71.png"
-  },
-  "12:72": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-72.png"
-  },
-  "12:75": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-75.png"
-  },
-  "12:77": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-77.png"
-  },
-  "12:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-78.png"
-  },
-  "12:80": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-80.png"
   },
   "4:64": {
     "body": textBlock(`다음 제시된 전제가 모두 참일 때, 전제들을 통해 내린 결론으로 옳은 것은?
@@ -1915,132 +1624,6 @@ B2B와 B2C는 각각 기업 간 거래와 기업과 소비자 간 거래를 나�
   },
   "2:80": {
     "supplementImageUrl": undefined
-  },
-  "4:62": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-62.png"
-  },
-  "4:68": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-68.png"
-  },
-  "4:72": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-72.png"
-  },
-  "4:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-78.png"
-  },
-  "4:80": {
-    "supplementImageUrl": "/exam-assets/overrides/round-4/q-80.png"
-  },
-  "5:77": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-77.png"
-  },
-  "5:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-78.png"
-  },
-  "5:79": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-79.png"
-  },
-  "5:80": {
-    "supplementImageUrl": "/exam-assets/overrides/round-5/q-80.png"
-  },
-  "6:77": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-77.png"
-  },
-  "6:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-78.png"
-  },
-  "6:79": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-79.png"
-  },
-  "6:80": {
-    "supplementImageUrl": "/exam-assets/overrides/round-6/q-80.png"
-  },
-  "7:65": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-65.png"
-  },
-  "7:68": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-68.png"
-  },
-  "7:69": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-69.png"
-  },
-  "7:70": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-70.png"
-  },
-  "7:72": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-72.png"
-  },
-  "7:74": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-74.png"
-  },
-  "7:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-7/q-78.png"
-  },
-  "8:61": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-61.png"
-  },
-  "8:63": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-63.png"
-  },
-  "8:68": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-68.png"
-  },
-  "8:72": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-72.png"
-  },
-  "8:76": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-76.png"
-  },
-  "8:78": {
-    "supplementImageUrl": "/exam-assets/overrides/round-8/q-78.png"
-  },
-  "9:62": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-62.png"
-  },
-  "9:67": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-67.png"
-  },
-  "9:75": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-75.png"
-  },
-  "9:79": {
-    "supplementImageUrl": "/exam-assets/overrides/round-9/q-79.png"
-  },
-  "10:65": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-65.png"
-  },
-  "10:67": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-67.png"
-  },
-  "10:74": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-74.png"
-  },
-  "10:79": {
-    "supplementImageUrl": "/exam-assets/overrides/round-10/q-79.png"
-  },
-  "11:65": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-65.png"
-  },
-  "11:67": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-67.png"
-  },
-  "11:74": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-74.png"
-  },
-  "11:79": {
-    "supplementImageUrl": "/exam-assets/overrides/round-11/q-79.png"
-  },
-  "12:65": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-65.png"
-  },
-  "12:67": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-67.png"
-  },
-  "12:74": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-74.png"
-  },
-  "12:79": {
-    "supplementImageUrl": "/exam-assets/overrides/round-12/q-79.png"
   }
 }
 ;

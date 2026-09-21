@@ -779,3 +779,36 @@ test("중복 캡처였던 언어추리 보충 이미지는 더 이상 참조하�
     assert.equal(q.supplementImageUrl, undefined, key);
   }
 });
+
+test("언어추리 조건·보기는 4~12회차도 텍스트로 제공한다", () => {
+  const markers = ["<조건>", "<보기>", "<전제>", "㉠", "•", "전제1:", "[전제1]"];
+  const diagramOnly = new Set(["8:65", "9:63", "9:77", "10:72"]);
+  let text = 0;
+  for (let round = 4; round <= 12; round += 1) {
+    for (let number = 61; number <= 80; number += 1) {
+      const key = `${round}:${number}`;
+      if (diagramOnly.has(key)) continue;
+      const entry = (pdfText as Record<string, { body?: string }>)[key];
+      if (!entry?.body) continue;
+      const tail = entry.body.split("\n\n").slice(1).join("\n\n");
+      assert.ok(
+        markers.some((m) => tail.includes(m)) || /^[A-Z]\s*:/m.test(tail),
+        `${key} 조건·보기 텍스트 없음`,
+      );
+      text += 1;
+    }
+  }
+  assert.ok(text >= 170, `텍스트로 옮긴 언어추리 문항 수가 부족함: ${text}`);
+});
+
+test("도식이 필요한 언어추리 4문항만 이미지를 유지한다", () => {
+  const diagramOnly = ["8:65", "9:63", "9:77", "10:72"];
+  for (let round = 1; round <= 12; round += 1) {
+    for (let number = 61; number <= 80; number += 1) {
+      const key = `${round}:${number}`;
+      const q = applyQuestionContentOverride(round, { number, body: "", choices: [] as string[], answer: 1 });
+      if (diagramOnly.includes(key)) assert.ok(q.supplementImageUrl, `${key} 도식 이미지가 없음`);
+      else assert.equal(q.supplementImageUrl, undefined, `${key} 불필요한 이미지`);
+    }
+  }
+});
