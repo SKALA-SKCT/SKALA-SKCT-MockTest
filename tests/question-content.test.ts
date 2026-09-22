@@ -801,6 +801,13 @@ test("언어추리 조건·보기는 4~12회차도 텍스트로 제공한다", (
   assert.ok(text >= 170, `텍스트로 옮긴 언어추리 문항 수가 부족함: ${text}`);
 });
 
+test("도식을 유지한 4문항도 조건 목록은 텍스트로 제공한다", () => {
+  for (const key of ["8:65", "9:63", "9:77", "10:72"]) {
+    const entry = (pdfText as Record<string, { body?: string }>)[key];
+    assert.ok(entry?.body?.includes("\n\n<조건>\n㉠"), `${key} 조건 텍스트 없음`);
+  }
+});
+
 test("도식이 필요한 언어추리 4문항만 이미지를 유지한다", () => {
   const diagramOnly = ["8:65", "9:63", "9:77", "10:72"];
   for (let round = 1; round <= 12; round += 1) {

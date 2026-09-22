@@ -155,6 +155,28 @@ export function QuestionCard({
       ? displayQuestion.supplementImageUrl
       : null;
   const reviewExplanation = formatReviewExplanation(displayQuestion.explanation);
+  // 조건·보기 목록이 본문에 들어간 문항은 그림이 목록보다 먼저 보여야 한다.
+  const materialFirst = /^\s*<(조건|보기)>/.test(passage);
+  const materials = (
+    <>
+      {displayQuestion.imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={displayQuestion.imageUrl}
+          alt={`${displayQuestion.number}번 자료`}
+          className="-mx-3 mt-4 h-auto w-[calc(100%+1.5rem)] max-w-none rounded-lg border border-zinc-200 bg-white object-contain"
+        />
+      )}
+      {supplementImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={supplementImageUrl}
+          alt={`${displayQuestion.number}번 조건`}
+          className="-mx-3 mt-4 h-auto w-[calc(100%+1.5rem)] max-w-none rounded-lg border border-zinc-200 bg-white object-contain"
+        />
+      )}
+    </>
+  );
 
   return (
     <div id={`review-question-${question.id}`} className="scroll-mt-24 px-5 py-5">
@@ -176,6 +198,7 @@ export function QuestionCard({
         <p className="whitespace-pre-line text-[15px] font-bold leading-7 text-zinc-900 [overflow-wrap:anywhere]">
           {prompt}
         </p>
+        {materialFirst && materials}
         {passage && (
           <div className="mt-3 border-t border-zinc-200 pt-3">
             <p className="whitespace-pre-line text-sm leading-7 text-zinc-700 [overflow-wrap:anywhere]">
@@ -184,22 +207,7 @@ export function QuestionCard({
           </div>
         )}
         {displayQuestion.materialCaption && <p className="mt-3 whitespace-pre-line text-sm text-zinc-700">{displayQuestion.materialCaption}</p>}
-        {displayQuestion.imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={displayQuestion.imageUrl}
-            alt={`${displayQuestion.number}번 자료`}
-            className="-mx-3 mt-4 h-auto w-[calc(100%+1.5rem)] max-w-none rounded-lg border border-zinc-200 bg-white object-contain"
-          />
-        )}
-        {supplementImageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={supplementImageUrl}
-            alt={`${displayQuestion.number}번 조건`}
-            className="-mx-3 mt-4 h-auto w-[calc(100%+1.5rem)] max-w-none rounded-lg border border-zinc-200 bg-white object-contain"
-          />
-        )}
+        {!materialFirst && materials}
       </div>
 
       <div className="mt-3 grid gap-2">

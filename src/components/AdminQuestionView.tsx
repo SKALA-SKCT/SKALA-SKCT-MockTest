@@ -38,6 +38,18 @@ export default function AdminQuestionView({ examId, question }: { examId: number
       ? display.supplementImageUrl
       : null;
   const localNumber = (question.number - 1) % 20 + 1;
+  // 조건·보기 목록이 본문에 들어간 문항은 그림이 목록보다 먼저 보여야 한다.
+  const materialFirst = /\n\s*<(조건|보기)>/.test(body);
+  const materials = (
+    <>
+      {display.imageUrl && (
+        <Image src={display.imageUrl} alt="" width={880} height={520} className="h-auto w-full rounded-lg border border-hairline" unoptimized />
+      )}
+      {supplementImageUrl && (
+        <Image src={supplementImageUrl} alt="" width={880} height={520} className="h-auto w-full rounded-lg border border-hairline" unoptimized />
+      )}
+    </>
+  );
 
   return (
     <article className="chart-card space-y-4 p-5">
@@ -45,16 +57,11 @@ export default function AdminQuestionView({ examId, question }: { examId: number
         {question.subject} {localNumber}번 <span className="font-medium text-ink-3">(전체 {question.number}번)</span>
       </h3>
 
+      {materialFirst && materials}
       <div className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
         <PdfPassage text={body} round={examId} number={question.number} />
       </div>
-
-      {display.imageUrl && (
-        <Image src={display.imageUrl} alt="" width={880} height={520} className="h-auto w-full rounded-lg border border-hairline" unoptimized />
-      )}
-      {supplementImageUrl && (
-        <Image src={supplementImageUrl} alt="" width={880} height={520} className="h-auto w-full rounded-lg border border-hairline" unoptimized />
-      )}
+      {!materialFirst && materials}
 
       <ol className="space-y-1.5 text-sm text-ink">
         {choices.map((choice, index) => (

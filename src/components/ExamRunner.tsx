@@ -501,6 +501,28 @@ export default function ExamRunner({
     q.supplementImageUrl && q.supplementImageUrl !== q.imageUrl
       ? q.supplementImageUrl
       : null;
+  // 조건·보기 목록이 본문에 들어간 문항은 그림이 목록보다 먼저 보여야 한다.
+  const questionMaterialFirst = /^\s*<(조건|보기)>/.test(questionPassage);
+  const questionMaterials = (
+    <>
+      {q.imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={q.imageUrl}
+          alt="문제 이미지"
+          className="mocktest-question-content mt-3 max-w-full rounded-lg border"
+        />
+      )}
+      {supplementImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={supplementImageUrl}
+          alt="문제 조건"
+          className="mocktest-question-content mt-3 max-w-full rounded-lg border border-zinc-200 bg-white"
+        />
+      )}
+    </>
+  );
   const isLast = idx === sectionQuestions.length - 1;
   const mm = remaining != null ? Math.floor(remaining / 60) : SECTION_MINUTES;
   const ss = remaining != null ? remaining % 60 : 0;
@@ -608,6 +630,7 @@ export default function ExamRunner({
             </p>
             {questionPassage && (
               <div className="mt-3 border-t border-zinc-200 pt-3">
+                {questionMaterialFirst && questionMaterials}
                 <p className="whitespace-pre-line text-sm leading-7 text-zinc-700 [overflow-wrap:anywhere]">
                   <PdfPassage text={questionPassage} round={examId} number={q.number} />
                 </p>
@@ -615,22 +638,7 @@ export default function ExamRunner({
             )}
           </div>
           {q.materialCaption && <p className="mt-3 whitespace-pre-line text-sm text-zinc-700">{q.materialCaption}</p>}
-          {q.imageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={q.imageUrl}
-              alt="문제 이미지"
-              className="mocktest-question-content mt-3 max-w-full rounded-lg border"
-            />
-          )}
-          {supplementImageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={supplementImageUrl}
-              alt="문제 조건"
-              className="mocktest-question-content mt-3 max-w-full rounded-lg border border-zinc-200 bg-white"
-            />
-          )}
+          {!questionMaterialFirst && questionMaterials}
           <div className="mocktest-choice-list mt-5 flex flex-col gap-2 max-[760px]:mt-3">
             {displayChoices.map((c, i) => {
               const num = i + 1;
