@@ -25,7 +25,10 @@ function Picker({ label, value, options, onSelect }: {
           {current?.label}
           <span aria-hidden className="text-zinc-400">▾</span>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
+        <DropdownMenuContent
+          align="start"
+          className="soft-scrollbar max-h-80 overflow-y-auto overscroll-contain"
+        >
           {options.map((option) => (
             <DropdownMenuItem key={option.value} onSelect={() => onSelect(option.value)}>
               {option.label}
@@ -37,10 +40,11 @@ function Picker({ label, value, options, onSelect }: {
   );
 }
 
-export function AdminQuestionPicker({ exam, subject, number, subjects, numbers }: {
+export function AdminQuestionPicker({ exam, subject, number, exams, subjects, numbers }: {
   exam: number;
   subject: string;
   number: string;
+  exams: { id: number; title: string }[];
   subjects: readonly string[];
   numbers: number[];
 }) {
@@ -57,7 +61,10 @@ export function AdminQuestionPicker({ exam, subject, number, subjects, numbers }
       <Picker
         label="회차"
         value={String(exam)}
-        options={Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `${i + 1}회차` }))}
+        options={exams.map((item, index) => ({
+          value: String(item.id),
+          label: `${index + 1}회차`,
+        }))}
         onSelect={(value) => go({ exam: value })}
       />
       <Picker

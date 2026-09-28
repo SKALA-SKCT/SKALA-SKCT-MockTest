@@ -120,7 +120,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const roleFilter = firstParam(params.role) ?? "all";
   const reportStatusFilter = firstParam(params.reportStatus) ?? "all";
   const reportReasonFilter = firstParam(params.reportReason) ?? "all";
-  const questionExam = Math.min(12, Math.max(1, Number(firstParam(params.exam) ?? 1) || 1));
+  const examList = await db.select().from(exams).orderBy(asc(exams.createdAt));
+  const requestedQuestionExam = Number(firstParam(params.exam));
+  const questionExam = examList.some((exam) => exam.id === requestedQuestionExam)
+    ? requestedQuestionExam
+    : (examList[0]?.id ?? 1);
   const questionSubject = (SUBJECTS as readonly string[]).includes(firstParam(params.subject) ?? "")
     ? (firstParam(params.subject) as (typeof SUBJECTS)[number])
     : SUBJECTS[0];
@@ -135,8 +139,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const reportSubjectFilter = firstParam(params.reportSubject) ?? "all";
   const selectedUserId = Number(firstParam(params.userId) ?? "");
 
-  const [examList, userRows, attemptRows, questionTotals, reportRows] = await Promise.all([
-    db.select().from(exams).orderBy(asc(exams.createdAt)),
+  const [userRows, attemptRows, questionTotals, reportRows] = await Promise.all([
     db
       .select({
         id: users.id,
@@ -582,6 +585,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             exam={questionExam}
             subject={questionSubject}
             number={questionNumber}
+            exams={examList.map((exam) => ({ id: exam.id, title: exam.title }))}
             subjects={SUBJECTS}
             numbers={questionRows.map((row) => (row.number - 1) % 20 + 1)}
           />
