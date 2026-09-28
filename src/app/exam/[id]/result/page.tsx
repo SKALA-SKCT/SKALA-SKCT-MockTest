@@ -482,7 +482,8 @@ export default async function ResultPage({
                   </thead>
                   <tbody>
                     {radarData.map((r) => {
-                      const diff = r.나 - r.그룹평균;
+                      const diff =
+                        Math.round(((myScore.bySubject.get(r.subject) ?? 0) - r.avgScore) * 10) / 10;
                       return (
                         <tr key={r.subject}>
                           <td className="px-3 py-2.5 text-zinc-600">{r.subject}</td>
@@ -504,7 +505,7 @@ export default async function ResultPage({
                             }`}
                           >
                             {diff > 0 ? "+" : ""}
-                            {diff}점
+                            {diff}개
                           </td>
                         </tr>
                       );
