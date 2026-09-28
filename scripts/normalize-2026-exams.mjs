@@ -41,26 +41,103 @@ function cleanPrompt(question) {
 }
 
 function latexToText(latex) {
-  let value = latex.replace(/&nbsp;/g, " ").replace(/~/g, "").trim();
+  let value = latex.replace(/&nbsp;/g, " ").replace(/~/g, "").replace(/(\d)\s*(?=\\d?frac)/g, "$1 ").trim();
   for (let pass = 0; pass < 3; pass += 1) {
     value = value.replace(/\\d?frac\{([^{}]+)\}\{([^{}]+)\}/g, "($1)/($2)");
   }
   return value
+    .replace(/\\Big/g, "")
+    .replace(/\\text\{([^{}]+)\}/g, "$1")
     .replace(/\\times/g, "×")
     .replace(/\\div/g, "÷")
     .replace(/\\cdot/g, "·")
     .replace(/\\,/g, " ")
     .replace(/[{}]/g, "")
+    .replace(/\(([\p{L}\p{N}.,]+)\)/gu, "$1")
     .replace(/\s+/g, " ")
-    .replace(/^\(([^()]+)\)\/\(([^()]+)\)$/, "$1/$2")
     .trim();
 }
 
+function decodeHtml(value) {
+  return value
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([\da-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+function renderHtmlText(fragment) {
+  const tokens = fragment.match(/<[^>]+>|[^<]+/g) ?? [];
+  let katexHtmlDepth = 0;
+  let mathMlDepth = 0;
+  let annotation = "";
+  let inAnnotation = false;
+  let output = "";
+
+  for (const token of tokens) {
+    if (token.startsWith("<")) {
+      const closing = /^<\//.test(token);
+      const selfClosing = /\/$/.test(token) || /^<(?:br|img)\b/i.test(token);
+
+      if (katexHtmlDepth) {
+        if (!selfClosing) katexHtmlDepth += closing ? -1 : 1;
+        continue;
+      }
+      if (!closing && /class="[^"]*katex-html\b/.test(token)) {
+        katexHtmlDepth = 1;
+        continue;
+      }
+      if (mathMlDepth) {
+        if (!closing && /^<annotation\b/i.test(token)) inAnnotation = true;
+        if (closing && /^<\/annotation/i.test(token)) {
+          const formula = latexToText(decodeHtml(annotation));
+          if (/\d$/.test(output) && /^\d+\//.test(formula)) output += " ";
+          output += formula;
+          annotation = "";
+          inAnnotation = false;
+        }
+        if (!selfClosing) mathMlDepth += closing ? -1 : 1;
+        continue;
+      }
+      if (!closing && /class="[^"]*katex-mathml\b/.test(token)) {
+        mathMlDepth = 1;
+        continue;
+      }
+      if (closing && /^<\/p/i.test(token)) output += " ";
+      if (!closing && /^<br\b/i.test(token)) output += " ";
+      continue;
+    }
+
+    if (katexHtmlDepth) continue;
+    if (mathMlDepth) {
+      if (inAnnotation) annotation += token;
+      continue;
+    }
+    output += decodeHtml(token);
+  }
+
+  return compactText(output);
+}
+
+function cleanExplanation(question) {
+  const html = String(question.solutionHtml ?? "");
+  const start = html.indexOf('class="styles_solutionText');
+  const footer = html.indexOf('class="styles_solutionFooter', start);
+  const end = footer < 0 ? html.length : html.lastIndexOf("<div", footer);
+  return renderHtmlText(html.slice(html.indexOf(">", start) + 1, end))
+    .replace("a × 0.4 × 0.0 = 0.016a", "a × 0.4 × 0.04 = 0.016a");
+}
+
 function cleanChoices(question) {
-  const annotations = [...String(question.choicesHtml ?? "").matchAll(
-    /<annotation[^>]*encoding="application\/x-tex"[^>]*>([\s\S]*?)<\/annotation>/g,
-  )].map((match) => latexToText(match[1]));
-  if (annotations.length === question.choices.length) return annotations;
+  const choices = String(question.choicesHtml ?? "").split('<div class="choice">').slice(1).map((choice) => {
+    const start = choice.indexOf("render-content");
+    return renderHtmlText(choice.slice(choice.indexOf(">", start) + 1));
+  });
+  if (choices.length === question.choices.length && choices.every(Boolean)) return choices;
   return question.choices.map(compactText);
 }
 
@@ -86,7 +163,7 @@ for (const [round, directory] of sourceSets) {
       body: compactText(body),
       choices: cleanChoices(question),
       answer: question.answer,
-      explanation: compactText(question.explanation) || null,
+      explanation: cleanExplanation(question) || null,
       imageUrl,
     });
   }

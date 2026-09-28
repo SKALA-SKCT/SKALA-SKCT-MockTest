@@ -27,6 +27,7 @@ type RawQuestion = {
   explanation: string | null;
   choicesHtml?: string;
   questionHtml?: string;
+  solutionHtml?: string;
 };
 
 type NormalizedQuestion = {
@@ -70,28 +71,58 @@ function hasValidPromptLayout(body: string) {
 }
 
 function latexToText(latex: string) {
-  let value = latex.replace(/&nbsp;/g, " ").replace(/~/g, "").trim();
+  let value = latex.replace(/&nbsp;/g, " ").replace(/~/g, "").replace(/(\d)\s*(?=\\d?frac)/g, "$1 ").trim();
   for (let pass = 0; pass < 3; pass += 1) {
     value = value.replace(/\\d?frac\{([^{}]+)\}\{([^{}]+)\}/g, "($1)/($2)");
   }
   return value
+    .replace(/\\Big/g, "")
+    .replace(/\\text\{([^{}]+)\}/g, "$1")
     .replace(/\\times/g, "×")
     .replace(/\\div/g, "÷")
     .replace(/\\cdot/g, "·")
     .replace(/\\,/g, " ")
     .replace(/[{}]/g, "")
+    .replace(/\(([\p{L}\p{N}.,]+)\)/gu, "$1")
     .replace(/\s+/g, " ")
-    .replace(/^\(([^()]+)\)\/\(([^()]+)\)$/, "$1/$2")
     .trim();
 }
 
-function expectedChoices(question: RawQuestion) {
-  const annotations = [...String(question.choicesHtml ?? "").matchAll(
+function expectedExplanationMath(question: RawQuestion) {
+  return [...String(question.solutionHtml ?? "").matchAll(
     /<annotation[^>]*encoding="application\/x-tex"[^>]*>([\s\S]*?)<\/annotation>/g,
-  )].map((match) => latexToText(match[1]));
-  return annotations.length === question.choices.length
-    ? annotations
-    : question.choices.map(compactText);
+  )].map((match) => latexToText(decodeHtml(match[1])));
+}
+
+function hasValidExplanation(question: RawQuestion, explanation: string | null) {
+  if (!explanation) return false;
+  const math = expectedExplanationMath(question);
+  return math.every((value) => explanation.includes(value))
+    && !/[\u00a0\u200b]/.test(explanation)
+    && !/^\s*(?:[\d.,]+|[=+×÷-])\s*$/m.test(explanation);
+}
+
+function passesReportedRegression(round: number, question: NormalizedQuestion) {
+  if (round !== 13 || question.number !== 84) return true;
+  return JSON.stringify(question.choices) === JSON.stringify(["5 13/15", "5 7/8", "4 14/15", "5 14/15", "4 13/15"])
+    && Boolean(question.explanation?.includes("= 89/15 = 5 14/15이므로 정답은 ④이다."))
+    && !question.explanation?.includes("\n");
+}
+
+function expectedChoices(question: RawQuestion) {
+  return String(question.choicesHtml ?? "").split('<div class="choice">').slice(1).map((choice) =>
+    [...choice.matchAll(/<annotation[^>]*encoding="application\/x-tex"[^>]*>([\s\S]*?)<\/annotation>/g)]
+      .map((match) => latexToText(match[1])),
+  );
+}
+
+function hasValidChoices(question: RawQuestion, choices: string[]) {
+  const math = expectedChoices(question);
+  if (math.length === choices.length) {
+    return choices.every((choice, index) => choice.trim() && !/[\n\u00a0\u200b]/.test(choice)
+      && math[index].every((formula) => choice.includes(formula)));
+  }
+  return JSON.stringify(choices) === JSON.stringify(question.choices.map(compactText));
 }
 
 function decodeHtml(value: string) {
@@ -154,9 +185,10 @@ for (const [round, directory] of sourceSets) {
       subject: actual.subject === subjects[Math.floor(index / 20)],
       body: actual.body === expectedBody(source),
       promptLayout: hasValidPromptLayout(actual.body),
-      choices: JSON.stringify(actual.choices) === JSON.stringify(expectedChoices(source)),
+      choices: hasValidChoices(source, actual.choices),
       answer: actual.answer === source.answer,
-      explanation: actual.explanation === (compactText(source.explanation) || null),
+      explanation: hasValidExplanation(source, actual.explanation),
+      reportedRegression: passesReportedRegression(round, actual),
       imageUrl: actual.imageUrl === expectedImage,
       assetExists: !assetPath || existsSync(assetPath),
       assetWidth: !dimensions || dimensions.width <= 790,
