@@ -106,8 +106,14 @@ export default function DashboardScoreCharts({
             </label>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs font-medium">
-            <span className="text-brand">내 {selected.round}회차 {selected.score}점</span>
-            <span className="text-[#c8755a]">전체 평균 {average.toFixed(1)}점</span>
+            <span className="inline-flex items-center gap-1.5 text-brand">
+              <span className="flex h-3.5 w-3.5 items-center justify-center rounded border border-brand bg-brand text-[10px] font-black leading-none text-white">✓</span>
+              내 {selected.round}회차 {selected.score}점
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-[#c8755a]">
+              <span className="flex h-3.5 w-3.5 items-center justify-center rounded border border-[#c8755a] bg-[#c8755a] text-[10px] font-black leading-none text-white">✓</span>
+              전체 평균 {average.toFixed(1)}점
+            </span>
             <span className="text-ink-3">전체 {selected.rank}위/{attemptCount}건</span>
           </div>
           <ScoreDistributionChart

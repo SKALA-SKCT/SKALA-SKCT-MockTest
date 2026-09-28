@@ -5,6 +5,7 @@ import {
   AreaChart,
   CartesianGrid,
   ReferenceLine,
+  ReferenceDot,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -37,6 +38,7 @@ export default function ScoreDistributionChart({
   const averageBand = data.find(
     (band) => average >= band.min && average <= band.max
   )?.label;
+  const myBandCount = data.find((band) => band.includesMe)?.count ?? 0;
   const maxCount = Math.max(1, ...data.map((band) => band.count));
   const yMax = Math.ceil(maxCount * 1.28);
 
@@ -123,24 +125,49 @@ export default function ScoreDistributionChart({
               }}
             />
           ) : null}
-          <Area
-            dataKey="count"
-            type="monotone"
-            stroke="#e94343"
-            strokeWidth={matchTrendStyle ? 2.4 : 2.8}
-            fill="url(#scoreDistributionFill)"
-            dot={({ cx, cy, payload }) => (
-              <circle
-                cx={cx}
-                cy={cy}
-                r={payload.includesMe ? 5 : 3.5}
-                fill={payload.includesMe ? "#e94343" : "#fff"}
-                stroke="#e94343"
-                strokeWidth={2}
+          {matchTrendStyle ? (
+            <>
+              <Area
+                name="전체 분포"
+                dataKey="count"
+                type="monotone"
+                stroke="#c8755a"
+                strokeWidth={2.2}
+                fill="transparent"
+                dot={false}
+                activeDot={{ r: 4, fill: "#c8755a" }}
               />
-            )}
-            activeDot={{ r: 6, fill: "#e94343", stroke: "#fff", strokeWidth: 2 }}
-          />
+              {myBand ? (
+                <ReferenceDot
+                  x={myBand}
+                  y={myBandCount}
+                  r={5}
+                  fill="#e94343"
+                  stroke="#fff"
+                  strokeWidth={2}
+                />
+              ) : null}
+            </>
+          ) : (
+            <Area
+              dataKey="count"
+              type="monotone"
+              stroke="#e94343"
+              strokeWidth={2.8}
+              fill="url(#scoreDistributionFill)"
+              dot={({ cx, cy, payload }) => (
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={payload.includesMe ? 5 : 3.5}
+                  fill={payload.includesMe ? "#e94343" : "#fff"}
+                  stroke="#e94343"
+                  strokeWidth={2}
+                />
+              )}
+              activeDot={{ r: 6, fill: "#e94343", stroke: "#fff", strokeWidth: 2 }}
+            />
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </div>
