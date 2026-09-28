@@ -46,13 +46,17 @@ const getExamSubjectTotals = unstable_cache(
 );
 
 type DashboardProps = {
-  searchParams: Promise<{ sso?: string | string[] }>;
+  searchParams: Promise<{
+    sso?: string | string[];
+    attempt?: string | string[];
+  }>;
 };
 
 export default async function Dashboard({ searchParams }: DashboardProps) {
+  const query = await searchParams;
   const user = await getCurrentUser();
   if (!user) {
-    const { sso } = await searchParams;
+    const { sso } = query;
 
     // Mother에서 이미 돌아온 요청을 다시 Mother로 보내면 두 앱 사이에
     // 무한 리다이렉트가 생긴다. MockPractice와 동일하게 한 번만 왕복한다.
@@ -183,6 +187,59 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     ? allAttemptScores.reduce((sum, score) => sum + score, 0) /
       allAttemptScores.length
     : 0;
+  const myAllAttemptScores = finishedRows
+    .filter((attempt) => attempt.userId === user.id)
+    .map((attempt) => {
+      const total = totalOfExam(attempt.examId) || 1;
+      return (scoreOf(attempt.id) / total) * 100;
+    });
+
+  const myAttemptCounts = [...attemptsByUserExam.entries()]
+    .filter(([key]) => key.startsWith(`${user.id}:`))
+    .map(([, items]) => items.length);
+  const maxMyAttemptRound = Math.max(1, ...myAttemptCounts);
+  const requestedAttempt = Array.isArray(query.attempt)
+    ? query.attempt[0]
+    : query.attempt;
+  const requestedRound = Number(requestedAttempt);
+  const selectedAttempt: number | "all" =
+    requestedAttempt === "all"
+      ? "all"
+      : Number.isInteger(requestedRound) &&
+          requestedRound >= 1 &&
+          requestedRound <= maxMyAttemptRound
+        ? requestedRound
+        : 1;
+
+  const selectedGroupScores =
+    selectedAttempt === "all"
+      ? allAttemptScores
+      : [...attemptsByUserExam.values()]
+          .map((items) => items[selectedAttempt - 1])
+          .filter((attempt): attempt is (typeof finishedRows)[number] => Boolean(attempt))
+          .map((attempt) => {
+            const total = totalOfExam(attempt.examId) || 1;
+            return (scoreOf(attempt.id) / total) * 100;
+          });
+  const selectedMyScores =
+    selectedAttempt === "all"
+      ? myAllAttemptScores
+      : [...attemptsByUserExam.entries()]
+          .filter(([key]) => key.startsWith(`${user.id}:`))
+          .map(([, items]) => items[selectedAttempt - 1])
+          .filter((attempt): attempt is (typeof finishedRows)[number] => Boolean(attempt))
+          .map((attempt) => {
+            const total = totalOfExam(attempt.examId) || 1;
+            return (scoreOf(attempt.id) / total) * 100;
+          });
+  const selectedGroupAverage = selectedGroupScores.length
+    ? selectedGroupScores.reduce((sum, score) => sum + score, 0) /
+      selectedGroupScores.length
+    : 0;
+  const selectedMyAverage = selectedMyScores.length
+    ? selectedMyScores.reduce((sum, score) => sum + score, 0) /
+      selectedMyScores.length
+    : 0;
 
   // ── 스탯 타일: 가장 최근 완료 회차 기준
   const latest = [...myFinished].sort(
@@ -198,12 +255,11 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     const peers = attemptsByExam.get(latest.examId) ?? [];
     const myScore = scoreOf(latest.id);
     const total = totalOfExam(latest.examId);
-    const groupAvg = avgScore(peers);
     const rank = rankOfAttempt(latest).rank;
     const averageRank =
       myFinished.reduce((acc, attempt) => acc + rankOfAttempt(attempt).rank, 0) /
       (myFinished.length || 1);
-    const diff = Math.round(myScore - groupAvg);
+    const diff = Math.round(selectedMyAverage - selectedGroupAverage);
     tiles = [
       {
         label: "최근 회차 점수",
@@ -246,11 +302,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
   }
 
   // ── 추이: 드롭다운에서 선택한 N번째 응시끼리 비교한다.
-  const myAttemptCounts = [...attemptsByUserExam.entries()]
-    .filter(([key]) => key.startsWith(`${user.id}:`))
-    .map(([, items]) => items.length);
-  const maxMyAttemptRound = Math.max(1, ...myAttemptCounts);
-  const trendSeries = Array.from({ length: maxMyAttemptRound }, (_, attemptIndex) => ({
+  const attemptTrendSeries = Array.from({ length: maxMyAttemptRound }, (_, attemptIndex) => ({
     attemptRound: attemptIndex + 1,
     data: Array.from({ length: ROUNDS }, (_, index) => {
       const round = index + 1;
@@ -272,6 +324,28 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
       };
     }),
   }));
+  const allAttemptTrend = {
+    attemptRound: "all" as const,
+    data: Array.from({ length: ROUNDS }, (_, index) => {
+      const round = index + 1;
+      const exam = examByRound.get(round);
+      if (!exam) {
+        return { name: `${round}세트`, 나: null, 그룹평균: null };
+      }
+      const total = totalOfExam(exam.id) || 1;
+      const mine = finishedRows.filter(
+        (attempt) => attempt.userId === user.id && attempt.examId === exam.id
+      );
+      const peers = finishedRows.filter((attempt) => attempt.examId === exam.id);
+      const scoreToPoint = (score: number) => Math.round((score / total) * 100);
+      return {
+        name: `${round}세트`,
+        나: mine.length ? scoreToPoint(avgScore(mine)) : null,
+        그룹평균: peers.length ? scoreToPoint(avgScore(peers)) : null,
+      };
+    }),
+  };
+  const trendSeries = [...attemptTrendSeries, allAttemptTrend];
 
   // ── 레이더: 과목별 누적 정답률 나 vs 전체
   const radarData = SUBJECTS.map((s) => {
@@ -358,7 +432,10 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
         {/* 차트 */}
         {myFinished.length > 0 ? (
           <div className="grid min-h-0 flex-1 gap-3">
-            <DashboardTrendChart series={trendSeries} />
+            <DashboardTrendChart
+              series={trendSeries}
+              selectedAttempt={selectedAttempt}
+            />
           </div>
         ) : (
           <div className="card flex h-full min-h-[500px] items-center justify-center px-6 py-10 text-center xl:min-h-0">
