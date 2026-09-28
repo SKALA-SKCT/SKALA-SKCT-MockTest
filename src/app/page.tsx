@@ -13,7 +13,7 @@ import {
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 import { getMotherLoginUrl } from "@/lib/mother-auth";
-import TrendChart from "@/components/TrendChart";
+import DashboardScoreCharts from "@/components/DashboardScoreCharts";
 import ExamStartButton from "@/components/ExamStartButton";
 
 export const dynamic = "force-dynamic";
@@ -243,6 +243,48 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     };
   });
 
+  // ── 전체 회차 통합 분포: 시험별 문항 수 차이를 없애기 위해 100점으로 환산한다.
+  // 사용자·시험별 첫 완료 기록만 사용해 재응시 횟수가 많은 사용자가 과대표집되지 않게 한다.
+  const normalizedScores = finished.map((attempt) => {
+    const total = totalOfExam(attempt.examId) || 1;
+    return Math.round((scoreOf(attempt.id) / total) * 100);
+  });
+  const overallAverage = normalizedScores.length
+    ? normalizedScores.reduce((sum, score) => sum + score, 0) /
+      normalizedScores.length
+    : 0;
+  const overallDistribution = Array.from({ length: 10 }, (_, index) => {
+    const min = index * 10;
+    const max = index === 9 ? 100 : min + 9;
+    const count = normalizedScores.filter(
+      (score) => score >= min && score <= max
+    ).length;
+    return {
+      min,
+      max,
+      label: `${min}-${max}`,
+      count,
+      percent: normalizedScores.length
+        ? Math.round((count / normalizedScores.length) * 100)
+        : 0,
+    };
+  });
+  const myRoundScores = Array.from(examByRound.entries())
+    .map(([round, exam]) => {
+      const attempt = myFinishedByExam.get(exam.id);
+      if (!attempt) return null;
+      const total = totalOfExam(exam.id) || 1;
+      const score = Math.round((scoreOf(attempt.id) / total) * 100);
+      return {
+        round,
+        title: exam.title,
+        score,
+        rank: 1 + normalizedScores.filter((value) => value > score).length,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .sort((a, b) => a.round - b.round);
+
   // ── 레이더: 과목별 누적 정답률 나 vs 전체
   const radarData = SUBJECTS.map((s) => {
     let myC = 0,
@@ -328,14 +370,13 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
         {/* 차트 */}
         {myFinished.length > 0 ? (
           <div className="grid min-h-0 flex-1 gap-3">
-            <div className="chart-card flex min-h-0 flex-col p-3.5">
-              <TrendChart
-                data={trendData}
-                className="min-h-0 flex-1"
-                title="회차별 점수 추이"
-                description="완료한 모의고사의 1회차 기준, 100점 만점"
-              />
-            </div>
+            <DashboardScoreCharts
+              trendData={trendData}
+              distribution={overallDistribution}
+              average={overallAverage}
+              attemptCount={normalizedScores.length}
+              myRoundScores={myRoundScores}
+            />
           </div>
         ) : (
           <div className="card flex h-full min-h-[500px] items-center justify-center px-6 py-10 text-center xl:min-h-0">

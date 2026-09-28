@@ -73,13 +73,11 @@ export default function ResultRoundTabs({
   examId,
   rounds,
   selectedRound,
-  comparisonScope,
   children,
 }: {
   examId: number;
   rounds: Array<{ id: number; round: number }>;
   selectedRound: number;
-  comparisonScope: "all" | "round";
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -90,58 +88,29 @@ export default function ResultRoundTabs({
 
   return (
     <div>
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="mb-1.5 text-xs font-medium text-ink-3">내 응시 기록</p>
-          <div className="flex flex-wrap gap-2">
-            {rounds.map((attempt) => {
-              const active = attempt.round === displayedRound;
-              return (
-                <button
-                  key={attempt.id}
-                  type="button"
-                  onClick={() => {
-                    setOptimisticRound(attempt.round);
-                    startTransition(() => {
-                      router.push(`/exam/${examId}/result?round=${attempt.round}&scope=${comparisonScope}`);
-                    });
-                  }}
-                  className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
-                    active
-                      ? "border-brand bg-brand text-white"
-                      : "border-hairline bg-white text-ink-2 hover:bg-page"
-                  }`}
-                >
-                  {attempt.round}회차
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div>
-          <p className="mb-1.5 text-xs font-medium text-ink-3">비교 기준</p>
-          <div className="inline-flex rounded-lg border border-hairline bg-page p-1">
-            {([
-              ["all", "전체 응시"],
-              ["round", `동일 ${displayedRound}회차`],
-            ] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => startTransition(() => {
-                  router.push(`/exam/${examId}/result?round=${displayedRound}&scope=${value}`);
-                })}
-                className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
-                  comparisonScope === value
-                    ? "bg-white text-brand shadow-sm"
-                    : "text-ink-3 hover:text-ink"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {rounds.map((attempt) => {
+          const active = attempt.round === displayedRound;
+          return (
+            <button
+              key={attempt.id}
+              type="button"
+              onClick={() => {
+                setOptimisticRound(attempt.round);
+                startTransition(() => {
+                  router.push(`/exam/${examId}/result?round=${attempt.round}`);
+                });
+              }}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
+                active
+                  ? "border-brand bg-brand text-white"
+                  : "border-hairline bg-white text-ink-2 hover:bg-page"
+              }`}
+            >
+              {attempt.round}회차
+            </button>
+          );
+        })}
       </div>
       {isPending ? <ResultPageSkeleton /> : children}
     </div>
