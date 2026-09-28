@@ -41,13 +41,18 @@ function cleanPrompt(question) {
 }
 
 function latexToText(latex) {
-  let value = latex.replace(/&nbsp;/g, " ").replace(/~/g, "").replace(/(\d)\s*(?=\\d?frac)/g, "$1 ").trim();
+  let value = latex
+    .replace(/&nbsp;/g, " ")
+    .replace(/~/g, "")
+    .replace(/\\text\{([^{}]+)\}/g, "$1")
+    .replace(/(\d)\s*(?=\\d?frac)/g, "$1 ")
+    .trim();
   for (let pass = 0; pass < 3; pass += 1) {
-    value = value.replace(/\\d?frac\{([^{}]+)\}\{([^{}]+)\}/g, "($1)/($2)");
+    value = value.replace(/\\d?frac\{([^{}]+)\}\s*\{([^{}]+)\}/g, "($1)/($2)");
   }
   return value
     .replace(/\\Big/g, "")
-    .replace(/\\text\{([^{}]+)\}/g, "$1")
+    .replace(/\\!/g, "")
     .replace(/\\times/g, "×")
     .replace(/\\div/g, "÷")
     .replace(/\\cdot/g, "·")

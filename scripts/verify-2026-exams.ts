@@ -71,13 +71,18 @@ function hasValidPromptLayout(body: string) {
 }
 
 function latexToText(latex: string) {
-  let value = latex.replace(/&nbsp;/g, " ").replace(/~/g, "").replace(/(\d)\s*(?=\\d?frac)/g, "$1 ").trim();
+  let value = latex
+    .replace(/&nbsp;/g, " ")
+    .replace(/~/g, "")
+    .replace(/\\text\{([^{}]+)\}/g, "$1")
+    .replace(/(\d)\s*(?=\\d?frac)/g, "$1 ")
+    .trim();
   for (let pass = 0; pass < 3; pass += 1) {
-    value = value.replace(/\\d?frac\{([^{}]+)\}\{([^{}]+)\}/g, "($1)/($2)");
+    value = value.replace(/\\d?frac\{([^{}]+)\}\s*\{([^{}]+)\}/g, "($1)/($2)");
   }
   return value
     .replace(/\\Big/g, "")
-    .replace(/\\text\{([^{}]+)\}/g, "$1")
+    .replace(/\\!/g, "")
     .replace(/\\times/g, "×")
     .replace(/\\div/g, "÷")
     .replace(/\\cdot/g, "·")
@@ -99,7 +104,15 @@ function hasValidExplanation(question: RawQuestion, explanation: string | null) 
   const math = expectedExplanationMath(question);
   return math.every((value) => explanation.includes(value))
     && !/[\u00a0\u200b]/.test(explanation)
+    && !/[\\{}]/.test(explanation)
     && !/^\s*(?:[\d.,]+|[=+×÷-])\s*$/m.test(explanation);
+}
+
+function answerAgrees(question: RawQuestion, explanation: string | null) {
+  if (!explanation) return false;
+  const numeral = ["", "①", "②", "③", "④", "⑤"][question.answer];
+  const explicit = [...explanation.matchAll(/정답은\s*([①②③④⑤])/g)].map((match) => match[1]);
+  return explicit.length > 0 ? explicit.every((value) => value === numeral) : explanation.includes(`${numeral}이다.`);
 }
 
 function passesReportedRegression(round: number, question: NormalizedQuestion) {
@@ -120,7 +133,10 @@ function hasValidChoices(question: RawQuestion, choices: string[]) {
   const math = expectedChoices(question);
   if (math.length === choices.length) {
     return choices.every((choice, index) => choice.trim() && !/[\n\u00a0\u200b]/.test(choice)
-      && math[index].every((formula) => choice.includes(formula)));
+      && !/[\\{}]/.test(choice)
+      && (math[index].length > 0
+        ? math[index].every((formula) => choice.includes(formula))
+        : choice === compactText(question.choices[index])));
   }
   return JSON.stringify(choices) === JSON.stringify(question.choices.map(compactText));
 }
@@ -188,6 +204,7 @@ for (const [round, directory] of sourceSets) {
       choices: hasValidChoices(source, actual.choices),
       answer: actual.answer === source.answer,
       explanation: hasValidExplanation(source, actual.explanation),
+      answerAgreement: answerAgrees(source, actual.explanation),
       reportedRegression: passesReportedRegression(round, actual),
       imageUrl: actual.imageUrl === expectedImage,
       assetExists: !assetPath || existsSync(assetPath),
