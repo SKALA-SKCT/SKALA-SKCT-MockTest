@@ -178,22 +178,6 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     };
   };
 
-  // 전체 평균은 시험 세트와 재응시 차수를 모두 포함한 완료 기록을 100점으로 환산한다.
-  const allAttemptScores = finishedRows.map((attempt) => {
-    const total = totalOfExam(attempt.examId) || 1;
-    return (scoreOf(attempt.id) / total) * 100;
-  });
-  const allAttemptAverage = allAttemptScores.length
-    ? allAttemptScores.reduce((sum, score) => sum + score, 0) /
-      allAttemptScores.length
-    : 0;
-  const myAllAttemptScores = finishedRows
-    .filter((attempt) => attempt.userId === user.id)
-    .map((attempt) => {
-      const total = totalOfExam(attempt.examId) || 1;
-      return (scoreOf(attempt.id) / total) * 100;
-    });
-
   const myAttemptCounts = [...attemptsByUserExam.entries()]
     .filter(([key]) => key.startsWith(`${user.id}:`))
     .map(([, items]) => items.length);
@@ -211,35 +195,24 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
         ? requestedRound
         : 1;
 
-  const selectedGroupScores =
+  const selectedGroupAttempts =
     selectedAttempt === "all"
-      ? allAttemptScores
+      ? finishedRows
       : [...attemptsByUserExam.values()]
           .map((items) => items[selectedAttempt - 1])
-          .filter((attempt): attempt is (typeof finishedRows)[number] => Boolean(attempt))
-          .map((attempt) => {
-            const total = totalOfExam(attempt.examId) || 1;
-            return (scoreOf(attempt.id) / total) * 100;
-          });
-  const selectedMyScores =
-    selectedAttempt === "all"
-      ? myAllAttemptScores
-      : [...attemptsByUserExam.entries()]
-          .filter(([key]) => key.startsWith(`${user.id}:`))
-          .map(([, items]) => items[selectedAttempt - 1])
-          .filter((attempt): attempt is (typeof finishedRows)[number] => Boolean(attempt))
-          .map((attempt) => {
-            const total = totalOfExam(attempt.examId) || 1;
-            return (scoreOf(attempt.id) / total) * 100;
-          });
-  const selectedGroupAverage = selectedGroupScores.length
-    ? selectedGroupScores.reduce((sum, score) => sum + score, 0) /
-      selectedGroupScores.length
-    : 0;
-  const selectedMyAverage = selectedMyScores.length
-    ? selectedMyScores.reduce((sum, score) => sum + score, 0) /
-      selectedMyScores.length
-    : 0;
+          .filter((attempt): attempt is (typeof finishedRows)[number] => Boolean(attempt));
+  const selectedMyAttempts = selectedGroupAttempts.filter(
+    (attempt) => attempt.userId === user.id
+  );
+  const averageOutOf100 = (items: typeof finishedRows) =>
+    items.length
+      ? items.reduce((sum, attempt) => {
+          const total = totalOfExam(attempt.examId) || 1;
+          return sum + (scoreOf(attempt.id) / total) * 100;
+        }, 0) / items.length
+      : 0;
+  const selectedGroupAverage = averageOutOf100(selectedGroupAttempts);
+  const selectedMyAverage = averageOutOf100(selectedMyAttempts);
 
   // ── 스탯 타일: 가장 최근 완료 회차 기준
   const latest = [...myFinished].sort(
@@ -259,7 +232,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     const averageRank =
       myFinished.reduce((acc, attempt) => acc + rankOfAttempt(attempt).rank, 0) /
       (myFinished.length || 1);
-    const diff = Math.round(selectedMyAverage - selectedGroupAverage);
+    const diff = selectedMyAverage - selectedGroupAverage;
     tiles = [
       {
         label: "최근 회차 점수",
@@ -277,12 +250,12 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
       },
       {
         label: "전체 평균 점수",
-        value: allAttemptAverage.toFixed(1),
+        value: selectedGroupAverage.toFixed(1),
         sub: "점",
       },
       {
         label: "전체 평균과 차이",
-        value: `${diff > 0 ? "+" : ""}${diff}`,
+        value: `${diff > 0 ? "+" : ""}${diff.toFixed(1)}`,
         sub: "점",
         accent: diff >= 0 ? "up" : "down",
       },
@@ -347,13 +320,13 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
   };
   const trendSeries = [...attemptTrendSeries, allAttemptTrend];
 
-  // ── 레이더: 과목별 누적 정답률 나 vs 전체
+  // ── 영역별: 선택한 응시 차수의 과목별 점수 나 vs 전체
   const radarData = SUBJECTS.map((s) => {
     let myC = 0,
       myT = 0,
       gC = 0,
       gT = 0;
-    for (const a of finished) {
+    for (const a of selectedGroupAttempts) {
       const t = totalOfSubject(a.examId, s);
       if (t === 0) continue;
       const c = correctOf.get(`${a.id}:${s}`) ?? 0;
