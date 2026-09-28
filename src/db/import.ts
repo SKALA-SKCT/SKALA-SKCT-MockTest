@@ -17,7 +17,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { exams, questions, SUBJECTS, type Subject } from "./schema";
 
 const connectionString = process.env.DATABASE_URL;
@@ -99,12 +99,21 @@ function validate(n: number, items: RawQuestion[]) {
 
 async function main() {
   const manifest = loadManifest();
-  const rounds = [...manifest.values()].sort((a, b) => a.round - b.round);
+  const selectedRounds = new Set(
+    (process.env.IMPORT_ROUNDS ?? "")
+      .split(",")
+      .map((value) => Number(value.trim()))
+      .filter(Number.isInteger),
+  );
+  const rounds = [...manifest.values()]
+    .filter((item) => selectedRounds.size === 0 || selectedRounds.has(item.round))
+    .sort((a, b) => a.round - b.round);
   if (rounds.length === 0) {
     throw new Error("data/manifest.json에 반영할 회차가 없습니다.");
   }
 
   const reset = process.env.ALLOW_DB_RESET === "true";
+  const updateExisting = process.env.UPDATE_EXISTING_EXAMS === "true";
   if (reset) {
     // questions/attempts/responses가 cascade되므로 명시적으로 허용한 경우에만 실행한다.
     await db.delete(exams);
@@ -139,6 +148,35 @@ async function main() {
           throw new Error(
             `${item.title}: DB 문항 ${existing.questionCount}개, 파일 문항 ${items.length}개로 불일치`
           );
+        }
+        if (updateExisting) {
+          await db.transaction(async (tx) => {
+            for (const q of items) {
+              const updated = await tx
+                .update(questions)
+                .set({
+                  body: q.body,
+                  choices: q.choices,
+                  answer: q.answer,
+                  explanation: q.explanation ?? null,
+                  imageUrl: q.imageUrl ?? null,
+                })
+                .where(
+                  and(
+                    eq(questions.examId, existing.id),
+                    eq(questions.subject, q.subject),
+                    eq(questions.number, q.number),
+                  ),
+                )
+                .returning({ id: questions.id });
+              if (updated.length !== 1) {
+                throw new Error(`${item.title}: ${q.subject} ${q.number}번 갱신 대상이 ${updated.length}개입니다.`);
+              }
+            }
+          });
+          totalQ += items.length;
+          console.log(`${item.title}: 기존 문항 ${items.length}개 갱신`);
+          continue;
         }
         console.log(`${item.title}: 이미 등록됨 — 건너뜀`);
         continue;

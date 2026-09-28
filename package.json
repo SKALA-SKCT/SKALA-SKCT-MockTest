@@ -12,6 +12,7 @@
     "test:question-content": "node --import tsx --test tests/question-content.test.ts",
     "db:push": "drizzle-kit push",
     "db:import": "tsx src/db/import.ts",
+    "db:import:update": "UPDATE_EXISTING_EXAMS=true tsx src/db/import.ts",
     "db:import:reset": "ALLOW_DB_RESET=true tsx src/db/import.ts",
     "db:generate": "drizzle-kit generate"
   },
