@@ -43,12 +43,14 @@ function passageText(value) {
 }
 
 function conditionText(value) {
+  const markers = ["㉠", "㉡", "㉢", "㉣", "㉤", "㉥", "㉦", "㉧"];
   return compactText(value)
     .split("\n")
     .filter(Boolean)
-    .map((line) => {
+    .map((line, index) => {
+      if (/^[A-F]:\s*/.test(line)) return line;
       const withoutBullet = line.replace(/^[•●·]\s*/, "").replace(/^[^\s]{1,2}\s+(?=[가-힣A-Z0-9(])/, "");
-      return `- ${withoutBullet}`;
+      return `${markers[index] ?? "-"} ${withoutBullet}`;
     })
     .join("\n");
 }
