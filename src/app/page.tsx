@@ -228,7 +228,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
       {
         label: "전체 평균과 차이",
         value: `${diff > 0 ? "+" : ""}${diff}`,
-        sub: "점 (내 점수-평균)",
+        sub: "점",
         accent: diff >= 0 ? "up" : "down",
       },
     ];

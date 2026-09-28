@@ -22,17 +22,33 @@ export default function DashboardTrendChart({
         control={
           <label className="flex items-center gap-2 text-xs font-medium text-ink-3">
             응시 차수
-            <select
-              value={selected?.attemptRound ?? 1}
-              onChange={(event) => setAttemptRound(Number(event.target.value))}
-              className="rounded-lg border border-hairline bg-white px-3 py-1.5 font-semibold text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-            >
-              {series.map((item) => (
-                <option key={item.attemptRound} value={item.attemptRound}>
-                  {item.attemptRound}회차 점수
-                </option>
-              ))}
-            </select>
+            <span className="relative">
+              <select
+                value={selected?.attemptRound ?? 1}
+                onChange={(event) => setAttemptRound(Number(event.target.value))}
+                className="appearance-none rounded-lg border border-hairline bg-white py-1.5 pl-3 pr-9 font-semibold text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+              >
+                {series.map((item) => (
+                  <option key={item.attemptRound} value={item.attemptRound}>
+                    {item.attemptRound}회차 점수
+                  </option>
+                ))}
+              </select>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="none"
+                className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
+              >
+                <path
+                  d="m6 8 4 4 4-4"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
           </label>
         }
       />
