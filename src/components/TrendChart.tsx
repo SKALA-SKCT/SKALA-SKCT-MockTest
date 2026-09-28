@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -27,11 +27,13 @@ export default function TrendChart({
   className = "h-64",
   title,
   description,
+  control,
 }: {
   data: TrendDatum[];
   className?: string;
   title?: string;
   description?: string;
+  control?: ReactNode;
 }) {
   const [visible, setVisible] = useState<Record<(typeof legendItems)[number]["key"], boolean>>({
     나: true,
@@ -86,7 +88,10 @@ export default function TrendChart({
               <p className="mt-1 text-xs text-ink-3">{description}</p>
             )}
           </div>
-          {legend}
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
+            {control}
+            {legend}
+          </div>
         </div>
       )}
       <div className="min-h-0 flex-1">

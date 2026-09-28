@@ -5,7 +5,6 @@ import {
   AreaChart,
   CartesianGrid,
   ReferenceLine,
-  ReferenceDot,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -25,44 +24,29 @@ export default function ScoreDistributionChart({
   data,
   myScore,
   average,
-  className = "h-64",
-  matchTrendStyle = false,
 }: {
   data: ScoreDistributionDatum[];
   myScore: number;
   average: number;
-  className?: string;
-  matchTrendStyle?: boolean;
 }) {
   const myBand = data.find((band) => band.includesMe)?.label;
   const averageBand = data.find(
     (band) => average >= band.min && average <= band.max
   )?.label;
-  const myBandCount = data.find((band) => band.includesMe)?.count ?? 0;
   const maxCount = Math.max(1, ...data.map((band) => band.count));
   const yMax = Math.ceil(maxCount * 1.28);
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className="h-72 w-full min-w-[680px]">
       <ResponsiveContainer>
-        <AreaChart
-          data={data}
-          margin={{
-            top: matchTrendStyle ? 10 : 34,
-            right: 28,
-            bottom: 8,
-            left: -8,
-          }}
-        >
+        <AreaChart data={data} margin={{ top: 58, right: 24, bottom: 8, left: -12 }}>
           <defs>
             <linearGradient id="scoreDistributionFill" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor="#e94343" stopOpacity={0.24} />
               <stop offset="100%" stopColor="#e94343" stopOpacity={0.03} />
             </linearGradient>
           </defs>
-          {!matchTrendStyle && (
-            <CartesianGrid stroke="#f1ece9" vertical={false} />
-          )}
+          <CartesianGrid stroke="#f1ece9" vertical={false} />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 11, fill: "#9aa2b4" }}
@@ -78,8 +62,6 @@ export default function ScoreDistributionChart({
             tickLine={false}
             axisLine={false}
             width={40}
-            unit={matchTrendStyle ? "명" : undefined}
-            tickCount={matchTrendStyle ? 5 : undefined}
           />
           <Tooltip
             formatter={(value, _name, item) => {
@@ -95,7 +77,7 @@ export default function ScoreDistributionChart({
               fontSize: 12,
             }}
           />
-          {!matchTrendStyle && myBand ? (
+          {myBand ? (
             <ReferenceLine
               x={myBand}
               stroke="#e94343"
@@ -103,14 +85,14 @@ export default function ScoreDistributionChart({
               label={{
                 value: `내 점수 ${myScore}점`,
                 position: "insideTopRight",
-                dy: -12,
+                dy: -24,
                 fill: "#e94343",
                 fontSize: 12,
                 fontWeight: 700,
               }}
             />
           ) : null}
-          {!matchTrendStyle && averageBand ? (
+          {averageBand ? (
             <ReferenceLine
               x={averageBand}
               stroke="#f59a8e"
@@ -118,56 +100,31 @@ export default function ScoreDistributionChart({
               label={{
                 value: `평균 ${average.toFixed(1)}점`,
                 position: "insideTopLeft",
-                dy: -12,
+                dy: -24,
                 fill: "#c43b3b",
                 fontSize: 12,
                 fontWeight: 700,
               }}
             />
           ) : null}
-          {matchTrendStyle ? (
-            <>
-              <Area
-                name="전체 분포"
-                dataKey="count"
-                type="monotone"
-                stroke="#c8755a"
-                strokeWidth={2.2}
-                fill="transparent"
-                dot={false}
-                activeDot={{ r: 4, fill: "#c8755a" }}
+          <Area
+            dataKey="count"
+            type="monotone"
+            stroke="#e94343"
+            strokeWidth={2.8}
+            fill="url(#scoreDistributionFill)"
+            dot={({ cx, cy, payload }) => (
+              <circle
+                cx={cx}
+                cy={cy}
+                r={payload.includesMe ? 5 : 3.5}
+                fill={payload.includesMe ? "#e94343" : "#fff"}
+                stroke="#e94343"
+                strokeWidth={2}
               />
-              {myBand ? (
-                <ReferenceDot
-                  x={myBand}
-                  y={myBandCount}
-                  r={5}
-                  fill="#e94343"
-                  stroke="#fff"
-                  strokeWidth={2}
-                />
-              ) : null}
-            </>
-          ) : (
-            <Area
-              dataKey="count"
-              type="monotone"
-              stroke="#e94343"
-              strokeWidth={2.8}
-              fill="url(#scoreDistributionFill)"
-              dot={({ cx, cy, payload }) => (
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r={payload.includesMe ? 5 : 3.5}
-                  fill={payload.includesMe ? "#e94343" : "#fff"}
-                  stroke="#e94343"
-                  strokeWidth={2}
-                />
-              )}
-              activeDot={{ r: 6, fill: "#e94343", stroke: "#fff", strokeWidth: 2 }}
-            />
-          )}
+            )}
+            activeDot={{ r: 6, fill: "#e94343", stroke: "#fff", strokeWidth: 2 }}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>

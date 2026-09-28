@@ -13,7 +13,7 @@ import {
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 import { getMotherLoginUrl } from "@/lib/mother-auth";
-import DashboardScoreCharts from "@/components/DashboardScoreCharts";
+import DashboardTrendChart from "@/components/DashboardTrendChart";
 import ExamStartButton from "@/components/ExamStartButton";
 
 export const dynamic = "force-dynamic";
@@ -110,18 +110,21 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
           )
         )
     : [];
-  const latestFinished = new Map<string, (typeof finishedRows)[number]>();
-  for (const a of finishedRows) {
+  const attemptsByUserExam = new Map<string, typeof finishedRows>();
+  for (const a of [...finishedRows].sort((a, b) => a.id - b.id)) {
     const key = `${a.userId}:${a.examId}`;
-    const current = latestFinished.get(key);
-    if (!current || a.id < current.id) latestFinished.set(key, a);
+    const items = attemptsByUserExam.get(key) ?? [];
+    items.push(a);
+    attemptsByUserExam.set(key, items);
   }
+  const latestFinished = new Map(
+    [...attemptsByUserExam.entries()].map(([key, items]) => [key, items[0]])
+  );
   const finished = [...latestFinished.values()];
   const myFinished = finished.filter((a) => a.userId === user.id);
-  const myFinishedByExam = new Map(myFinished.map((attempt) => [attempt.examId, attempt]));
   const myFinishedExamIds = new Set(myFinished.map((a) => a.examId));
   const attemptsByExam = new Map<number, typeof finished>();
-  for (const attempt of finished) {
+  for (const attempt of finishedRows) {
     const items = attemptsByExam.get(attempt.examId) ?? [];
     items.push(attempt);
     attemptsByExam.set(attempt.examId, items);
@@ -171,6 +174,16 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     };
   };
 
+  // 전체 평균은 시험 세트와 재응시 차수를 모두 포함한 완료 기록을 100점으로 환산한다.
+  const allAttemptScores = finishedRows.map((attempt) => {
+    const total = totalOfExam(attempt.examId) || 1;
+    return (scoreOf(attempt.id) / total) * 100;
+  });
+  const allAttemptAverage = allAttemptScores.length
+    ? allAttemptScores.reduce((sum, score) => sum + score, 0) /
+      allAttemptScores.length
+    : 0;
+
   // ── 스탯 타일: 가장 최근 완료 회차 기준
   const latest = [...myFinished].sort(
     (a, b) => (b.finishedAt?.getTime() ?? 0) - (a.finishedAt?.getTime() ?? 0)
@@ -208,6 +221,11 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
         sub: `${myFinished.length}회 평균`,
       },
       {
+        label: "전체 평균 점수",
+        value: allAttemptAverage.toFixed(1),
+        sub: `점 / ${finishedRows.length}건`,
+      },
+      {
         label: "전체 평균과 차이",
         value: `${diff > 0 ? "+" : ""}${diff}`,
         sub: "점 (내 점수-평균)",
@@ -228,62 +246,33 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     }
   }
 
-  // ── 추이: X축은 항상 1~12세트, 내 점수는 완료한 세트만 표시
-  const trendData = Array.from({ length: ROUNDS }, (_, index) => {
-    const round = index + 1;
-    const exam = examByRound.get(round);
-    const mine = exam ? myFinishedByExam.get(exam.id) : undefined;
-    const peers = exam ? (attemptsByExam.get(exam.id) ?? []) : [];
-    const total = exam ? totalOfExam(exam.id) || 1 : 1;
-    const scoreToPoint = (score: number) => Math.round((score / total) * 100);
-    return {
-      name: `${round}세트`,
-      나: mine ? scoreToPoint(scoreOf(mine.id)) : null,
-      그룹평균: peers.length ? scoreToPoint(avgScore(peers)) : null,
-    };
-  });
-
-  // ── 전체 회차 통합 분포: 시험별 문항 수 차이를 없애기 위해 100점으로 환산한다.
-  // 사용자·시험별 첫 완료 기록만 사용해 재응시 횟수가 많은 사용자가 과대표집되지 않게 한다.
-  const normalizedScores = finished.map((attempt) => {
-    const total = totalOfExam(attempt.examId) || 1;
-    return Math.round((scoreOf(attempt.id) / total) * 100);
-  });
-  const overallAverage = normalizedScores.length
-    ? normalizedScores.reduce((sum, score) => sum + score, 0) /
-      normalizedScores.length
-    : 0;
-  const overallDistribution = Array.from({ length: 10 }, (_, index) => {
-    const min = index * 10;
-    const max = index === 9 ? 100 : min + 9;
-    const count = normalizedScores.filter(
-      (score) => score >= min && score <= max
-    ).length;
-    return {
-      min,
-      max,
-      label: `${min}-${max}`,
-      count,
-      percent: normalizedScores.length
-        ? Math.round((count / normalizedScores.length) * 100)
-        : 0,
-    };
-  });
-  const myRoundScores = Array.from(examByRound.entries())
-    .map(([round, exam]) => {
-      const attempt = myFinishedByExam.get(exam.id);
-      if (!attempt) return null;
+  // ── 추이: 드롭다운에서 선택한 N번째 응시끼리 비교한다.
+  const myAttemptCounts = [...attemptsByUserExam.entries()]
+    .filter(([key]) => key.startsWith(`${user.id}:`))
+    .map(([, items]) => items.length);
+  const maxMyAttemptRound = Math.max(1, ...myAttemptCounts);
+  const trendSeries = Array.from({ length: maxMyAttemptRound }, (_, attemptIndex) => ({
+    attemptRound: attemptIndex + 1,
+    data: Array.from({ length: ROUNDS }, (_, index) => {
+      const round = index + 1;
+      const exam = examByRound.get(round);
+      if (!exam) {
+        return { name: `${round}세트`, 나: null, 그룹평균: null };
+      }
       const total = totalOfExam(exam.id) || 1;
-      const score = Math.round((scoreOf(attempt.id) / total) * 100);
+      const mine = attemptsByUserExam.get(`${user.id}:${exam.id}`)?.[attemptIndex];
+      const peers = [...attemptsByUserExam.entries()]
+        .filter(([key]) => key.endsWith(`:${exam.id}`))
+        .map(([, items]) => items[attemptIndex])
+        .filter((attempt): attempt is (typeof finishedRows)[number] => Boolean(attempt));
+      const scoreToPoint = (score: number) => Math.round((score / total) * 100);
       return {
-        round,
-        title: exam.title,
-        score,
-        rank: 1 + normalizedScores.filter((value) => value > score).length,
+        name: `${round}세트`,
+        나: mine ? scoreToPoint(scoreOf(mine.id)) : null,
+        그룹평균: peers.length ? scoreToPoint(avgScore(peers)) : null,
       };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null)
-    .sort((a, b) => a.round - b.round);
+    }),
+  }));
 
   // ── 레이더: 과목별 누적 정답률 나 vs 전체
   const radarData = SUBJECTS.map((s) => {
@@ -342,7 +331,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
         </div>
         {/* 스탯 타일 */}
         {tiles.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
             {tiles.map((t) => (
               <div key={t.label} className="metric-card px-4 py-3">
                 <p className="text-xs font-medium text-ink-3">{t.label}</p>
@@ -370,13 +359,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
         {/* 차트 */}
         {myFinished.length > 0 ? (
           <div className="grid min-h-0 flex-1 gap-3">
-            <DashboardScoreCharts
-              trendData={trendData}
-              distribution={overallDistribution}
-              average={overallAverage}
-              attemptCount={normalizedScores.length}
-              myRoundScores={myRoundScores}
-            />
+            <DashboardTrendChart series={trendSeries} />
           </div>
         ) : (
           <div className="card flex h-full min-h-[500px] items-center justify-center px-6 py-10 text-center xl:min-h-0">
