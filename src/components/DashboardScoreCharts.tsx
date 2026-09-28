@@ -115,6 +115,7 @@ export default function DashboardScoreCharts({
             myScore={selected.score}
             average={average}
             className="min-h-0 flex-1"
+            matchTrendStyle
           />
         </div>
       ) : null}

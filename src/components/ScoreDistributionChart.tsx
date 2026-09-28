@@ -25,11 +25,13 @@ export default function ScoreDistributionChart({
   myScore,
   average,
   className = "h-64",
+  matchTrendStyle = false,
 }: {
   data: ScoreDistributionDatum[];
   myScore: number;
   average: number;
   className?: string;
+  matchTrendStyle?: boolean;
 }) {
   const myBand = data.find((band) => band.includesMe)?.label;
   const averageBand = data.find(
@@ -41,14 +43,24 @@ export default function ScoreDistributionChart({
   return (
     <div className={`w-full ${className}`}>
       <ResponsiveContainer>
-        <AreaChart data={data} margin={{ top: 34, right: 28, bottom: 8, left: -8 }}>
+        <AreaChart
+          data={data}
+          margin={{
+            top: matchTrendStyle ? 10 : 34,
+            right: 28,
+            bottom: 8,
+            left: -8,
+          }}
+        >
           <defs>
             <linearGradient id="scoreDistributionFill" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor="#e94343" stopOpacity={0.24} />
               <stop offset="100%" stopColor="#e94343" stopOpacity={0.03} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#f1ece9" vertical={false} />
+          {!matchTrendStyle && (
+            <CartesianGrid stroke="#f1ece9" vertical={false} />
+          )}
           <XAxis
             dataKey="label"
             tick={{ fontSize: 11, fill: "#9aa2b4" }}
@@ -64,6 +76,8 @@ export default function ScoreDistributionChart({
             tickLine={false}
             axisLine={false}
             width={40}
+            unit={matchTrendStyle ? "명" : undefined}
+            tickCount={matchTrendStyle ? 5 : undefined}
           />
           <Tooltip
             formatter={(value, _name, item) => {
@@ -79,7 +93,7 @@ export default function ScoreDistributionChart({
               fontSize: 12,
             }}
           />
-          {myBand ? (
+          {!matchTrendStyle && myBand ? (
             <ReferenceLine
               x={myBand}
               stroke="#e94343"
@@ -94,7 +108,7 @@ export default function ScoreDistributionChart({
               }}
             />
           ) : null}
-          {averageBand ? (
+          {!matchTrendStyle && averageBand ? (
             <ReferenceLine
               x={averageBand}
               stroke="#f59a8e"
@@ -113,7 +127,7 @@ export default function ScoreDistributionChart({
             dataKey="count"
             type="monotone"
             stroke="#e94343"
-            strokeWidth={2.8}
+            strokeWidth={matchTrendStyle ? 2.4 : 2.8}
             fill="url(#scoreDistributionFill)"
             dot={({ cx, cy, payload }) => (
               <circle
