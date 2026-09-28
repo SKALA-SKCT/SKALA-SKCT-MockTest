@@ -48,7 +48,10 @@ const getResultQuestions = unstable_cache(
 
 function maskName(value: string | null) {
   if (!value) return "-";
-  return value[0] + "*".repeat(Math.max(1, value.length - 1));
+  const chars = [...value];
+  if (chars.length < 2) return value;
+  chars[1] = "*";
+  return chars.join("");
 }
 
 function distributionBands(totalQuestions: number) {
@@ -113,7 +116,6 @@ export default async function ResultPage({
       .select({
         attemptId: attempts.id,
         userId: attempts.userId,
-        nickname: users.nickname,
         name: users.name,
       })
       .from(attempts)
@@ -278,7 +280,6 @@ export default async function ResultPage({
   const ranking = [...finishedAttempts]
     .map((a) => ({
       name: a.name,
-      nickname: a.nickname,
       isMe: a.userId === user.id,
       total: scoreByAttempt.get(a.attemptId)!.total,
     }))
@@ -520,7 +521,7 @@ export default async function ResultPage({
                       className="flex justify-between rounded-xl bg-page px-3 py-2 text-zinc-600"
                     >
                       <span>
-                        {i + 1}위 · {maskName(r.name)} · {maskName(r.nickname)}
+                        {i + 1}위 · {maskName(r.name)}
                       </span>
                       <span>
                         {r.total}/{totalQuestions}
