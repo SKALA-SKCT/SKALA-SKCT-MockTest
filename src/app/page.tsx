@@ -366,10 +366,13 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     }
     return {
       subject: s,
-      나: myT ? Math.round((myC / myT) * 100) : 0,
-      그룹평균: gT ? Math.round((gC / gT) * 100) : 0,
+      나: myT ? (myC / myT) * 20 : 0,
+      그룹평균: gT ? (gC / gT) * 20 : 0,
     };
   });
+
+  const formatSubjectScore = (score: number) =>
+    Number.isInteger(score) ? String(score) : score.toFixed(1);
 
   const rounds: {
     no: number;
@@ -472,7 +475,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
                         {r.subject}
                       </p>
                       <p className="mt-1 text-xl font-extrabold tracking-tight text-ink">
-                        {r.나}점
+                        {formatSubjectScore(r.나)}점
                       </p>
                     </div>
                     <div className="grid gap-0.5 text-xs leading-4">
@@ -486,7 +489,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
                         }`}
                       >
                         전체 {diff > 0 ? "+" : ""}
-                        {diff}점
+                        {formatSubjectScore(diff)}점
                       </p>
                       <p className="text-ink-3">
                         전체 평균 대비
