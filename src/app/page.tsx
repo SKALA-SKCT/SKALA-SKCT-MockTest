@@ -289,8 +289,8 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     ];
   }
 
-  // 모의고사 세트 목록: 1~12세트. 제목("N회차 모의고사")으로 매핑
-  const ROUNDS = 12;
+  // 모의고사 세트 목록: 생성 순서 또는 제목의 회차 번호로 매핑
+  const ROUNDS = 17;
   const examByRound = new Map<number, (typeof examList)[number]>();
   for (const [index, e] of examList.entries()) {
     const m = e.title.match(/^(\d+)회차/);
@@ -515,9 +515,9 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
               모든 회차별 분석을 확인하실 수 있습니다.
             </p>
           </div>
-          <ul className="soft-scrollbar flex min-h-0 flex-1 flex-col divide-y divide-[var(--grid)] overflow-y-auto px-3.5">
+          <ul className="soft-scrollbar flex max-h-[560px] min-h-0 flex-1 flex-col divide-y divide-[var(--grid)] overflow-y-auto overscroll-contain px-3.5 xl:max-h-none">
             {rounds.map((r) => (
-              <li key={r.no} className="flex flex-1 items-center gap-2.5 py-2">
+              <li key={r.no} className="flex min-h-12 shrink-0 items-center gap-2.5 py-2">
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                     r.done
