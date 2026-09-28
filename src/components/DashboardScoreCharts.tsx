@@ -83,15 +83,15 @@ export default function DashboardScoreCharts({
         />
       ) : selected ? (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+          <div className="mb-2 flex items-start justify-between gap-4">
+            <div className="min-w-0">
               <h2 className="text-sm font-semibold text-ink">전체 회차 통합 점수 분포</h2>
               <p className="mt-1 text-xs text-ink-3">
                 1~12회차의 사용자별 첫 완료 기록 {attemptCount}건, 100점 환산
               </p>
             </div>
-            <label className="flex items-center gap-2 text-xs font-medium text-ink-3">
-              내 점수 선택
+            <label className="flex shrink-0 items-center gap-2 text-xs font-medium text-ink-3">
+              <span className="hidden sm:inline">내 점수</span>
               <select
                 value={selected.round}
                 onChange={(event) => setSelectedRound(Number(event.target.value))}
@@ -105,32 +105,17 @@ export default function DashboardScoreCharts({
               </select>
             </label>
           </div>
-
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <div className="rounded-xl bg-page px-3 py-2">
-              <p className="text-[11px] text-ink-3">전체 평균</p>
-              <p className="mt-0.5 text-lg font-bold text-ink">{average.toFixed(1)}점</p>
-            </div>
-            <div className="rounded-xl bg-page px-3 py-2">
-              <p className="text-[11px] text-ink-3">내 {selected.round}회차</p>
-              <p className="mt-0.5 text-lg font-bold text-brand">{selected.score}점</p>
-            </div>
-            <div className="rounded-xl bg-page px-3 py-2">
-              <p className="text-[11px] text-ink-3">전체 기록 중</p>
-              <p className="mt-0.5 text-lg font-bold text-ink">
-                {selected.rank}위
-                <span className="ml-1 text-xs font-medium text-ink-3">/{attemptCount}</span>
-              </p>
-            </div>
+          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs font-medium">
+            <span className="text-brand">내 {selected.round}회차 {selected.score}점</span>
+            <span className="text-[#c8755a]">전체 평균 {average.toFixed(1)}점</span>
+            <span className="text-ink-3">전체 {selected.rank}위/{attemptCount}건</span>
           </div>
-
-          <div className="mt-2 min-h-0 flex-1 overflow-x-auto">
-            <ScoreDistributionChart
-              data={chartData}
-              myScore={selected.score}
-              average={average}
-            />
-          </div>
+          <ScoreDistributionChart
+            data={chartData}
+            myScore={selected.score}
+            average={average}
+            className="min-h-0 flex-1"
+          />
         </div>
       ) : null}
     </div>

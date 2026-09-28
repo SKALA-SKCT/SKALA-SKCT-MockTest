@@ -24,10 +24,12 @@ export default function ScoreDistributionChart({
   data,
   myScore,
   average,
+  className = "h-64",
 }: {
   data: ScoreDistributionDatum[];
   myScore: number;
   average: number;
+  className?: string;
 }) {
   const myBand = data.find((band) => band.includesMe)?.label;
   const averageBand = data.find(
@@ -37,9 +39,9 @@ export default function ScoreDistributionChart({
   const yMax = Math.ceil(maxCount * 1.28);
 
   return (
-    <div className="h-72 w-full min-w-[680px]">
+    <div className={`w-full ${className}`}>
       <ResponsiveContainer>
-        <AreaChart data={data} margin={{ top: 58, right: 24, bottom: 8, left: -12 }}>
+        <AreaChart data={data} margin={{ top: 34, right: 28, bottom: 8, left: -8 }}>
           <defs>
             <linearGradient id="scoreDistributionFill" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor="#e94343" stopOpacity={0.24} />
@@ -85,7 +87,7 @@ export default function ScoreDistributionChart({
               label={{
                 value: `내 점수 ${myScore}점`,
                 position: "insideTopRight",
-                dy: -24,
+                dy: -12,
                 fill: "#e94343",
                 fontSize: 12,
                 fontWeight: 700,
@@ -100,7 +102,7 @@ export default function ScoreDistributionChart({
               label={{
                 value: `평균 ${average.toFixed(1)}점`,
                 position: "insideTopLeft",
-                dy: -24,
+                dy: -12,
                 fill: "#c43b3b",
                 fontSize: 12,
                 fontWeight: 700,
