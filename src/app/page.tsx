@@ -218,12 +218,11 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
       {
         label: "내 평균 등수",
         value: `${averageRank.toFixed(1)}위`,
-        sub: `${myFinished.length}회 평균`,
       },
       {
         label: "전체 평균 점수",
         value: allAttemptAverage.toFixed(1),
-        sub: `점 / ${finishedRows.length}건`,
+        sub: "점",
       },
       {
         label: "전체 평균과 차이",
