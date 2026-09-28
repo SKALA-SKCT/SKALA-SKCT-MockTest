@@ -4,7 +4,6 @@ import { basename, join } from "node:path";
 
 const projectRoot = process.cwd();
 const sourceRoot = process.env.SOURCE_ROOT;
-const ocrRoot = process.env.OCR_ROOT ?? "/tmp/skct-ocr";
 if (!sourceRoot) throw new Error("SOURCE_ROOT 환경 변수에 원본 회차 폴더의 상위 경로를 지정하세요.");
 const sourceSets = [
   [13, "2026년 상반기 1회"],
@@ -30,29 +29,7 @@ function cleanPrompt(question) {
   if (question.number >= 81) {
     prompt = prompt.split("\n")[0];
   }
-  return prompt;
-}
-
-function passageText(value) {
-  return compactText(value)
-    .split("\n")
-    .filter(Boolean)
-    .join(" ")
-    .replace(/\(\s*([A-E])\s*\)/g, "($1)")
-    .replace(/\(\s*([A-E])\s*$/, "($1)");
-}
-
-function conditionText(value) {
-  const markers = ["㉠", "㉡", "㉢", "㉣", "㉤", "㉥", "㉦", "㉧"];
-  return compactText(value)
-    .split("\n")
-    .filter(Boolean)
-    .map((line, index) => {
-      if (/^[A-F]:\s*/.test(line)) return line;
-      const withoutBullet = line.replace(/^[•●·]\s*/, "").replace(/^[^\s]{1,2}\s+(?=[가-힣A-Z0-9(])/, "");
-      return `${markers[index] ?? "-"} ${withoutBullet}`;
-    })
-    .join("\n");
+  return prompt.replace(/\n<(보기|조건)>\s*$/, "").trim();
 }
 
 function latexToText(latex) {
@@ -89,23 +66,10 @@ for (const [round, directory] of sourceSets) {
     let prompt = cleanPrompt(question);
     let body = prompt;
     let imageUrl = null;
-    const supplementPath = join(
-      projectRoot,
-      `public/exam-assets/round-${round}/q-${question.number}-supplement.jpg`,
-    );
-    const hasSupplement = existsSync(supplementPath);
+    const materialPath = join(projectRoot, `public/exam-assets/round-${round}/q-${question.number}.jpg`);
 
-    if (question.number <= 20) {
-      const ocr = await readFile(join(ocrRoot, `round-${round}/q-${question.number}.txt`), "utf8");
-      if (hasSupplement) prompt = prompt.replace(/\n?<보기>\s*$/, "");
-      body = `${prompt}\n\n${passageText(ocr)}${hasSupplement ? "\n\n<보기>" : ""}`;
-      if (hasSupplement) imageUrl = `/exam-assets/round-${round}/q-${question.number}-supplement.jpg`;
-    } else if (question.number <= 40 || question.number >= 81) {
+    if (existsSync(materialPath)) {
       imageUrl = `/exam-assets/round-${round}/q-${question.number}.jpg`;
-    } else if (question.number >= 61 && question.number <= 80) {
-      const ocr = await readFile(join(ocrRoot, `round-${round}/q-${question.number}.txt`), "utf8");
-      body = `${prompt}\n${conditionText(ocr)}`;
-      if (hasSupplement) imageUrl = `/exam-assets/round-${round}/q-${question.number}-supplement.jpg`;
     }
 
     normalized.push({

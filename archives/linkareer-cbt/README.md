@@ -13,7 +13,7 @@
 
 무결성은 `SHA256SUMS`로 확인합니다.
 
-`normalized/`에는 서비스 DB에 반영한 100문항 정규화 JSON을 함께 보존합니다. 원본 HTML/JSON은 수정하지 않았고, 정규화본에서는 텍스트 지문·조건을 복원하고 표·수열·별도 보기는 `public/exam-assets`의 로컬 이미지 경로로 연결했습니다.
+`normalized/`에는 서비스 DB에 반영한 100문항 정규화 JSON을 함께 보존합니다. 원본 HTML/JSON은 수정하지 않았고, 정규화본에서는 문제 문장·선지·정답·해설을 구조화하고 지문·조건·표·수열·별도 보기는 `public/exam-assets`의 테두리 없는 로컬 원본 이미지로 연결했습니다.
 
 ```bash
 shasum -a 256 -c archives/linkareer-cbt/SHA256SUMS
