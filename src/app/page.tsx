@@ -124,7 +124,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
   const myFinished = finished.filter((a) => a.userId === user.id);
   const myFinishedExamIds = new Set(myFinished.map((a) => a.examId));
   const attemptsByExam = new Map<number, typeof finished>();
-  for (const attempt of finishedRows) {
+  for (const attempt of finished) {
     const items = attemptsByExam.get(attempt.examId) ?? [];
     items.push(attempt);
     attemptsByExam.set(attempt.examId, items);
@@ -133,7 +133,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
   // 응시별·과목별 정답 수
   const correctOf = new Map<string, number>();
   const scoreByAttempt = new Map<number, number>();
-  for (const attempt of finished) {
+  for (const attempt of finishedRows) {
     scoreByAttempt.set(attempt.id, attempt.totalScore);
     for (const subject of SUBJECTS) {
       correctOf.set(
