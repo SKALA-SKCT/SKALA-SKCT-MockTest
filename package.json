@@ -10,6 +10,7 @@
     "test:review-chat": "tsx --test tests/review-chat-knowledge.test.ts",
     "test:calculator": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/calculator.test.mjs",
     "test:question-content": "node --import tsx --test tests/question-content.test.ts",
+    "verify:2026-exams": "tsx scripts/verify-2026-exams.ts",
     "db:push": "drizzle-kit push",
     "db:import": "tsx src/db/import.ts",
     "db:import:update": "UPDATE_EXISTING_EXAMS=true tsx src/db/import.ts",

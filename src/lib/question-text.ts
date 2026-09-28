@@ -6,8 +6,8 @@ export function normalizeQuestionText(value: string | null | undefined) {
     .replace(/\s+(?=<보기>|<조건>|※)/g, "\n")
     .replace(/(<보기>|<조건>)/g, "\n\n$1\n")
     .replace(
-      /\n+\s*(<보기>|<조건>)\n(?=(?:에서|의|을|를|은|는|이|가|과|와))/g,
-      " $1 "
+      /\n+\s*(<보기>|<조건>)\s*\n*\s*(?=(?:에서|의|을|를|은|는|이|가|과|와))/g,
+      " $1"
     )
     .replace(/것만을\s*\n+\s*<보기>\s*\n+\s*에서/g, "것만을 <보기>에서")
     .replace(/것을\s*\n+\s*<보기>\s*\n+\s*에서/g, "것을 <보기>에서")

@@ -25,9 +25,17 @@ function compactText(value) {
 }
 
 function cleanPrompt(question) {
-  let prompt = compactText(question.prompt).split(/\n정답\s*:/)[0];
-  if (question.number >= 81) {
-    prompt = prompt.split("\n")[0];
+  const rawPrompt = compactText(question.prompt).split(/\n정답\s*:/)[0];
+  const questionEnd = rawPrompt.indexOf("?");
+  let prompt = questionEnd >= 0 ? rawPrompt.slice(0, questionEnd + 1) : rawPrompt.split("\n")[0];
+  const inlineMath = String(question.questionHtml ?? "").match(
+    /<annotation[^>]*encoding="application\/x-tex"[^>]*>([\s\S]*?)<\/annotation>/,
+  )?.[1];
+  if (inlineMath) prompt = prompt.replace(/\n[𝐴𝐵]\n[𝐴𝐵]\n[AB]\n[AB]\n/gu, ` ${latexToText(inlineMath)} `);
+  prompt = prompt.replace(/\s+(?=의 값으로)/g, "");
+  const trailing = questionEnd >= 0 ? rawPrompt.slice(questionEnd + 1).trim() : "";
+  if (trailing.startsWith("※")) {
+    prompt = `${prompt}\n${trailing.split("\n").filter((line) => line.startsWith("※")).join("\n")}`;
   }
   return prompt.replace(/\n<(보기|조건)>\s*$/, "").trim();
 }

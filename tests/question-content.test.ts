@@ -5,7 +5,22 @@ import test from "node:test";
 import pdfChoices from "../src/lib/pdf-verified-choices.json";
 import pdfText from "../src/lib/pdf-verified-text.json";
 import { applyQuestionContentOverride } from "../src/lib/question-overrides";
-import { formatReviewExplanation, normalizeChoiceTexts } from "../src/lib/question-text";
+import { formatReviewExplanation, normalizeChoiceTexts, normalizeQuestionDisplayText } from "../src/lib/question-text";
+
+test("문제 문장 안의 보기·조건 조사는 줄바꿈하지 않는다", () => {
+  assert.equal(
+    normalizeQuestionDisplayText("다음 글의 (A)~(E) 중 <보기>의 문장이 들어갈 위치로 가장 적절한 곳은?"),
+    "다음 글의 (A)~(E) 중 <보기>의 문장이 들어갈 위치로 가장 적절한 곳은?",
+  );
+  assert.equal(
+    normalizeQuestionDisplayText("옳은 것만을 <보기>에서 모두 고른 것은?"),
+    "옳은 것만을 <보기>에서 모두 고른 것은?",
+  );
+  assert.equal(
+    normalizeQuestionDisplayText("정보가 다음 <조건>과 같을 때, 항상 거짓인 것은?"),
+    "정보가 다음 <조건>과 같을 때, 항상 거짓인 것은?",
+  );
+});
 
 test("2회차 수열추리 20문항은 캡처 대신 PDF 전사 텍스트를 표시한다", () => {
   for (let number = 81; number <= 100; number++) {
