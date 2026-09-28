@@ -111,6 +111,7 @@ npm run db:push
 npm run db:import
 ```
 
+`db:import`는 제목이 같은 기존 시험과 응시 기록을 보존하고 새 시험만 추가합니다.
 `db:import:reset`은 기존 시험/응시 데이터를 초기화할 수 있으므로 로컬 또는 명확히 의도한 환경에서만 사용합니다.
 
 ## Build

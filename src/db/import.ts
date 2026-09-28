@@ -1,8 +1,10 @@
 /**
- * data/round-1.json ~ round-12.json 을 읽어 모의고사 12회차를 DB에 반영.
- * 기존 모든 시험(및 응시 기록)은 삭제하고 새로 만든다.
+ * data/manifest.json과 data/round-N.json을 읽어 모의고사를 DB에 반영한다.
+ * 기본 실행은 기존 시험/응시 기록을 보존하고, 아직 없는 시험만 추가한다.
+ * ALLOW_DB_RESET=true일 때만 기존 시험(및 응시 기록)을 삭제하고 다시 만든다.
  *
- *   ALLOW_DB_RESET=true npm run db:import
+ *   npm run db:import
+ *   ALLOW_DB_RESET=true npm run db:import:reset
  *
  * JSON 형식: 문항 배열
  *   { number: 1~100, subject: "언어이해"|"자료해석"|"창의수리"|"언어추리"|"수열추리",
@@ -15,6 +17,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
+import { eq, sql } from "drizzle-orm";
 import { exams, questions, SUBJECTS, type Subject } from "./schema";
 
 const connectionString = process.env.DATABASE_URL;
@@ -52,7 +55,6 @@ type RoundManifestItem = {
   title: string;
 };
 
-const ROUNDS = 12;
 const DATA_DIR = join(process.cwd(), "data");
 
 function loadManifest(): Map<number, RoundManifestItem> {
@@ -96,19 +98,23 @@ function validate(n: number, items: RawQuestion[]) {
 }
 
 async function main() {
-  if (process.env.ALLOW_DB_RESET !== "true") {
-    throw new Error(
-      "db:import deletes existing exams and cascades attempts/responses. Set ALLOW_DB_RESET=true to continue."
-    );
+  const manifest = loadManifest();
+  const rounds = [...manifest.values()].sort((a, b) => a.round - b.round);
+  if (rounds.length === 0) {
+    throw new Error("data/manifest.json에 반영할 회차가 없습니다.");
   }
 
-  const manifest = loadManifest();
-  // 기존 시험 전부 삭제 (questions/attempts/responses cascade)
-  await db.delete(exams);
-  console.log("기존 시험 삭제 완료");
+  const reset = process.env.ALLOW_DB_RESET === "true";
+  if (reset) {
+    // questions/attempts/responses가 cascade되므로 명시적으로 허용한 경우에만 실행한다.
+    await db.delete(exams);
+    console.log("기존 시험 삭제 완료");
+  }
 
   let totalQ = 0;
-  for (let n = 1; n <= ROUNDS; n++) {
+  let addedExams = 0;
+  for (const item of rounds) {
+    const n = item.round;
     const items = loadRound(n);
     if (!items) {
       console.log(`round-${n}.json 없음 — 건너뜀`);
@@ -116,28 +122,54 @@ async function main() {
     }
     validate(n, items);
 
-    const [exam] = await db
-      .insert(exams)
-      .values({ title: manifest.get(n)?.title ?? `${n}회차 모의고사`, published: true })
-      .returning();
+    if (!reset) {
+      const [existing] = await db
+        .select({
+          id: exams.id,
+          questionCount: sql<number>`count(${questions.id})::int`,
+        })
+        .from(exams)
+        .leftJoin(questions, eq(questions.examId, exams.id))
+        .where(eq(exams.title, item.title))
+        .groupBy(exams.id)
+        .limit(1);
 
-    await db.insert(questions).values(
-      items.map((q) => ({
-        examId: exam.id,
-        subject: q.subject,
-        number: q.number,
-        body: q.body,
-        choices: q.choices,
-        answer: q.answer,
-        explanation: q.explanation ?? null,
-        imageUrl: q.imageUrl ?? null,
-      }))
-    );
+      if (existing) {
+        if (existing.questionCount !== items.length) {
+          throw new Error(
+            `${item.title}: DB 문항 ${existing.questionCount}개, 파일 문항 ${items.length}개로 불일치`
+          );
+        }
+        console.log(`${item.title}: 이미 등록됨 — 건너뜀`);
+        continue;
+      }
+    }
+
+    await db.transaction(async (tx) => {
+      const [exam] = await tx
+        .insert(exams)
+        .values({ title: item.title, published: true })
+        .returning();
+
+      await tx.insert(questions).values(
+        items.map((q) => ({
+          examId: exam.id,
+          subject: q.subject,
+          number: q.number,
+          body: q.body,
+          choices: q.choices,
+          answer: q.answer,
+          explanation: q.explanation ?? null,
+          imageUrl: q.imageUrl ?? null,
+        }))
+      );
+    });
+    addedExams += 1;
     totalQ += items.length;
-    console.log(`${n}회차: 문항 ${items.length}개 등록`);
+    console.log(`${item.title}: 문항 ${items.length}개 등록`);
   }
 
-  console.log(`완료 — 총 문항 ${totalQ}개`);
+  console.log(`완료 — 시험 ${addedExams}개, 문항 ${totalQ}개 추가`);
   await pool.end();
 }
 
