@@ -38,6 +38,30 @@ test("숫자의 끝자리를 분모로 추측하지 않는다", () => {
   assert.deepEqual(normalizeChoiceTexts(choices), choices);
 });
 
+test("신고된 문항의 유실 지문·표식·보기를 PDF 기준으로 복원한다", () => {
+  const round4Question9 = applyQuestionContentOverride(4, { number: 9, body: "손상 본문", choices: [] as string[] });
+  assert.equal(round4Question9.body.match(/다음 글에서 필자가/g)?.length, 1);
+  assert.ok(round4Question9.body.includes("「뉴노멀법」"));
+
+  const round4Question10 = applyQuestionContentOverride(4, { number: 10, body: "손상 본문", choices: [] as string[] });
+  assert.ok(round4Question10.body.includes("지난 10년간 통계"));
+  assert.ok(round4Question10.body.includes("교통 환경 인지 지연"));
+
+  const round4Question12 = applyQuestionContentOverride(4, { number: 12, body: "손상 본문", choices: [] as string[] });
+  assert.ok(round4Question12.body.includes("① 공정공시와 ② 수시공시"));
+
+  const round4Question16 = applyQuestionContentOverride(4, { number: 16, body: "손상 본문", choices: [] as string[] });
+  assert.ok(round4Question16.body.includes("① 후각 능력"));
+
+  const round7Question31 = applyQuestionContentOverride(7, { number: 31, body: "손상 본문", choices: [] as string[] });
+  assert.ok(round7Question31.body.includes("<보기>\n①"));
+  assert.ok(round7Question31.body.includes("④ 2024년 A사 태블릿 판매량"));
+
+  const round8Question14 = applyQuestionContentOverride(8, { number: 14, body: "손상 본문", choices: [] as string[] });
+  assert.ok(round8Question14.body.includes("① 능력주의는"));
+  assert.ok(round8Question14.body.includes("② 능력주의를 비판하는 입장"));
+});
+
 test("분수와 대분수는 PDF 전사 값을 그대로 표시한다", () => {
   const choices = ["1/140", "9/100", "12 2/5", "1 54/125", "64/6,561"];
   assert.deepEqual(normalizeChoiceTexts(choices), choices);

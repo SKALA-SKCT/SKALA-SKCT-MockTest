@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
@@ -36,32 +36,6 @@ async function getMyAttempt(userId: number, examId: number) {
   return attempt ?? null;
 }
 
-async function assertExamOrderAllowed(userId: number, examId: number) {
-  const orderedExams = await db
-    .select({ id: exams.id })
-    .from(exams)
-    .where(eq(exams.published, true))
-    .orderBy(asc(exams.createdAt));
-  const targetIndex = orderedExams.findIndex((exam) => exam.id === examId);
-  if (targetIndex < 0) throw new Error("존재하지 않거나 비공개 시험입니다.");
-  if (targetIndex === 0) return;
-
-  const requiredExamIds = orderedExams
-    .slice(0, targetIndex)
-    .map((exam) => exam.id);
-  const finishedPrevious = await db
-    .select({ examId: attempts.examId })
-    .from(attempts)
-    .where(and(eq(attempts.userId, userId), isNotNull(attempts.finishedAt)));
-  const finishedExamIds = new Set(finishedPrevious.map((row) => row.examId));
-  const missingIndex = requiredExamIds.findIndex(
-    (requiredExamId) => !finishedExamIds.has(requiredExamId)
-  );
-  if (missingIndex >= 0) {
-    throw new Error(`${missingIndex + 1}회차를 먼저 완료해주세요.`);
-  }
-}
-
 export async function deleteUnfinishedAttempts(userId: number, examId: number) {
   const unfinishedAttempts = await db
     .select({ id: attempts.id })
@@ -85,8 +59,6 @@ export async function startAttempt(examId: number) {
   const user = await requireUser();
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
   if (!exam || !exam.published) throw new Error("존재하지 않거나 비공개 시험입니다.");
-
-  await assertExamOrderAllowed(user.id, examId);
 
   await deleteUnfinishedAttempts(user.id, examId);
 

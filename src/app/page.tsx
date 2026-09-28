@@ -271,11 +271,9 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     no: number;
     exam: (typeof examList)[number] | undefined;
     done: boolean;
-    locked: boolean;
   }[] = [];
   const examListTitle = (title: string | undefined, round: number) =>
     (title ?? `${round}회차 모의고사`).replace(/^SK\s+/i, "");
-  let allPreviousDone = true;
   for (let no = 1; no <= ROUNDS; no += 1) {
     const exam = examByRound.get(no);
     const done = exam ? myFinishedExamIds.has(exam.id) : false;
@@ -283,9 +281,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
       no,
       exam,
       done,
-      locked: Boolean(exam) && !done && !allPreviousDone,
     });
-    if (exam && !done) allPreviousDone = false;
   }
 
   return (
@@ -460,10 +456,6 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
                         결과
                       </Link>
                     </div>
-                  ) : r.locked ? (
-                    <span className="rounded-lg bg-page px-2.5 py-1.5 text-[11px] font-medium text-ink-3">
-                      잠김
-                    </span>
                   ) : (
                     <ExamStartButton
                       examId={r.exam.id}

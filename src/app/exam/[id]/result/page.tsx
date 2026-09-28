@@ -66,10 +66,10 @@ export default async function ResultPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ round?: string }>;
+  searchParams: Promise<{ round?: string; scope?: string }>;
 }) {
   const { id } = await params;
-  const { round } = await searchParams;
+  const { round, scope } = await searchParams;
   const examId = Number(id);
   if (!Number.isInteger(examId)) notFound();
 
@@ -98,6 +98,7 @@ export default async function ResultPage({
       : 1;
   const myAttempt = myAttempts[selectedRound - 1];
   if (!myAttempt) redirect(`/exam/${examId}/take`);
+  const comparisonScope = scope === "round" ? "round" : "all";
   let [myResult] = await db
     .select()
     .from(attemptResults)
@@ -132,16 +133,19 @@ export default async function ResultPage({
     total: totalBySubject.get(subject) ?? 0,
   }));
 
-  // 완료된 응시 — 유저별 N번째 완료 기록끼리 비교한다.
+  // 전체 응시는 재응시를 포함한 모든 완료 기록을, 동일 응시차는
+  // 유저별 N번째 완료 기록만 비교한다.
   const attemptRowsByUser = new Map<number, (typeof finishedRows)>();
   for (const row of finishedRows) {
     const rows = attemptRowsByUser.get(row.userId) ?? [];
     rows.push(row);
     attemptRowsByUser.set(row.userId, rows);
   }
-  const finishedAttempts = [...attemptRowsByUser.values()]
+  const sameRoundAttempts = [...attemptRowsByUser.values()]
     .map((rows) => rows[selectedRound - 1])
     .filter((row): row is (typeof finishedRows)[number] => Boolean(row));
+  const finishedAttempts =
+    comparisonScope === "all" ? finishedRows : sameRoundAttempts;
   const n = finishedAttempts.length;
   const attemptIds = finishedAttempts.map((a) => a.attemptId);
   const analysisAttemptIds = finishedAttempts.map((a) => a.attemptId);
@@ -392,6 +396,7 @@ export default async function ResultPage({
         <ResultRoundTabs
           examId={examId}
           selectedRound={selectedRound}
+          comparisonScope={comparisonScope}
           rounds={myAttempts.map((attempt, index) => ({
             id: attempt.id,
             round: index + 1,
@@ -409,7 +414,9 @@ export default async function ResultPage({
               </p>
             </div>
             <div className="metric-card p-5 text-center">
-              <p className="text-xs text-zinc-400">전체 평균 점수</p>
+              <p className="text-xs text-zinc-400">
+                {comparisonScope === "all" ? "전체 응시 평균" : `동일 ${selectedRound}회차 평균`}
+              </p>
               <p className="mt-1 text-3xl font-extrabold text-zinc-900">
                 {averageTotal.toFixed(1)}
                 <span className="text-base font-medium text-zinc-400">
@@ -443,7 +450,9 @@ export default async function ResultPage({
               <div>
                 <h2 className="font-semibold">전체 시험자 점수 분포</h2>
                 <p className="mt-1 text-xs text-zinc-400">
-                  완료 응시 {n}명 기준
+                  {comparisonScope === "all"
+                    ? `재응시를 포함한 전체 완료 기록 ${n}건 기준`
+                    : `사용자별 ${selectedRound}회차 완료 기록 ${n}건 기준`}
                 </p>
               </div>
               <div className="text-right text-xs text-zinc-500">
