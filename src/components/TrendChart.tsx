@@ -147,7 +147,18 @@ export default function TrendChart({
                 type="monotone"
                 stroke="#c8755a"
                 strokeWidth={2.2}
-                dot={false}
+                dot={(props: { cx?: number; cy?: number; index?: number }) => {
+                  const { cx, cy, index = 0 } = props;
+                  // 앞뒤 세트 값이 없으면 선이 그려지지 않으므로 점으로 표시한다.
+                  const isolated =
+                    data[index - 1]?.그룹평균 == null &&
+                    data[index + 1]?.그룹평균 == null;
+                  return isolated && cx != null && cy != null ? (
+                    <circle key={index} cx={cx} cy={cy} r={3.5} fill="#c8755a" />
+                  ) : (
+                    <g key={index} />
+                  );
+                }}
                 activeDot={{ r: 4 }}
               />
             )}
