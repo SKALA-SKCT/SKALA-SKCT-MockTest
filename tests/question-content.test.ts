@@ -539,7 +539,7 @@ test("7회차 21~40번의 표·그래프 계산과 전체 해설을 PDF 기준�
     assert.equal(q.answer, 5);
     assert.equal(q.imageUrl, `/exam-assets/round-7/q-${number}.png`);
   }
-  assert.ok(pdfText["7:23"].body.includes("옳은 것만을"));
+  assert.ok(pdfText["7:23"].body.includes("옳지 않은 것만을"));
   assert.equal(pdfText["7:26"].choices[4], "2021년 대전 연평균 미세먼지 농도는 부산보다 3μg/m³ 더 높다.");
   assert.ok(pdfText["7:30"].explanation.includes("40억 원 증가"));
   assert.ok(pdfText["7:39"].explanation.includes("1.75배"));
