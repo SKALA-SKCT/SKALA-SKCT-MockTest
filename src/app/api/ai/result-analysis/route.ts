@@ -76,6 +76,7 @@ function normalizeAnalysisContent(value: AnalysisContent): AnalysisContent {
 function buildPrompt(input: AnalysisInput, retry = false) {
   return `너는 SKCT 학습 전략 코치다. 아래의 응시 요약만 사용해 한국어로 짧고 구체적인 분석을 작성하라.
 문제의 정답이나 원문을 추측하지 말고, 데이터에 없는 사실을 만들지 마라.
+영역마다 제한 시간 15분이 따로 주어지고 남은 시간은 다음 영역으로 넘어가지 않는다. 한 영역의 시간 사용이 다른 영역의 미응답이나 오답에 영향을 줬다고 분석하지 말고, 한 영역에서 시간을 아껴 다른 영역에 쓰라는 조언도 하지 마라. 시간 관리 분석과 조언은 같은 영역 안의 문항끼리만 비교하라.
 문항별 체류 시간과 영역별 체류 시간을 활용하고, 오답 문항은 고오답률인지 저오답률인지 구분하라. isEasyMistake가 true인 문항은 쉬운 문제 실수이므로 우선 개선점과 다음 응시 행동에 반영하라.
 ${retry ? "이전 응답은 형식 검증에 실패했다. 반드시 아래 JSON 스키마에 맞는 JSON 객체만 반환하라." : ""}
 반드시 JSON만 반환하라. 형식은 다음과 같다:
