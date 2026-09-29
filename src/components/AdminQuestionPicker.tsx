@@ -61,10 +61,7 @@ export function AdminQuestionPicker({ exam, subject, number, exams, subjects, nu
       <Picker
         label="회차"
         value={String(exam)}
-        options={exams.map((item, index) => ({
-          value: String(item.id),
-          label: `${index + 1}회차`,
-        }))}
+        options={exams.map((item) => ({ value: String(item.id), label: item.title }))}
         onSelect={(value) => go({ exam: value })}
       />
       <Picker
