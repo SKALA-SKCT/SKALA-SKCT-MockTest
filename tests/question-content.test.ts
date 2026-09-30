@@ -63,10 +63,10 @@ test("신고된 문항의 유실 지문·표식·보기를 PDF 기준으로 복�
   assert.ok(round4Question10.body.includes("교통 환경 인지 지연"));
 
   const round4Question12 = applyQuestionContentOverride(4, { number: 12, body: "손상 본문", choices: [] as string[] });
-  assert.ok(round4Question12.body.includes("① 공정공시와 ② 수시공시"));
+  assert.ok(round4Question12.body.includes("㉠공정공시와 ㉡수시공시"));
 
   const round4Question16 = applyQuestionContentOverride(4, { number: 16, body: "손상 본문", choices: [] as string[] });
-  assert.ok(round4Question16.body.includes("① 후각 능력"));
+  assert.ok(round4Question16.body.includes("㉠후각 능력"));
 
   const round7Question31 = applyQuestionContentOverride(7, { number: 31, body: "손상 본문", choices: [] as string[] });
   assert.ok(round7Question31.body.includes("<보기>\n①"));
