@@ -6,6 +6,11 @@ const underlines: Record<string, string[]> = {
   "4:16": ["후각 능력"],
   "8:3": ["플라톤의 대화편에 나오는 소크라테스", "역사적 실존 인물인 소크라테스"],
   "8:14": ["능력주의를 비판하는 입장", "능력주의"],
+  "9:7": ["「논어」에 등장하는 공자", "실제 역사적 인물로서의 공자"],
+  "9:19": ["학벌주의", "업적주의"],
+  "11:2": ["진정한 자유"],
+  "11:15": ["이황", "조식"],
+  "12:7": ["이데아"],
 };
 
 export default function PdfPassage({ text, round, number }: { text: string; round: number; number: number }) {
