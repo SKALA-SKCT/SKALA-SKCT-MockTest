@@ -73,8 +73,8 @@ test("신고된 문항의 유실 지문·표식·보기를 PDF 기준으로 복�
   assert.ok(round7Question31.body.includes("④ 2024년 A사 태블릿 판매량"));
 
   const round8Question14 = applyQuestionContentOverride(8, { number: 14, body: "손상 본문", choices: [] as string[] });
-  assert.ok(round8Question14.body.includes("① 능력주의는"));
-  assert.ok(round8Question14.body.includes("② 능력주의를 비판하는 입장"));
+  assert.ok(round8Question14.body.includes("㉠능력주의는"));
+  assert.ok(round8Question14.body.includes("㉡능력주의를 비판하는 입장"));
 });
 
 test("분수와 대분수는 PDF 전사 값을 그대로 표시한다", () => {
