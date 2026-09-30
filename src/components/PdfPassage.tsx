@@ -2,6 +2,8 @@ const underlines: Record<string, string[]> = {
   "2:4": ["비트코인"],
   "2:12": ["수니파", "시아파"],
   "2:16": ["온돌", "라디에이터 방식"],
+  "8:3": ["플라톤의 대화편에 나오는 소크라테스", "역사적 실존 인물인 소크라테스"],
+  "8:14": ["능력주의를 비판하는 입장", "능력주의"],
 };
 
 export default function PdfPassage({ text, round, number }: { text: string; round: number; number: number }) {
