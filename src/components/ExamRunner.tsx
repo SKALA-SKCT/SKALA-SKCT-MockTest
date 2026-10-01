@@ -678,7 +678,7 @@ export default function ExamRunner({
       <aside className="w-full lg:sticky lg:top-20">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3">
-            <MemoPad key={`memo:${q.id}`} resetKey={q.id} />
+            <MemoPad resetKey={q.id} />
             <Calculator key={`calculator:${q.id}`} />
             <div className="grid grid-cols-2 gap-2">
               <button
