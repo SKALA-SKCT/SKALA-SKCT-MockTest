@@ -275,6 +275,16 @@ export function QuestionCard({
   );
 }
 
+function matchesReviewFilter(q: ReviewQuestion, filter: ReviewFilter) {
+  return (
+    filter === "all" ||
+    (filter === "wrong" && !q.isCorrect) ||
+    (filter === "correct" && q.isCorrect) ||
+    (filter === "easy-mistake" && !q.isCorrect && q.myChoice != null && q.groupAccuracy >= 70) ||
+    (filter === "unanswered" && q.myChoice == null)
+  );
+}
+
 export default function ResultReview({
   examId,
   questions,
@@ -289,18 +299,21 @@ export default function ResultReview({
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
 
+  // 노트에서 고른 문항을 펼치고 그 위치로 스크롤한다.
+  const focusQuestion = (question: ReviewQuestion) => {
+    if (!matchesReviewFilter(question, reviewFilter)) setReviewFilter("all");
+    setOpenSubjects((prev) => ({ ...prev, [question.subject]: true }));
+    requestAnimationFrame(() => {
+      document.getElementById(`review-question-${question.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const visibleBySubject = useMemo(
     () =>
       subjects.map((subject) => ({
         ...subject,
         questions: questions.filter(
-          (q) =>
-            q.subject === subject.subject &&
-            (reviewFilter === "all" ||
-              (reviewFilter === "wrong" && !q.isCorrect) ||
-              (reviewFilter === "correct" && q.isCorrect) ||
-              (reviewFilter === "easy-mistake" && !q.isCorrect && q.myChoice != null && q.groupAccuracy >= 70) ||
-              (reviewFilter === "unanswered" && q.myChoice == null))
+          (q) => q.subject === subject.subject && matchesReviewFilter(q, reviewFilter)
         ),
       })),
     [questions, subjects, reviewFilter]
@@ -522,6 +535,7 @@ export default function ResultReview({
             examId={examId}
             questions={questions}
             participantCount={participantCount}
+            onSelectQuestion={focusQuestion}
           />
         </div>
       </section>

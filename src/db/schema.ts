@@ -183,6 +183,25 @@ export const questionReports = pgTable(
   ]
 ).enableRLS();
 
+export const questionNotes = pgTable(
+  "question_notes",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    questionId: integer("question_id")
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    text: text("text").notNull().default(""),
+    drawing: text("drawing"), // PNG data URL
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_question_note").on(t.userId, t.questionId)]
+).enableRLS();
+
 export type AttemptResultSnapshot = {
   totalScore: number;
   totalQuestions: number;

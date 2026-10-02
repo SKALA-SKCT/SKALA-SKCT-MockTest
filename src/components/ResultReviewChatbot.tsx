@@ -246,7 +246,7 @@ export default function ResultReviewChatbot({
   };
 
   return (
-    <aside className="chart-card sticky top-20 flex h-[calc(100vh-9rem)] min-h-[560px] flex-col overflow-hidden p-0">
+    <aside className="chart-card flex h-full flex-col overflow-hidden p-0">
       <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-3">
         <div>
           <p className="text-sm font-black text-zinc-900">문항 리뷰 챗봇</p>
