@@ -31,8 +31,10 @@ export default function ScoreDistributionChart({
   average: number;
   median: number;
 }) {
-  const chartData = data.map((band) => ({ ...band, score: (band.min + band.max) / 2 }));
   const maxScore = Math.max(1, ...data.map((band) => band.max));
+  const chartData = data.map((band) => ({ ...band, score: band.min }));
+  const lastBand = data.at(-1);
+  if (lastBand) chartData.push({ ...lastBand, score: maxScore });
   const maxCount = Math.max(1, ...data.map((band) => band.count));
   const yMax = Math.ceil(maxCount * 1.28);
 
@@ -51,9 +53,9 @@ export default function ScoreDistributionChart({
             dataKey="score"
             type="number"
             domain={[0, maxScore]}
-            ticks={chartData.map((band) => band.score)}
+            ticks={Array.from({ length: 11 }, (_, index) => maxScore * index / 10)}
             tick={{ fontSize: 11, fill: "#9aa2b4" }}
-            tickFormatter={(value) => `${chartData.find((band) => band.score === value)?.label ?? value}점`}
+            tickFormatter={(value) => `${value}점`}
             tickLine={false}
             axisLine={{ stroke: "#f1ece9" }}
             interval={0}
@@ -87,8 +89,8 @@ export default function ScoreDistributionChart({
               strokeDasharray="4 4"
               label={{
                 value: `내 점수 ${myScore}점`,
-                position: "insideTopRight",
-                dy: -24,
+                position: "top",
+                dy: 0,
                 fill: "#e94343",
                 fontSize: 12,
                 fontWeight: 700,
@@ -98,13 +100,13 @@ export default function ScoreDistributionChart({
           {data.length > 0 ? (
             <ReferenceLine
               x={average}
-              stroke="#f59a8e"
+              stroke="#c8755a"
               strokeDasharray="3 5"
               label={{
                 value: `평균 ${average.toFixed(1)}점`,
-                position: "insideTopLeft",
-                dy: -24,
-                fill: "#c43b3b",
+                position: "top",
+                dy: -18,
+                fill: "#c8755a",
                 fontSize: 12,
                 fontWeight: 700,
               }}
@@ -112,21 +114,22 @@ export default function ScoreDistributionChart({
           ) : null}
           {data.length > 0 ? (
             <ReferenceLine x={median} stroke="#478078"
-              label={{ value: `중앙값 ${median.toFixed(1)}점`, position: "insideTopRight", dy: -44,
+              label={{ value: `중앙값 ${median.toFixed(1)}점`, position: "top", dy: -36,
                 fill: "#478078", fontSize: 12, fontWeight: 700 }} />
           ) : null}
           <Area
             dataKey="count"
+            isAnimationActive={false}
             type="monotone"
             stroke="#e94343"
             strokeWidth={2.8}
             fill="url(#scoreDistributionFill)"
-            dot={({ cx, cy, payload }) => (
+            dot={({ cx, cy }) => (
               <circle
                 cx={cx}
                 cy={cy}
-                r={payload.includesMe ? 5 : 3.5}
-                fill={payload.includesMe ? "#e94343" : "#fff"}
+                r={3.5}
+                fill="#fff"
                 stroke="#e94343"
                 strokeWidth={2}
               />

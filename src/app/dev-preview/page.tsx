@@ -6,9 +6,9 @@ import SubjectRadar from "@/components/SubjectRadar";
 import ScoreDistributionChart from "@/components/ScoreDistributionChart";
 import { median } from "@/lib/statistics";
 
-export default async function PreviewPage({ searchParams }: { searchParams: Promise<{ view?: string; attempt?: string }> }) {
+export default async function PreviewPage({ searchParams }: { searchParams: Promise<{ view?: string; attempt?: string; points?: string }> }) {
   if (process.env.NODE_ENV !== "development") notFound();
-  const { view = "dashboard", attempt = "1" } = await searchParams;
+  const { view = "dashboard", attempt = "1", points } = await searchParams;
   const scores = [18, 31, 42, 49, 55, 61, 65, 68, 72, 75, 78, 82, 88];
   const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
   const middle = median(scores);
@@ -17,6 +17,9 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
     그룹평균: [46, 53, 51, 60, 57, 66, 64, 70][index],
     그룹중앙값: [49, 56, 54, 64, 61, 70, 68, 74][index],
   }));
+  const previewTrend = trend.map((row, index) => ({ ...row, 나:
+    points === "single" ? (index === 0 ? row.나 : null) :
+    points === "separated" ? (index === 0 || index === 3 ? row.나 : null) : row.나 }));
   const subjects = ["언어이해", "자료해석", "창의수리", "언어추리", "수열추리"].map((subject, index) => ({
     subject, 나: [85, 70, 60, 80, 75][index],
     그룹평균: [65, 55, 50, 62, 58][index],
@@ -43,7 +46,7 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
           <div key={label} className="metric-card p-4"><p className="text-xs text-ink-3">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></div>
         ))}
       </div>
-      {view === "dashboard" && <div className="h-96 [&>div]:h-full"><DashboardTrendChart selectedAttempt={attempt === "all" ? "all" : Number(attempt)} series={[{ attemptRound: "all", data: trend }, { attemptRound: 1, data: trend }, { attemptRound: 2, data: trend.map((row) => ({ ...row, 나: row.나 + 3, 그룹평균: row.그룹평균 + 2, 그룹중앙값: row.그룹중앙값 + 2 })) }]} /></div>}
+      {view === "dashboard" && <div className="h-96 [&>div]:h-full"><DashboardTrendChart selectedAttempt={attempt === "all" ? "all" : Number(attempt)} series={[{ attemptRound: "all", data: previewTrend }, { attemptRound: 1, data: previewTrend }, { attemptRound: 2, data: trend.map((row) => ({ ...row, 나: row.나 + 3, 그룹평균: row.그룹평균 + 2, 그룹중앙값: row.그룹중앙값 + 2 })) }]} /></div>}
       {view !== "admin" && <div className="grid gap-4">
         <div className="chart-card p-5"><SubjectRadar data={subjects} title="과목별 점수 비교" className="h-80" /></div>
         <div className="chart-card overflow-x-auto p-5"><h2 className="text-sm font-semibold">전체 시험자 점수 분포</h2><ScoreDistributionChart data={distribution} myScore={78} average={average} median={middle} /></div>

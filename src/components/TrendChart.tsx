@@ -18,6 +18,10 @@ export type TrendDatum = {
   그룹평균: number | null;
 };
 
+export function isIsolatedTrendPoint(data: TrendDatum[], index: number, key: "나" | "그룹평균") {
+  return data[index]?.[key] != null && data[index - 1]?.[key] == null && data[index + 1]?.[key] == null;
+}
+
 const legendItems = [
   { key: "나", label: "나", color: "#e94343" },
   { key: "그룹평균", label: "전체 평균", color: "#c8755a" },
@@ -135,11 +139,19 @@ export default function TrendChart({
               <Area
                 name="나"
                 dataKey="나"
-                type="monotone"
+                type="linear"
                 stroke="#e94343"
                 strokeWidth={2.4}
                 fill="url(#trendMine)"
-                dot={false}
+                dot={(props: { cx?: number; cy?: number; index?: number }) => {
+                  const { cx, cy, index = 0 } = props;
+                  const isolated = isIsolatedTrendPoint(data, index, "나");
+                  return isolated && cx != null && cy != null ? (
+                    <circle key={index} cx={cx} cy={cy} r={3.5} fill="#fff" stroke="#e94343" strokeWidth={2} />
+                  ) : (
+                    <g key={index} />
+                  );
+                }}
                 activeDot={false}
               />
             )}
@@ -147,15 +159,13 @@ export default function TrendChart({
               <Line
                 name="전체 평균"
                 dataKey="그룹평균"
-                type="monotone"
+                type="linear"
                 stroke="#c8755a"
                 strokeWidth={2.2}
                 dot={(props: { cx?: number; cy?: number; index?: number }) => {
                   const { cx, cy, index = 0 } = props;
                   // 앞뒤 세트 값이 없으면 선이 그려지지 않으므로 점으로 표시한다.
-                  const isolated =
-                    data[index - 1]?.그룹평균 == null &&
-                    data[index + 1]?.그룹평균 == null;
+                  const isolated = isIsolatedTrendPoint(data, index, "그룹평균");
                   return isolated && cx != null && cy != null ? (
                     <circle key={index} cx={cx} cy={cy} r={3.5} fill="#c8755a" />
                   ) : (
@@ -167,7 +177,7 @@ export default function TrendChart({
             )}
             {visible.그룹중앙값 && (
               <Line name="전체 중앙값" dataKey="그룹중앙값" stroke="#478078" strokeWidth={2.2}
-                type="monotone" dot={false} activeDot={false} />
+                type="linear" dot={false} activeDot={false} />
             )}
           </AreaChart>
         </ResponsiveContainer>
