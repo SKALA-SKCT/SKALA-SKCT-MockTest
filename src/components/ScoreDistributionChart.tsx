@@ -31,18 +31,15 @@ export default function ScoreDistributionChart({
   average: number;
   median: number;
 }) {
-  const myBand = data.find((band) => band.includesMe)?.label;
-  const averageBand = data.find(
-    (band) => average >= band.min && average < band.max + 1
-  )?.label;
-  const medianBand = data.find((band) => median >= band.min && median < band.max + 1)?.label;
+  const chartData = data.map((band) => ({ ...band, score: (band.min + band.max) / 2 }));
+  const maxScore = Math.max(1, ...data.map((band) => band.max));
   const maxCount = Math.max(1, ...data.map((band) => band.count));
   const yMax = Math.ceil(maxCount * 1.28);
 
   return (
     <div className="h-72 w-full min-w-[680px]">
       <ResponsiveContainer>
-        <AreaChart data={data} margin={{ top: 58, right: 24, bottom: 8, left: -12 }}>
+        <AreaChart data={chartData} margin={{ top: 58, right: 24, bottom: 8, left: -12 }}>
           <defs>
             <linearGradient id="scoreDistributionFill" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor="#e94343" stopOpacity={0.24} />
@@ -51,9 +48,12 @@ export default function ScoreDistributionChart({
           </defs>
           <CartesianGrid stroke="#f1ece9" vertical={false} />
           <XAxis
-            dataKey="label"
+            dataKey="score"
+            type="number"
+            domain={[0, maxScore]}
+            ticks={chartData.map((band) => band.score)}
             tick={{ fontSize: 11, fill: "#9aa2b4" }}
-            tickFormatter={(value) => `${value}점`}
+            tickFormatter={(value) => `${chartData.find((band) => band.score === value)?.label ?? value}점`}
             tickLine={false}
             axisLine={{ stroke: "#f1ece9" }}
             interval={0}
@@ -71,7 +71,7 @@ export default function ScoreDistributionChart({
               const payload = item.payload as ScoreDistributionDatum;
               return [`${value}명 (${payload.percent}%)`, "응시자"];
             }}
-            labelFormatter={(label) => `${label}점 구간`}
+            labelFormatter={(_label, payload) => `${payload[0]?.payload.label ?? ""}점 구간`}
             cursor={{ stroke: "#e94343", strokeDasharray: "3 4", strokeOpacity: 0.45 }}
             contentStyle={{
               borderRadius: 12,
@@ -80,9 +80,9 @@ export default function ScoreDistributionChart({
               fontSize: 12,
             }}
           />
-          {myBand ? (
+          {data.length > 0 ? (
             <ReferenceLine
-              x={myBand}
+              x={myScore}
               stroke="#e94343"
               strokeDasharray="4 4"
               label={{
@@ -95,9 +95,9 @@ export default function ScoreDistributionChart({
               }}
             />
           ) : null}
-          {averageBand ? (
+          {data.length > 0 ? (
             <ReferenceLine
-              x={averageBand}
+              x={average}
               stroke="#f59a8e"
               strokeDasharray="3 5"
               label={{
@@ -110,8 +110,8 @@ export default function ScoreDistributionChart({
               }}
             />
           ) : null}
-          {medianBand ? (
-            <ReferenceLine x={medianBand} stroke="#478078"
+          {data.length > 0 ? (
+            <ReferenceLine x={median} stroke="#478078"
               label={{ value: `중앙값 ${median.toFixed(1)}점`, position: "insideTopRight", dy: -44,
                 fill: "#478078", fontSize: 12, fontWeight: 700 }} />
           ) : null}

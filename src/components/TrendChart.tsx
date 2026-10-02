@@ -139,8 +139,8 @@ export default function TrendChart({
                 stroke="#e94343"
                 strokeWidth={2.4}
                 fill="url(#trendMine)"
-                dot={{ r: 3.5, fill: "#fff", stroke: "#e94343", strokeWidth: 2 }}
-                activeDot={{ r: 5, fill: "#e94343", stroke: "#fff", strokeWidth: 2 }}
+                dot={false}
+                activeDot={false}
               />
             )}
             {visible.그룹평균 && (
