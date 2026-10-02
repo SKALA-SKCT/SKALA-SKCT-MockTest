@@ -13,6 +13,9 @@ export function proxy(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl;
+  if (pathname === "/dev-preview" && process.env.NODE_ENV !== "development") {
+    return new NextResponse(null, { status: 404 });
+  }
   if (pathname.startsWith("/api/")) return NextResponse.next();
   if (pathname === DESKTOP_ONLY_PATH) return NextResponse.next();
 

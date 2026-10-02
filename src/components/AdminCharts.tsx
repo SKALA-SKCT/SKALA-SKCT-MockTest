@@ -6,6 +6,7 @@ export type AdminExamChartDatum = {
   완료: number;
   중도이탈: number;
   평균: number;
+  중앙값: number;
   최고: number;
   최저: number;
 };
@@ -106,15 +107,16 @@ export default function AdminCharts({
       </div>
 
       <div className="chart-card overflow-hidden p-5 pb-3">
-        <ChartHeader title="회차별 점수 분포" description="완료 응시 기준 평균, 최고, 최저" />
+        <ChartHeader title="회차별 점수 분포" description="완료 응시 기준 평균과 중앙값, 최고와 최저" />
         {examData.some((row) => row.완료 > 0) ? (
           <CompactTable
-            headers={["회차", "평균", "최고", "최저"]}
+            headers={["회차", "평균", "중앙값", "최고", "최저"]}
             rows={examData
               .filter((row) => row.완료 > 0)
               .map((row) => [
                 row.name,
                 `${row.평균}%`,
+                `${row.중앙값}%`,
                 `${row.최고}%`,
                 `${row.최저}%`,
               ])}

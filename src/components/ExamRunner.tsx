@@ -13,7 +13,8 @@ import {
   saveAnswer,
   startQuestion,
   startSection,
-} from "@/lib/actions/exam";
+} from "@/lib/exam-session-client";
+import { flushPendingAnswers, restorePendingAnswers, type PendingAnswer } from "@/lib/exam-recovery";
 import Calculator from "@/components/exam/Calculator";
 import MemoPad from "@/components/exam/MemoPad";
 import QuestionReportButton from "@/components/QuestionReportButton";
@@ -61,6 +62,7 @@ function splitQuestionBodyText(value: string) {
 
 export default function ExamRunner({
   examId,
+  attemptId,
   examTitle,
   subjects,
   questionsBySubject,
@@ -69,6 +71,7 @@ export default function ExamRunner({
   initialAnswers,
 }: {
   examId: number;
+  attemptId: number;
   examTitle: string;
   subjects: Subject[];
   questionsBySubject: Record<string, ClientQuestion[]>;
@@ -89,8 +92,35 @@ export default function ExamRunner({
     tone?: "danger" | "default";
     onConfirm: () => Promise<void> | void;
   } | null>(null);
-  const pendingSavesRef = useRef<Set<Promise<unknown>>>(new Set());
   const [notice, setNotice] = useState<string | null>(null);
+  const autoStartRef = useRef(false);
+  const pendingSavesRef = useRef(new Map<number, PendingAnswer>());
+  const flushingRef = useRef<Promise<boolean> | null>(null);
+  const busyRef = useRef(false);
+  const [recoveryReady, setRecoveryReady] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const backupKey = `mocktest-answers:${examId}:${attemptId}`;
+  const persistPending = useCallback(() => {
+    window.sessionStorage.setItem(backupKey, JSON.stringify(Object.fromEntries(
+      [...pendingSavesRef.current].map(([id, answer]) => [id, answer.choice])
+    )));
+    setPendingCount(pendingSavesRef.current.size);
+  }, [backupKey]);
+  const flushAnswers = useCallback((): Promise<boolean> => {
+    if (flushingRef.current) return flushingRef.current;
+    const task = flushPendingAnswers(pendingSavesRef.current,
+      async (id, choice) => (await saveAnswer(examId, id, choice, attemptId)).ok,
+      persistPending,
+    ).then((ok) => {
+      setNotice(ok ? null : "답안 저장을 확인하지 못했습니다. 자동으로 다시 시도합니다. 저장 완료 후 제출할 수 있습니다.");
+      return ok;
+    }).catch(() => {
+      setNotice("브라우저 답안 보관에 실패했습니다. 이 화면을 유지하고 저장을 다시 시도해 주세요.");
+      return false;
+    }).finally(() => { flushingRef.current = null; });
+    flushingRef.current = task;
+    return task;
+  }, [attemptId, examId, persistPending]);
   const restoredSubjectRef = useRef<string | null>(null);
   const shouldCleanupOnUnloadRef = useRef(true);
   const suppressNextPopRef = useRef(false);
@@ -129,14 +159,45 @@ export default function ExamRunner({
   );
 
   const clearStoredProgress = useCallback(() => {
-    const prefix = `mocktest-progress:${examId}:`;
+    const prefix = `mocktest-progress:${examId}:${attemptId}:`;
     for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
       const key = window.sessionStorage.key(index);
       if (key?.startsWith(prefix)) {
         window.sessionStorage.removeItem(key);
       }
     }
-  }, [examId]);
+    window.sessionStorage.removeItem(backupKey);
+  }, [attemptId, backupKey, examId]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      try {
+        const validChoices = new Map(Object.values(questionsBySubject).flat()
+          .filter((q) => !initialSectionState[q.subject as Subject]?.finishedAt)
+          .map((q) => [q.id, q.choices.length]));
+        pendingSavesRef.current = restorePendingAnswers(window.sessionStorage.getItem(backupKey), validChoices);
+        setAnswers((previous) => ({ ...previous, ...Object.fromEntries(
+          [...pendingSavesRef.current].map(([id, answer]) => [id, answer.choice])
+        ) }));
+        setPendingCount(pendingSavesRef.current.size);
+        setRecoveryReady(true);
+        void flushAnswers();
+      } catch {
+        setNotice("브라우저 저장소를 사용할 수 없습니다. 저장소 접근을 허용하고 새로고침해 주세요.");
+      }
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [backupKey, flushAnswers, initialSectionState, questionsBySubject]);
+
+  useEffect(() => {
+    if (!recoveryReady) return;
+    const retry = () => {
+      if (pendingSavesRef.current.size) void flushAnswers();
+    };
+    const timer = window.setInterval(retry, 3000);
+    window.addEventListener("online", retry);
+    return () => { window.clearInterval(timer); window.removeEventListener("online", retry); };
+  }, [flushAnswers, recoveryReady]);
 
   useEffect(() => {
     if (!sectionStartedAt) return;
@@ -153,15 +214,22 @@ export default function ExamRunner({
         confirmText: "나가기",
         tone: "danger",
         onConfirm: async () => {
-          await Promise.allSettled([...pendingSavesRef.current]);
-          await abandonAttempt(examId);
+          if (busyRef.current) return;
+          busyRef.current = true;
+          setBusy(true);
+          try {
+          await flushingRef.current;
+          const result = await abandonAttempt(examId, attemptId);
+          if (!result.ok) throw new Error("중단 실패");
           clearStoredProgress();
           shouldCleanupOnUnloadRef.current = false;
           window.location.assign(destination);
+          } catch { setNotice("응시 중단을 처리하지 못했습니다. 다시 시도해 주세요."); }
+          finally { busyRef.current = false; setBusy(false); }
         },
       });
     },
-    [clearStoredProgress, examId]
+    [attemptId, clearStoredProgress, examId]
   );
 
   useLayoutEffect(() => {
@@ -180,9 +248,9 @@ export default function ExamRunner({
   }, [idx, sectionStartedAt]);
 
   useEffect(() => {
-    if (!sectionStartedAt || !currentSubject || sectionQuestions.length === 0) return;
+    if (!recoveryReady || !sectionStartedAt || !currentSubject || sectionQuestions.length === 0) return;
     if (restoredSubjectRef.current === currentSubject) return;
-    const progressKey = `mocktest-progress:${examId}:${currentSubject}`;
+    const progressKey = `mocktest-progress:${examId}:${attemptId}:${currentSubject}`;
     const requestedParam = new URLSearchParams(window.location.search).get("q");
     const timeout = window.setTimeout(() => {
       const requested = Number(requestedParam);
@@ -195,7 +263,7 @@ export default function ExamRunner({
       restoredSubjectRef.current = currentSubject;
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, [currentSubject, examId, sectionQuestions.length, sectionStartedAt]);
+  }, [attemptId, currentSubject, examId, recoveryReady, sectionQuestions.length, sectionStartedAt]);
 
   useEffect(() => {
     if (!sectionStartedAt || restoredSubjectRef.current !== currentSubject) return;
@@ -203,23 +271,25 @@ export default function ExamRunner({
     url.searchParams.set("q", String(idx + 1));
     window.history.replaceState(null, "", url);
     window.sessionStorage.setItem(
-      `mocktest-progress:${examId}:${currentSubject}`,
+      `mocktest-progress:${examId}:${attemptId}:${currentSubject}`,
       String(idx)
     );
-  }, [currentSubject, examId, idx, sectionStartedAt]);
+  }, [attemptId, currentSubject, examId, idx, sectionStartedAt]);
 
   const handleFinishSection = useCallback(
     async (subject: Subject) => {
-      if (busy) return;
+      if (busyRef.current || !recoveryReady) return;
+      busyRef.current = true;
       setBusy(true);
       try {
-        await Promise.allSettled([...pendingSavesRef.current]);
-        const res = await finishSection(examId, subject);
-        window.sessionStorage.removeItem(`mocktest-progress:${examId}:${subject}`);
+        if (!await flushAnswers()) return;
+        const res = await finishSection(examId, subject, attemptId);
+        window.sessionStorage.removeItem(`mocktest-progress:${examId}:${attemptId}:${subject}`);
         setSectionState(res.sectionState);
         setIdx(0);
         restoredSubjectRef.current = null;
         if (res.finished) {
+          clearStoredProgress();
           shouldCleanupOnUnloadRef.current = false;
           router.replace(`/exam/${examId}/result`);
         } else if (typeof window !== "undefined") {
@@ -227,32 +297,39 @@ export default function ExamRunner({
           url.searchParams.set("q", "1");
           window.history.replaceState(null, "", url);
         }
+      } catch {
+        setNotice("제출을 확인하지 못했습니다. 답안을 보관하고 있습니다. 제출을 다시 시도해 주세요.");
       } finally {
+        busyRef.current = false;
         setBusy(false);
       }
     },
-    [busy, examId, router]
+    [attemptId, clearStoredProgress, examId, flushAnswers, recoveryReady, router]
   );
 
   const startCurrentSection = useCallback(async () => {
-    if (busy || !currentSubject || section) return;
+    if (busyRef.current || !recoveryReady || !currentSubject || section) return;
+    busyRef.current = true;
     setBusy(true);
     try {
-      const res = await startSection(examId, currentSubject);
+      const res = await startSection(examId, currentSubject, attemptId);
       setIdx(0);
       setSectionState(res.sectionState);
+    } catch {
+      autoStartRef.current = false;
+      setNotice("유형 시작을 처리하지 못했습니다. 다시 시도해 주세요.");
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
-  }, [busy, currentSubject, examId, section]);
+  }, [attemptId, currentSubject, examId, recoveryReady, section]);
 
-  const autoStartRef = useRef(false);
   useEffect(() => {
     autoStartRef.current = false;
   }, [currentSubject]);
 
   useEffect(() => {
-    if (!nextSectionStartsAtMs || !currentSubject || section || busy) {
+    if (!recoveryReady || !nextSectionStartsAtMs || !currentSubject || section || busy) {
       return;
     }
 
@@ -271,46 +348,23 @@ export default function ExamRunner({
     tick();
     const timer = window.setInterval(tick, 250);
     return () => window.clearInterval(timer);
-  }, [busy, currentSubject, nextSectionStartsAtMs, section, startCurrentSection]);
+  }, [busy, recoveryReady, currentSubject, nextSectionStartsAtMs, section, startCurrentSection]);
 
-  const finishingRef = useRef(false);
   useEffect(() => {
-    if (!endsAtMs || !currentSubject) return;
-    finishingRef.current = false;
+    if (!recoveryReady || !endsAtMs || !currentSubject) return;
+    let lastRetry = 0;
     const tick = () => {
       const left = Math.max(0, Math.floor((endsAtMs - Date.now()) / 1000));
       setRemaining(left);
-      if (left <= 0 && !finishingRef.current) {
-        finishingRef.current = true;
+      if (left <= 0 && Date.now() - lastRetry >= 3000) {
+        lastRetry = Date.now();
         void handleFinishSection(currentSubject);
       }
     };
     tick();
-    const t = setInterval(tick, 500);
-    return () => clearInterval(t);
-  }, [endsAtMs, currentSubject, handleFinishSection]);
-
-  useEffect(() => {
-    const cleanupAttempt = () => {
-      if (!shouldCleanupOnUnloadRef.current) return;
-      clearStoredProgress();
-      const url = `/api/exam/${examId}/abandon`;
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(url, new Blob([], { type: "application/octet-stream" }));
-        return;
-      }
-      void fetch(url, {
-        method: "POST",
-        credentials: "same-origin",
-        keepalive: true,
-      }).catch(() => {});
-    };
-
-    window.addEventListener("pagehide", cleanupAttempt);
-    return () => {
-      window.removeEventListener("pagehide", cleanupAttempt);
-    };
-  }, [clearStoredProgress, examId]);
+    const timer = window.setInterval(tick, 500);
+    return () => window.clearInterval(timer);
+  }, [recoveryReady, endsAtMs, currentSubject, handleFinishSection]);
 
   useEffect(() => {
     if (!currentSubject) return;
@@ -364,8 +418,8 @@ export default function ExamRunner({
   const activeQuestionId = section ? sectionQuestions[idx]?.id ?? null : null;
   useEffect(() => {
     if (!activeQuestionId) return;
-    void startQuestion(examId, activeQuestionId);
-  }, [activeQuestionId, examId]);
+    void startQuestion(examId, activeQuestionId, attemptId).catch(() => {});
+  }, [activeQuestionId, attemptId, examId]);
 
   if (!currentSubject) {
     return (
@@ -413,7 +467,7 @@ export default function ExamRunner({
         <div className="mt-6 flex justify-end gap-2">
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !recoveryReady}
             onClick={() => setConfirmRequest(null)}
             className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
           >
@@ -421,7 +475,7 @@ export default function ExamRunner({
           </button>
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !recoveryReady}
             onClick={async () => {
               const action = confirmRequest.onConfirm;
               setConfirmRequest(null);
@@ -449,16 +503,16 @@ export default function ExamRunner({
         <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center pb-24">
           <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
             <p className="text-xs font-medium text-zinc-400">
-              {examTitle} · {currentSubjectIndex + 1}/{subjects.length}교시
+              {examTitle}, {currentSubjectIndex + 1}/{subjects.length}교시
             </p>
             <h1 className="mt-2 text-3xl font-bold">{currentSubject}</h1>
             <p className="mt-3 text-sm text-zinc-500">
-              {sectionQuestions.length}문항 · {SECTION_MINUTES}분
+              {sectionQuestions.length}문항, {SECTION_MINUTES}분
             </p>
             <ul className="mx-auto mt-4 max-w-xs space-y-1 text-left text-xs text-zinc-400">
-              <li>· 다음 문항으로 이동하면 이전 문항으로 돌아갈 수 없습니다.</li>
-              <li>· 메모장/그림판은 문제를 넘기면 지워집니다.</li>
-              <li>· 시간이 끝나면 자동 제출됩니다.</li>
+              <li>다음 문항으로 이동하면 이전 문항으로 돌아갈 수 없습니다.</li>
+              <li>메모장/그림판은 문제를 넘기면 지워집니다.</li>
+              <li>시간이 끝나면 자동 제출됩니다.</li>
             </ul>
             {nextSectionStartsAtMs && (
               <p className="mt-5 text-sm font-semibold text-brand">
@@ -466,15 +520,16 @@ export default function ExamRunner({
                 {String(nextSectionSeconds).padStart(2, "0")} 후 자동으로 시작됩니다.
               </p>
             )}
+            {notice && <p role="alert" className="mt-4 text-sm text-red-700">{notice}</p>}
             <button
-              disabled={busy}
+              disabled={busy || !recoveryReady}
               onClick={startCurrentSection}
               className="mt-6 w-full rounded-[10px] bg-brand py-3 text-sm font-medium text-white transition hover:bg-[#c90026] hover:-translate-y-px disabled:opacity-50"
             >
               {busy ? "준비 중..." : "시작하기"}
             </button>
             <button
-              disabled={busy}
+              disabled={busy || !recoveryReady}
               onClick={exitExam}
               className="mt-3 text-xs text-zinc-400 hover:text-zinc-600 hover:underline disabled:opacity-50"
             >
@@ -501,7 +556,7 @@ export default function ExamRunner({
     q.supplementImageUrl && q.supplementImageUrl !== q.imageUrl
       ? q.supplementImageUrl
       : null;
-  // 조건·보기 목록이 본문에 들어간 문항은 그림이 목록보다 먼저 보여야 한다.
+  // 조건, 보기 목록이 본문에 들어간 문항은 그림이 목록보다 먼저 보여야 한다.
   const questionMaterialFirst = /^\s*<(조건|보기)>/.test(questionPassage);
   const questionMaterials = (
     <>
@@ -529,14 +584,15 @@ export default function ExamRunner({
   const urgent = remaining != null && remaining < 60;
 
   const select = (choice: number) => {
+    if (busyRef.current || !recoveryReady || (endsAtMs && Date.now() >= endsAtMs)) return;
     const next = answers[q.id] === choice ? null : choice;
     setNotice(null);
     setAnswers((a) => ({ ...a, [q.id]: next }));
-    const pendingSave = saveAnswer(examId, q.id, next).catch(() => {});
-    pendingSavesRef.current.add(pendingSave);
-    void pendingSave.finally(() => {
-      pendingSavesRef.current.delete(pendingSave);
-    });
+    pendingSavesRef.current.set(q.id, { choice: next });
+    try { persistPending(); } catch {
+      setNotice("브라우저 답안 보관에 실패했습니다. 이 화면을 유지하고 저장을 다시 시도해 주세요.");
+    }
+    void flushAnswers();
   };
 
   const advanceQuestion = () => {
@@ -619,9 +675,11 @@ export default function ExamRunner({
               </span>
             </p>
           </div>
+          <p role="status" className="mb-3 text-xs text-zinc-500">{pendingCount ? `${pendingCount}개 답안 저장 대기 중` : "답안 저장 완료"}</p>
           {notice && (
             <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700">
               {notice}
+              <button type="button" onClick={() => void flushAnswers()} className="ml-3 underline">저장 재시도</button>
             </div>
           )}
           <div className="mocktest-question-content rounded-xl bg-zinc-50 px-4 py-4">
@@ -646,6 +704,7 @@ export default function ExamRunner({
               return (
                 <button
                   key={i}
+                  disabled={busy || !recoveryReady || remaining === 0}
                   onClick={() => select(num)}
                   className={`mocktest-choice rounded-lg border px-4 py-2.5 text-left text-sm transition ${
                     selected
@@ -662,7 +721,7 @@ export default function ExamRunner({
 
           <div className="mt-6 flex items-center justify-end">
             <button
-              disabled={busy}
+              disabled={busy || !recoveryReady}
               onClick={goNext}
               className={`rounded-lg px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50 ${
                 isLast ? "bg-ink hover:bg-brand" : "bg-brand hover:bg-[#c90026]"
@@ -682,14 +741,14 @@ export default function ExamRunner({
             <Calculator key={`calculator:${q.id}`} />
             <div className="grid grid-cols-2 gap-2">
               <button
-                disabled={busy}
+                disabled={busy || !recoveryReady}
                 onClick={exitExam}
                 className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
               >
                 나가기
               </button>
               <button
-                disabled={busy}
+                disabled={busy || !recoveryReady}
                 onClick={moveToNextSubject}
                 className="rounded-lg bg-zinc-900 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-700 disabled:opacity-50"
               >

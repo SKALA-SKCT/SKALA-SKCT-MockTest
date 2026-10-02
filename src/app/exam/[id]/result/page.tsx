@@ -1,3 +1,4 @@
+import { median } from "@/lib/statistics";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { notFound, redirect } from "next/navigation";
@@ -225,6 +226,7 @@ export default async function ResultPage({
           0
         ) / n
       : 0;
+  const medianTotal = median(finishedAttempts.map((a) => scoreByAttempt.get(a.attemptId)!.total));
   const scoreDistribution = distributionBands(totalQuestions).map((band) => {
     const count = finishedAttempts.filter((a) => {
       const score = scoreByAttempt.get(a.attemptId)!.total;
@@ -268,10 +270,13 @@ export default async function ResultPage({
       (acc, a) => acc + (scoreByAttempt.get(a.attemptId)!.bySubject.get(s) ?? 0),
       0
     );
+    const medianScore = median(finishedAttempts.map((a) => scoreByAttempt.get(a.attemptId)!.bySubject.get(s) ?? 0));
     return {
       subject: s,
       나: total ? Math.round((mine / total) * 100) : 0,
       그룹평균: total && n ? Math.round((groupSum / n / total) * 100) : 0,
+      medianScore,
+      그룹중앙값: total ? Math.round((medianScore / total) * 100) : 0,
       avgScore: n ? groupSum / n : 0, // 전체 평균 정답 수 (문항)
     };
   });
@@ -399,7 +404,7 @@ export default async function ResultPage({
           }))}
         >
           {/* 요약 카드 */}
-          <div className="mb-6 mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-6 mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div className="metric-card p-5 text-center">
               <p className="text-xs text-zinc-400">총점</p>
               <p className="mt-1 text-3xl font-extrabold text-brand">
@@ -417,6 +422,10 @@ export default async function ResultPage({
                   /{totalQuestions}
                 </span>
               </p>
+            </div>
+            <div className="metric-card p-5 text-center">
+              <p className="text-xs text-zinc-400">전체 중앙값 점수</p>
+              <p className="mt-1 text-3xl font-extrabold text-[#478078]">{medianTotal.toFixed(1)}<span className="text-base font-medium text-zinc-400">/{totalQuestions}</span></p>
             </div>
             <div className="metric-card p-5 text-center">
               <p className="text-xs text-zinc-400">등수</p>
@@ -448,7 +457,7 @@ export default async function ResultPage({
                 </p>
               </div>
               <div className="text-right text-xs text-zinc-500">
-                평균 {averageTotal.toFixed(1)}점 · 최고 {ranking[0]?.total ?? 0}점
+                평균 {averageTotal.toFixed(1)}점, 중앙값 {medianTotal.toFixed(1)}점, 최고 {ranking[0]?.total ?? 0}점
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -456,6 +465,7 @@ export default async function ResultPage({
                 data={scoreDistribution}
                 myScore={myScore.total}
                 average={averageTotal}
+                median={medianTotal}
               />
             </div>
           </div>
@@ -477,6 +487,7 @@ export default async function ResultPage({
                       <th className="px-3 py-2 text-left font-medium first:rounded-l-xl">과목</th>
                       <th className="px-3 py-2 text-right font-medium">내 점수</th>
                       <th className="px-3 py-2 text-right font-medium">전체 평균</th>
+                      <th className="px-3 py-2 text-right font-medium">중앙값</th>
                       <th className="px-3 py-2 text-right font-medium last:rounded-r-xl">차이</th>
                     </tr>
                   </thead>
@@ -495,6 +506,7 @@ export default async function ResultPage({
                             평균 {r.avgScore.toFixed(1)}/
                             {totalBySubject.get(r.subject)}
                           </td>
+                          <td className="px-3 py-2.5 text-right text-xs text-[#478078]">{r.medianScore.toFixed(1)}/{totalBySubject.get(r.subject)}</td>
                           <td
                             className={`px-3 py-2.5 text-right text-xs font-medium ${
                               diff > 0

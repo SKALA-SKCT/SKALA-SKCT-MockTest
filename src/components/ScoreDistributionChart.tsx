@@ -24,15 +24,18 @@ export default function ScoreDistributionChart({
   data,
   myScore,
   average,
+  median,
 }: {
   data: ScoreDistributionDatum[];
   myScore: number;
   average: number;
+  median: number;
 }) {
   const myBand = data.find((band) => band.includesMe)?.label;
   const averageBand = data.find(
-    (band) => average >= band.min && average <= band.max
+    (band) => average >= band.min && average < band.max + 1
   )?.label;
+  const medianBand = data.find((band) => median >= band.min && median < band.max + 1)?.label;
   const maxCount = Math.max(1, ...data.map((band) => band.count));
   const yMax = Math.ceil(maxCount * 1.28);
 
@@ -106,6 +109,11 @@ export default function ScoreDistributionChart({
                 fontWeight: 700,
               }}
             />
+          ) : null}
+          {medianBand ? (
+            <ReferenceLine x={medianBand} stroke="#478078"
+              label={{ value: `중앙값 ${median.toFixed(1)}점`, position: "insideTopRight", dy: -44,
+                fill: "#478078", fontSize: 12, fontWeight: 700 }} />
           ) : null}
           <Area
             dataKey="count"

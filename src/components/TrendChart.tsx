@@ -14,12 +14,14 @@ import {
 export type TrendDatum = {
   name: string;
   나: number | null;
+  그룹중앙값: number | null;
   그룹평균: number | null;
 };
 
 const legendItems = [
   { key: "나", label: "나", color: "#e94343" },
   { key: "그룹평균", label: "전체 평균", color: "#c8755a" },
+  { key: "그룹중앙값", label: "전체 중앙값", color: "#478078" },
 ] as const;
 
 export default function TrendChart({
@@ -38,6 +40,7 @@ export default function TrendChart({
   const [visible, setVisible] = useState<Record<(typeof legendItems)[number]["key"], boolean>>({
     나: true,
     그룹평균: true,
+    그룹중앙값: true,
   });
   const toggleSeries = (key: (typeof legendItems)[number]["key"]) => {
     setVisible((current) => ({ ...current, [key]: !current[key] }));
@@ -161,6 +164,10 @@ export default function TrendChart({
                 }}
                 activeDot={{ r: 4 }}
               />
+            )}
+            {visible.그룹중앙값 && (
+              <Line name="전체 중앙값" dataKey="그룹중앙값" stroke="#478078" strokeWidth={2.2}
+                type="monotone" dot={{ r: 3 }} />
             )}
           </AreaChart>
         </ResponsiveContainer>

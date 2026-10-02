@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { attempts, exams, questions, responses, type Subject } from "@/db/schema";
 import { requireUser } from "@/lib/session";
@@ -15,22 +15,22 @@ export default async function TakePage({
 }) {
   const { id } = await params;
   const examId = Number(id);
-  if (!Number.isInteger(examId)) notFound();
+  if (!Number.isInteger(examId) || examId <= 0) notFound();
 
   const user = await requireUser();
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
   if (!exam || !exam.published) notFound();
 
+  let attemptId: number;
   try {
-    await startAttempt(examId);
+    ({ attemptId } = await startAttempt(examId));
   } catch {
     redirect("/");
   }
   const [attempt] = await db
     .select()
     .from(attempts)
-    .where(and(eq(attempts.userId, user.id), eq(attempts.examId, examId)))
-    .orderBy(desc(attempts.id))
+    .where(and(eq(attempts.userId, user.id), eq(attempts.examId, examId), eq(attempts.id, attemptId)))
     .limit(1);
   if (!attempt) redirect("/");
   if (attempt.finishedAt) redirect(`/exam/${examId}/result`);
@@ -64,6 +64,7 @@ export default async function TakePage({
   return (
     <ExamRunner
       examId={examId}
+      attemptId={attempt.id}
       examTitle={exam.title}
       subjects={subjects as Subject[]}
       questionsBySubject={questionsBySubject}

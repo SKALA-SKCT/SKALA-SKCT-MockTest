@@ -1,3 +1,4 @@
+import { median } from "@/lib/statistics";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { unstable_cache } from "next/cache";
@@ -212,6 +213,9 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
         }, 0) / items.length
       : 0;
   const selectedGroupAverage = averageOutOf100(selectedGroupAttempts);
+  const selectedGroupMedian = median(selectedGroupAttempts.map((attempt) =>
+    (scoreOf(attempt.id) / (totalOfExam(attempt.examId) || 1)) * 100
+  ));
   const selectedMyAverage = averageOutOf100(selectedMyAttempts);
 
   // ── 스탯 타일: 가장 최근 완료 회차 기준
@@ -223,6 +227,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     value: string;
     sub?: string;
     accent?: "up" | "down";
+    medianText?: string;
   }[] = [];
   if (latest) {
     const peers = attemptsByExam.get(latest.examId) ?? [];
@@ -247,10 +252,12 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
       {
         label: "내 평균 등수",
         value: `${averageRank.toFixed(1)}위`,
+        medianText: `중앙값 ${median(myFinished.map((attempt) => rankOfAttempt(attempt).rank)).toFixed(1)}위`,
       },
       {
         label: "전체 평균 점수",
         value: selectedGroupAverage.toFixed(1),
+        medianText: `중앙값 ${selectedGroupMedian.toFixed(1)}점`,
         sub: "점",
       },
       {
@@ -258,6 +265,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
         value: `${diff > 0 ? "+" : ""}${diff.toFixed(1)}`,
         sub: "점",
         accent: diff >= 0 ? "up" : "down",
+        medianText: `중앙값과 차이 ${(selectedMyAverage - selectedGroupMedian).toFixed(1)}점`,
       },
     ];
   }
@@ -281,7 +289,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
       const round = index + 1;
       const exam = examByRound.get(round);
       if (!exam) {
-        return { name: `${round}세트`, 나: null, 그룹평균: null };
+        return { name: `${round}세트`, 나: null, 그룹평균: null, 그룹중앙값: null };
       }
       const total = totalOfExam(exam.id) || 1;
       const mine = attemptsByUserExam.get(`${user.id}:${exam.id}`)?.[attemptIndex];
@@ -294,6 +302,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
         name: `${round}세트`,
         나: mine ? scoreToPoint(scoreOf(mine.id)) : null,
         그룹평균: peers.length ? scoreToPoint(avgScore(peers)) : null,
+        그룹중앙값: peers.length ? scoreToPoint(median(peers.map((peer) => scoreOf(peer.id)))) : null,
       };
     }),
   }));
@@ -303,7 +312,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
       const round = index + 1;
       const exam = examByRound.get(round);
       if (!exam) {
-        return { name: `${round}세트`, 나: null, 그룹평균: null };
+        return { name: `${round}세트`, 나: null, 그룹평균: null, 그룹중앙값: null };
       }
       const total = totalOfExam(exam.id) || 1;
       const mine = finishedRows.filter(
@@ -315,6 +324,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
         name: `${round}세트`,
         나: mine.length ? scoreToPoint(avgScore(mine)) : null,
         그룹평균: peers.length ? scoreToPoint(avgScore(peers)) : null,
+        그룹중앙값: peers.length ? scoreToPoint(median(peers.map((peer) => scoreOf(peer.id)))) : null,
       };
     }),
   };
@@ -341,6 +351,9 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
       subject: s,
       나: myT ? (myC / myT) * 20 : 0,
       그룹평균: gT ? (gC / gT) * 20 : 0,
+      그룹중앙값: median(selectedGroupAttempts
+        .filter((a) => totalOfSubject(a.examId, s) > 0)
+        .map((a) => ((correctOf.get(`${a.id}:${s}`) ?? 0) / totalOfSubject(a.examId, s)) * 20)),
     };
   });
 
@@ -400,6 +413,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
                     <span className="ml-1 text-sm text-ink-3">{t.sub}</span>
                   )}
                 </p>
+                {t.medianText && <p className="mt-1 text-xs text-ink-3">{t.medianText}</p>}
               </div>
             ))}
           </div>
@@ -467,6 +481,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
                       <p className="text-ink-3">
                         전체 평균 대비
                       </p>
+                      <p className="text-[#478078]">중앙값 {formatSubjectScore(r.그룹중앙값)}점</p>
                     </div>
                   </div>
                 );

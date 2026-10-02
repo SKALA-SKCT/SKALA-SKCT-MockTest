@@ -26,13 +26,6 @@ export default function ExamStartButton({
   const [open, setOpen] = useState(false);
   const totalMinutes = subjects.length * sectionMinutes;
   const startExam = () => {
-    const prefix = `mocktest-progress:${examId}:`;
-    for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
-      const key = window.sessionStorage.key(index);
-      if (key?.startsWith(prefix)) {
-        window.sessionStorage.removeItem(key);
-      }
-    }
     window.location.assign(`/exam/${examId}/take`);
   };
 
@@ -79,7 +72,7 @@ export default function ExamStartButton({
                   <li key={s.subject} className="flex justify-between gap-3">
                     <span>{s.subject}</span>
                     <span className="shrink-0 text-zinc-500">
-                      {sectionMinutes}분 · {s.total}문항
+                      {sectionMinutes}분, {s.total}문항
                     </span>
                   </li>
                 ))}

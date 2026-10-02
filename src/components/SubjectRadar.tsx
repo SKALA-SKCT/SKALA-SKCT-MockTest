@@ -14,12 +14,14 @@ import {
 export type RadarDatum = {
   subject: string;
   나: number;
+  그룹중앙값: number;
   그룹평균: number;
 };
 
 const legendItems = [
   { key: "나", label: "나", color: "#e94343" },
   { key: "그룹평균", label: "전체 평균", color: "#c8755a" },
+  { key: "그룹중앙값", label: "전체 중앙값", color: "#478078" },
 ] as const;
 
 export default function SubjectRadar({
@@ -36,6 +38,7 @@ export default function SubjectRadar({
   const [visible, setVisible] = useState<Record<(typeof legendItems)[number]["key"], boolean>>({
     나: true,
     그룹평균: true,
+    그룹중앙값: true,
   });
   const toggleSeries = (key: (typeof legendItems)[number]["key"]) => {
     setVisible((current) => ({ ...current, [key]: !current[key] }));
@@ -126,6 +129,10 @@ export default function SubjectRadar({
                 fill="#c8755a"
                 fillOpacity={0.07}
               />
+            )}
+            {visible.그룹중앙값 && (
+              <Radar name="전체 중앙값" dataKey="그룹중앙값" stroke="#478078" strokeWidth={2.2}
+                fill="#478078" fillOpacity={0.04} />
             )}
           </RadarChart>
         </ResponsiveContainer>

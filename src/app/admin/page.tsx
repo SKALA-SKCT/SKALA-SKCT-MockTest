@@ -1,3 +1,4 @@
+import { median } from "@/lib/statistics";
 import Link from "next/link";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -305,10 +306,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         ? (examFinished.length / examAttempts.length) * 100
         : 0,
       averageScore: avg(scores),
+      medianScore: median(scores),
       bestScore: scores.length ? Math.max(...scores) : 0,
       lowestScore: scores.length ? Math.min(...scores) : 0,
       averageAccuracy: totalQuestions ? (avg(scores) / totalQuestions) * 100 : 0,
       averageDuration: avg(durations),
+      medianDuration: median(durations),
       subjectRates,
       campusFinished,
       classFinished,
@@ -323,30 +326,33 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     완료: row.completed,
     중도이탈: row.abandoned,
     평균: scorePercent(row.averageScore, row.totalQuestions),
+    중앙값: scorePercent(row.medianScore, row.totalQuestions),
     최고: scorePercent(row.bestScore, row.totalQuestions),
     최저: scorePercent(row.lowestScore, row.totalQuestions),
   }));
 
   const groupScores = completedAttempts.reduce<
-    Record<string, { completed: number; scoreSum: number }>
+    Record<string, { completed: number; scoreSum: number; scores: number[] }>
   >((acc, attempt) => {
     const campusKey = `campus:${campusLabel(attempt.campus)}`;
     const classKey = `class:${classLabel(attempt.campus, attempt.classNumber)}`;
     const score = scoreByAttempt.get(attempt.id) ?? 0;
     for (const key of [campusKey, classKey]) {
-      const item = acc[key] ?? { completed: 0, scoreSum: 0 };
+      const item = acc[key] ?? { completed: 0, scoreSum: 0, scores: [] };
       item.completed += 1;
       item.scoreSum += score;
+      item.scores.push(score);
       acc[key] = item;
     }
     return acc;
   }, {});
   const campusChartData = ["판교", "울산", "광주", "미지정"].map((campus) => {
-    const item = groupScores[`campus:${campus}`] ?? { completed: 0, scoreSum: 0 };
+    const item = groupScores[`campus:${campus}`] ?? { completed: 0, scoreSum: 0, scores: [] };
     return {
       name: campus,
       완료: item.completed,
       평균점수: item.completed ? Math.round(item.scoreSum / item.completed) : 0,
+      중앙값: median(item.scores),
     };
   });
   const classChartData = Object.entries(groupScores)
@@ -355,6 +361,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       name: key.replace(/^class:/, ""),
       완료: item.completed,
       평균점수: item.completed ? Math.round(item.scoreSum / item.completed) : 0,
+      중앙값: median(item.scores),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "ko"));
 
@@ -366,7 +373,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     {
       label: "평균 점수",
       value: overallScores.length ? avg(overallScores).toFixed(1) : "-",
-      sub: overallScores.length ? `/${Math.round(overallTotalQuestions)}문항` : "완료 기록 없음",
+      sub: overallScores.length ? `중앙값 ${median(overallScores).toFixed(1)}점, /${Math.round(overallTotalQuestions)}문항` : "완료 기록 없음",
     },
     {
       label: "완료율",
@@ -393,6 +400,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       completed: number;
       abandoned: number;
       scoreSum: number;
+      scores: number[];
       latestAt: Date | null;
     }
   >();
@@ -402,12 +410,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       completed: 0,
       abandoned: 0,
       scoreSum: 0,
+      scores: [],
       latestAt: null,
     };
     item.started += 1;
     if (attempt.finishedAt) {
       item.completed += 1;
       item.scoreSum += scoreByAttempt.get(attempt.id) ?? 0;
+      item.scores.push(scoreByAttempt.get(attempt.id) ?? 0);
     } else {
       item.abandoned += 1;
     }
@@ -425,12 +435,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         completed: 0,
         abandoned: 0,
         scoreSum: 0,
+        scores: [],
         latestAt: null,
       };
       return {
         ...user,
         ...summary,
         averageScore: summary.completed ? summary.scoreSum / summary.completed : 0,
+        medianScore: median(summary.scores),
       };
     })
     .filter((user) => {
@@ -703,7 +715,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <div key={row.name}>
                     <p className="text-xs font-medium text-ink-3">{row.name}</p>
                     <p className="mt-0.5 text-sm font-bold text-ink">
-                      {row.완료}명 · 평균 {row.평균점수}점
+                      {row.완료}명, 평균 {row.평균점수}점, 중앙값 {row.중앙값.toFixed(1)}점
                     </p>
                   </div>
                 ))}
@@ -720,7 +732,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   완료
                 </th>
                 <th className="whitespace-nowrap px-5 py-3 text-right font-semibold last:rounded-tr-2xl">
-                  평균점수
+                  평균점수 / 중앙값
                 </th>
               </tr>
             </thead>
@@ -735,7 +747,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       {row.완료}
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 text-right tabular-nums">
-                      {row.평균점수}
+                      {row.평균점수} / {row.중앙값.toFixed(1)}
                     </td>
                   </tr>
                 ))
@@ -832,6 +844,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           평균 {row.averageScore.toFixed(1)}/{row.totalQuestions} (
                           {pct(row.averageAccuracy)})
                         </p>
+                        <p className="text-[11px] leading-4 text-[#478078]">중앙값 {row.medianScore.toFixed(1)}/{row.totalQuestions} ({pct(scorePercent(row.medianScore, row.totalQuestions))})</p>
                         <p className="mt-1 text-[11px] leading-4 text-ink-3">
                           최고 {row.bestScore} · 최저 {row.lowestScore}
                         </p>
@@ -841,7 +854,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
-                    {formatMinutes(row.averageDuration)}
+                    평균 {formatMinutes(row.averageDuration)}
+                    <p className="text-[11px] text-[#478078]">중앙값 {formatMinutes(row.medianDuration)}</p>
                   </td>
                 </tr>
               ))}
@@ -992,7 +1006,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       완료
                     </th>
                     <th className="w-[6%] whitespace-nowrap px-4 py-2.5 text-right font-semibold">
-                      평균
+                      평균 / 중앙값
                     </th>
                     <th className="w-[14%] whitespace-nowrap px-4 py-2.5 text-right font-semibold last:rounded-tr-2xl">
                       최근응시
@@ -1043,6 +1057,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
                           {user.completed ? user.averageScore.toFixed(1) : "-"}
+                          <p className="text-[11px] text-[#478078]">{user.completed ? user.medianScore.toFixed(1) : "-"}</p>
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5 text-right text-ink-3">
                           {formatDate(user.latestAt)}

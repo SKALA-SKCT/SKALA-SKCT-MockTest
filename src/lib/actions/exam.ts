@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, sql, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
@@ -26,56 +26,41 @@ function isSubject(value: string): value is Subject {
 }
 
 /** 가장 최근 응시 */
-async function getMyAttempt(userId: number, examId: number) {
+async function getMyAttempt(userId: number, examId: number, attemptId?: number) {
+  if (attemptId !== undefined && !isValidId(attemptId)) return null;
   const [attempt] = await db
     .select()
     .from(attempts)
-    .where(and(eq(attempts.userId, userId), eq(attempts.examId, examId)))
+    .where(and(eq(attempts.userId, userId), eq(attempts.examId, examId), ...(attemptId === undefined ? [] : [eq(attempts.id, attemptId)])))
     .orderBy(desc(attempts.id))
     .limit(1);
   return attempt ?? null;
 }
 
-export async function deleteUnfinishedAttempts(userId: number, examId: number) {
-  const unfinishedAttempts = await db
-    .select({ id: attempts.id })
-    .from(attempts)
-    .where(
-      and(
-        eq(attempts.userId, userId),
-        eq(attempts.examId, examId),
-        isNull(attempts.finishedAt)
-      )
-    );
-  const attemptIds = unfinishedAttempts.map((attempt) => attempt.id);
-  if (attemptIds.length === 0) return;
-
-  await db.delete(responses).where(inArray(responses.attemptId, attemptIds));
-  await db.delete(attempts).where(inArray(attempts.id, attemptIds));
-}
-
-/** 응시 시작. 기존 미완료 기록은 버리고 항상 새로 시작한다. */
+/** 미완료 응시를 복원하고 최초 접속만 새 응시를 만든다. */
 export async function startAttempt(examId: number) {
+  if (!isValidId(examId)) throw new Error("잘못된 시험입니다.");
   const user = await requireUser();
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
   if (!exam || !exam.published) throw new Error("존재하지 않거나 비공개 시험입니다.");
-
-  await deleteUnfinishedAttempts(user.id, examId);
-
-  const [created] = await db
-    .insert(attempts)
-    .values({ userId: user.id, examId })
-    .returning();
-  return { attemptId: created.id };
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(${user.id}, ${examId})`);
+    const [existing] = await tx.select().from(attempts).where(and(
+      eq(attempts.userId, user.id), eq(attempts.examId, examId), isNull(attempts.finishedAt)
+    )).orderBy(desc(attempts.id)).limit(1);
+    if (existing) return { attemptId: existing.id };
+    const [created] = await tx.insert(attempts).values({ userId: user.id, examId }).returning();
+    return { attemptId: created.id };
+  });
 }
 
-/** 과목 섹션 시작 — 타이머 기준 시각을 서버가 기록 */
-export async function startSection(examId: number, subject: Subject) {
+/** 과목 섹션 시작, 타이머 기준 시각을 서버가 기록 */
+export async function startSection(examId: number, subject: Subject, attemptId?: number) {
   if (!isValidId(examId) || !isSubject(subject)) {
     throw new Error("잘못된 응시 요청입니다.");
   }
   const user = await requireUser();
-  const attempt = await getMyAttempt(user.id, examId);
+  const attempt = await getMyAttempt(user.id, examId, attemptId);
   if (!attempt || attempt.finishedAt) throw new Error("응시 상태가 아닙니다.");
 
   const examSubjects = await getExamSubjects(examId);
@@ -137,10 +122,10 @@ async function closeOpenQuestionTimers(attemptId: number) {
 }
 
 /** 문항을 처음 열었을 때 시작 시각 저장 */
-export async function startQuestion(examId: number, questionId: number) {
+export async function startQuestion(examId: number, questionId: number, attemptId?: number) {
   if (!isValidId(examId) || !isValidId(questionId)) return { ok: false };
   const user = await requireUser();
-  const attempt = await getMyAttempt(user.id, examId);
+  const attempt = await getMyAttempt(user.id, examId, attemptId);
   if (!attempt || attempt.finishedAt) return { ok: false };
 
   const [q] = await db
@@ -174,11 +159,12 @@ export async function startQuestion(examId: number, questionId: number) {
 export async function saveAnswer(
   examId: number,
   questionId: number,
-  choice: number | null
+  choice: number | null,
+  attemptId?: number
 ) {
   if (!isValidId(examId) || !isValidId(questionId)) return { ok: false };
   const user = await requireUser();
-  const attempt = await getMyAttempt(user.id, examId);
+  const attempt = await getMyAttempt(user.id, examId, attemptId);
   if (!attempt || attempt.finishedAt) return { ok: false };
 
   const [q] = await db
@@ -212,14 +198,14 @@ export async function saveAnswer(
 }
 
 /** 과목 섹션 종료(수동 제출 또는 시간 만료). 마지막 과목이면 응시 완료 처리 */
-export async function finishSection(examId: number, subject: Subject) {
+export async function finishSection(examId: number, subject: Subject, attemptId?: number) {
   if (!isValidId(examId) || !isSubject(subject)) {
     throw new Error("잘못된 응시 요청입니다.");
   }
   const user = await requireUser();
-  const attempt = await getMyAttempt(user.id, examId);
-  if (!attempt || attempt.finishedAt)
-    return { sectionState: attempt?.sectionState ?? {}, finished: !!attempt?.finishedAt };
+  const attempt = await getMyAttempt(user.id, examId, attemptId);
+  if (!attempt) throw new Error("응시 기록이 없습니다.");
+  if (attempt.finishedAt) return { sectionState: attempt.sectionState, finished: true };
 
   const state: SectionState = { ...attempt.sectionState };
   const s = state[subject];
@@ -252,9 +238,12 @@ export async function finishSection(examId: number, subject: Subject) {
 }
 
 /** 미완료 응시 중단. 나가기를 확정하면 답안과 진행 상태를 모두 초기화한다. */
-export async function abandonAttempt(examId: number) {
+export async function abandonAttempt(examId: number, attemptId?: number) {
+  if (!isValidId(examId)) return { ok: false };
   const user = await requireUser();
-  await deleteUnfinishedAttempts(user.id, examId);
+  const attempt = await getMyAttempt(user.id, examId, attemptId);
+  if (!attempt || attempt.finishedAt) return { ok: false };
+  await db.delete(attempts).where(eq(attempts.id, attempt.id));
   return { ok: true };
 }
 
