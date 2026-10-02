@@ -43,7 +43,7 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
           <div key={label} className="metric-card p-4"><p className="text-xs text-ink-3">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></div>
         ))}
       </div>
-      {view === "dashboard" && <div className="h-96"><DashboardTrendChart selectedAttempt={attempt === "all" ? "all" : Number(attempt)} series={[{ attemptRound: "all", data: trend }, { attemptRound: 1, data: trend }, { attemptRound: 2, data: trend.map((row) => ({ ...row, 나: row.나 + 3, 그룹평균: row.그룹평균 + 2, 그룹중앙값: row.그룹중앙값 + 2 })) }]} /></div>}
+      {view === "dashboard" && <div className="h-96 [&>div]:h-full"><DashboardTrendChart selectedAttempt={attempt === "all" ? "all" : Number(attempt)} series={[{ attemptRound: "all", data: trend }, { attemptRound: 1, data: trend }, { attemptRound: 2, data: trend.map((row) => ({ ...row, 나: row.나 + 3, 그룹평균: row.그룹평균 + 2, 그룹중앙값: row.그룹중앙값 + 2 })) }]} /></div>}
       {view !== "admin" && <div className="grid gap-4">
         <div className="chart-card p-5"><SubjectRadar data={subjects} title="과목별 점수 비교" className="h-80" /></div>
         <div className="chart-card overflow-x-auto p-5"><h2 className="text-sm font-semibold">전체 시험자 점수 분포</h2><ScoreDistributionChart data={distribution} myScore={78} average={average} median={middle} /></div>
