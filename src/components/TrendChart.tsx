@@ -167,7 +167,7 @@ export default function TrendChart({
             )}
             {visible.그룹중앙값 && (
               <Line name="전체 중앙값" dataKey="그룹중앙값" stroke="#478078" strokeWidth={2.2}
-                type="monotone" dot={{ r: 3 }} />
+                type="monotone" dot={false} activeDot={false} />
             )}
           </AreaChart>
         </ResponsiveContainer>
