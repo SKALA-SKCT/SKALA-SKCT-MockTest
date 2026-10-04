@@ -170,6 +170,13 @@ export default function ExamRunner({
   }, [attemptId, backupKey, examId]);
 
   useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("restart");
+    url.searchParams.delete("resume");
+    window.history.replaceState(null, "", url);
+  }, []);
+
+  useEffect(() => {
     const timeout = window.setTimeout(() => {
       try {
         const validChoices = new Map(Object.values(questionsBySubject).flat()
@@ -600,7 +607,17 @@ export default function ExamRunner({
       moveToNextSubject();
       return;
     }
-    setIdx((v) => v + 1);
+    const nextIndex = idx + 1;
+    try {
+      window.sessionStorage.setItem(`mocktest-progress:${examId}:${attemptId}:${currentSubject}`, String(nextIndex));
+      const url = new URL(window.location.href);
+      url.searchParams.set("q", String(nextIndex + 1));
+      window.history.replaceState(null, "", url);
+    } catch {
+      setNotice("문제 위치를 보관하지 못했습니다. 이 화면을 유지하고 다시 시도해 주세요.");
+      return;
+    }
+    setIdx(nextIndex);
   };
 
   const goNext = () => {
@@ -675,7 +692,9 @@ export default function ExamRunner({
               </span>
             </p>
           </div>
-          <p role="status" className="mb-3 text-xs text-zinc-500">{pendingCount ? `${pendingCount}개 답안 저장 대기 중` : "답안 저장 완료"}</p>
+          {pendingCount > 0 && (
+            <p role="status" className="mb-3 text-xs text-zinc-500">{pendingCount}개 답안 저장 대기 중</p>
+          )}
           {notice && (
             <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700">
               {notice}

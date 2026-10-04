@@ -37,9 +37,9 @@ async function getMyAttempt(userId: number, examId: number, attemptId?: number) 
   return attempt ?? null;
 }
 
-/** 미완료 응시를 복원하고 최초 접속만 새 응시를 만든다. */
-export async function startAttempt(examId: number) {
-  if (!isValidId(examId)) throw new Error("잘못된 시험입니다.");
+/** 재응시는 새로 시작하고, 확인한 재접속만 기존 응시를 이어간다. */
+export async function startAttempt(examId: number, resumeAttemptId?: number) {
+  if (!isValidId(examId) || (resumeAttemptId !== undefined && !isValidId(resumeAttemptId))) throw new Error("잘못된 시험입니다.");
   const user = await requireUser();
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
   if (!exam || !exam.published) throw new Error("존재하지 않거나 비공개 시험입니다.");
@@ -48,7 +48,13 @@ export async function startAttempt(examId: number) {
     const [existing] = await tx.select().from(attempts).where(and(
       eq(attempts.userId, user.id), eq(attempts.examId, examId), isNull(attempts.finishedAt)
     )).orderBy(desc(attempts.id)).limit(1);
-    if (existing) return { attemptId: existing.id };
+    if (resumeAttemptId !== undefined) {
+      if (existing?.id !== resumeAttemptId) throw new Error("이어서 할 응시가 없습니다.");
+      return { attemptId: existing.id };
+    }
+    await tx.delete(attempts).where(and(
+      eq(attempts.userId, user.id), eq(attempts.examId, examId), isNull(attempts.finishedAt)
+    ));
     const [created] = await tx.insert(attempts).values({ userId: user.id, examId }).returning();
     return { attemptId: created.id };
   });

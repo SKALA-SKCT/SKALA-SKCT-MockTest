@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { attempts, exams, questions, responses, type Subject } from "@/db/schema";
 import { requireUser } from "@/lib/session";
@@ -10,8 +10,10 @@ export const dynamic = "force-dynamic";
 
 export default async function TakePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ restart?: string; resume?: string }>;
 }) {
   const { id } = await params;
   const examId = Number(id);
@@ -21,11 +23,32 @@ export default async function TakePage({
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
   if (!exam || !exam.published) notFound();
 
+  const query = await searchParams;
+  const resumeAttemptId = query.resume === undefined ? undefined : Number(query.resume);
+  if (query.restart !== "1" && resumeAttemptId === undefined) {
+    const [unfinished] = await db.select({ id: attempts.id }).from(attempts)
+      .where(and(eq(attempts.userId, user.id), eq(attempts.examId, examId), isNull(attempts.finishedAt)))
+      .orderBy(desc(attempts.id)).limit(1);
+    if (unfinished) {
+      return (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/40 px-4">
+          <section role="dialog" aria-modal="true" aria-labelledby="resume-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h1 id="resume-title" className="text-lg font-bold">응시 중인 데이터가 있습니다. 이어서 하시겠습니까?</h1>
+            <form className="mt-6 flex justify-end gap-2" action={`/exam/${examId}/take`}>
+              <button name="restart" value="1" className="rounded-lg border px-4 py-2 text-sm font-semibold">처음부터</button>
+              <button name="resume" value={unfinished.id} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">이어서 하기</button>
+            </form>
+          </section>
+        </div>
+      );
+    }
+  }
+
   let attemptId: number;
   try {
-    ({ attemptId } = await startAttempt(examId));
+    ({ attemptId } = await startAttempt(examId, query.restart === "1" ? undefined : resumeAttemptId));
   } catch {
-    redirect("/");
+    redirect(`/exam/${examId}/take`);
   }
   const [attempt] = await db
     .select()
