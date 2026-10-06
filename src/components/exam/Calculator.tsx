@@ -66,7 +66,7 @@ export default function Calculator() {
 
       const mapped =
         event.key === "*" ? "×" : event.key === "/" ? "÷" : event.key;
-      if (/^\d$/.test(mapped) || [".", "+", "-", "×", "÷", "(", ")"].includes(mapped)) {
+      if (/^\d$/.test(mapped) || [".", "+", "-", "×", "÷"].includes(mapped)) {
         event.preventDefault();
         input(mapped);
       } else if (event.key === "Enter" || event.key === "=") {
@@ -105,9 +105,7 @@ export default function Calculator() {
         {expression}
       </div>
       <div className="grid grid-cols-5 gap-1.5">
-        <CalcButton label="C" onClick={clear} className="col-span-3 bg-zinc-100" />
-        <CalcButton label="(" onClick={() => input("(")} className="bg-zinc-100" />
-        <CalcButton label=")" onClick={() => input(")")} className="bg-zinc-100" />
+        <CalcButton label="C" onClick={clear} className="col-span-5 bg-zinc-100" />
         {["7", "8", "9"].map((digit) => (
           <CalcButton key={digit} label={digit} onClick={() => input(digit)} className="border border-zinc-200 bg-white" />
         ))}
