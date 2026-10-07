@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { attempts, exams, questions, responses, type Subject } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { getExamSubjects, startAttempt } from "@/lib/actions/exam";
+import { resumeQuestionIndex } from "@/lib/exam-recovery";
 import ExamRunner, { type ClientQuestion } from "@/components/ExamRunner";
 
 export const dynamic = "force-dynamic";
@@ -84,6 +85,12 @@ export default async function TakePage({
   const initialAnswers: Record<number, number | null> = {};
   for (const r of existing) initialAnswers[r.questionId] = r.choice;
 
+  const currentSubject = subjects.find((subject) => !attempt.sectionState[subject]?.finishedAt);
+  const initialQuestionIndex = resumeQuestionIndex(
+    currentSubject ? questionsBySubject[currentSubject].map((question) => question.id) : [],
+    existing.map((response) => response.questionId),
+  );
+
   return (
     <ExamRunner
       examId={examId}
@@ -94,6 +101,7 @@ export default async function TakePage({
       attemptStartedAt={attempt.startedAt.toISOString()}
       initialSectionState={attempt.sectionState}
       initialAnswers={initialAnswers}
+      initialQuestionIndex={initialQuestionIndex}
     />
   );
 }

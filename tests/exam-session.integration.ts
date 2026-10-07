@@ -18,6 +18,7 @@ async function main() {
   const { rows: [exam] } = await pool.query("insert into exams(title,published) values($1,true) returning id", [tag]);
   try {
     const { rows: [question] } = await pool.query("insert into questions(exam_id,subject,number,body,choices,answer) values($1,'언어이해',1,'검증 문항입니다. 답은 무엇입니까?','[\"첫 번째\",\"두 번째\"]',2) returning id", [exam.id]);
+    const { rows: [secondQuestion] } = await pool.query("insert into questions(exam_id,subject,number,body,choices,answer) values($1,'언어이해',2,'위치 복원 검증 문항입니다.','[\"첫 번째\",\"두 번째\"]',2) returning id", [exam.id]);
     const cookie = async (id: number) => 'skct_session=' + await new SignJWT({ uid: id }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime('1h').sign(new TextEncoder().encode(secret));
     const session = await cookie(user.id);
     const send = (body: object, token = session, origin = appUrl) => fetch(`${appUrl}/api/exam/${exam.id}/session`, { method: 'POST', headers: { cookie: token, origin, 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -26,6 +27,7 @@ async function main() {
       const html = await response.text();
       assert.equal(response.status, 200);
       assert.ok(html.includes("검증 문항입니다."));
+      return html.replaceAll('\\"', '"');
     };
     assert.equal((await send({ action: 'startSection', attemptId: 1, subject: '언어이해' }, '')).status, 401);
     await take();
@@ -49,6 +51,8 @@ async function main() {
     const reconnect = await fetch(`${appUrl}/exam/${exam.id}/take`, { headers: { cookie: session } });
     assert.match(await reconnect.text(), /응시 중인 데이터가 있습니다. 이어서 하시겠습니까\?/);
     assert.equal((await pool.query('select choice from responses where attempt_id=$1', [attemptId])).rows[0].choice, 2);
+    assert.deepEqual(await (await send({ action: 'startQuestion', attemptId, questionId: secondQuestion.id })).json(), { ok: true });
+    assert.ok((await take(`?resume=${attemptId}`)).includes('"initialQuestionIndex":1'));
     await pool.query('update exams set published=false where id=$1', [exam.id]);
     const preserved = async () => ({
       attempts: (await pool.query('select * from attempts where exam_id=$1 order by id', [exam.id])).rows,

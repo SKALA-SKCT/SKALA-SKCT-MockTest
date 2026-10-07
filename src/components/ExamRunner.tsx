@@ -69,6 +69,7 @@ export default function ExamRunner({
   attemptStartedAt,
   initialSectionState,
   initialAnswers,
+  initialQuestionIndex = 0,
 }: {
   examId: number;
   attemptId: number;
@@ -78,11 +79,12 @@ export default function ExamRunner({
   attemptStartedAt: string;
   initialSectionState: SectionState;
   initialAnswers: Record<number, number | null>;
+  initialQuestionIndex?: number;
 }) {
   const router = useRouter();
   const [sectionState, setSectionState] = useState<SectionState>(initialSectionState);
   const [answers, setAnswers] = useState<Record<number, number | null>>(initialAnswers);
-  const [idx, setIdx] = useState(0);
+  const [idx, setIdx] = useState(initialQuestionIndex);
   const [zoom, setZoom] = useState(100);
   const [busy, setBusy] = useState(false);
   const [confirmRequest, setConfirmRequest] = useState<{
@@ -123,6 +125,7 @@ export default function ExamRunner({
   const shouldCleanupOnUnloadRef = useRef(true);
   const suppressNextPopRef = useRef(false);
 
+  const initialSubject = subjects.find((s) => !initialSectionState[s]?.finishedAt);
   const currentSubject = subjects.find((s) => !sectionState[s]?.finishedAt);
   const section = currentSubject ? sectionState[currentSubject] : undefined;
   const sectionQuestions = useMemo(
@@ -260,6 +263,7 @@ export default function ExamRunner({
       const requested = Number(requestedParam);
       const saved = Number(window.sessionStorage.getItem(progressKey));
       const forwardOnlyIndex = Math.max(
+        currentSubject === initialSubject ? initialQuestionIndex : 0,
         Number.isInteger(requested) ? requested - 1 : 0,
         Number.isInteger(saved) ? saved : 0
       );
@@ -267,7 +271,7 @@ export default function ExamRunner({
       restoredSubjectRef.current = currentSubject;
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, [attemptId, currentSubject, examId, recoveryReady, sectionQuestions.length, sectionStartedAt]);
+  }, [attemptId, currentSubject, examId, initialQuestionIndex, initialSubject, recoveryReady, sectionQuestions.length, sectionStartedAt]);
 
   useEffect(() => {
     if (!sectionStartedAt || restoredSubjectRef.current !== currentSubject) return;

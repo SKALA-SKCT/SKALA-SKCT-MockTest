@@ -30,3 +30,8 @@ export async function flushPendingAnswers(
   }
   return true;
 }
+
+export function resumeQuestionIndex(questionIds: number[], openedQuestionIds: number[]): number {
+  const opened = new Set(openedQuestionIds);
+  return Math.max(0, questionIds.findLastIndex((id) => opened.has(id)));
+}
