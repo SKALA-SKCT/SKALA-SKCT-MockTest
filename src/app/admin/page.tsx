@@ -1,4 +1,5 @@
 import { median } from "@/lib/statistics";
+import { canonicalExamId } from "@/db/linkareer-catalog";
 import Link from "next/link";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -121,8 +122,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const roleFilter = firstParam(params.role) ?? "all";
   const reportStatusFilter = firstParam(params.reportStatus) ?? "all";
   const reportReasonFilter = firstParam(params.reportReason) ?? "all";
-  const examList = await db.select().from(exams).orderBy(asc(exams.createdAt));
-  const requestedQuestionExam = Number(firstParam(params.exam));
+  const examList = (await db.select().from(exams).orderBy(asc(exams.createdAt)))
+    .filter((exam) => canonicalExamId(exam.id) === exam.id);
+  const examsById = new Map(examList.map((exam) => [exam.id, exam]));
+  const requestedQuestionExam = canonicalExamId(Number(firstParam(params.exam)));
   const questionExam = examList.some((exam) => exam.id === requestedQuestionExam)
     ? requestedQuestionExam
     : (examList[0]?.id ?? 1);
@@ -140,7 +143,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const reportSubjectFilter = firstParam(params.reportSubject) ?? "all";
   const selectedUserId = Number(firstParam(params.userId) ?? "");
 
-  const [userRows, attemptRows, questionTotals, reportRows] = await Promise.all([
+  const [userRows, storedAttempts, questionTotals, storedReports] = await Promise.all([
     db
       .select({
         id: users.id,
@@ -169,7 +172,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       .from(attempts)
       .innerJoin(users, eq(users.id, attempts.userId))
       .innerJoin(exams, eq(exams.id, attempts.examId))
-      .orderBy(desc(attempts.startedAt)),
+      .orderBy(desc(attempts.startedAt), desc(attempts.id)),
     db
       .select({
         examId: questions.examId,
@@ -185,6 +188,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       status: questionReports.status,
       createdAt: questionReports.createdAt,
       questionId: questions.id,
+      examId: questions.examId,
       number: questions.number,
       subject: questions.subject,
       examTitle: exams.title,
@@ -198,6 +202,19 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       .innerJoin(users, eq(users.id, questionReports.reporterId))
       .orderBy(desc(questionReports.createdAt)),
   ]);
+
+  const attemptRows = storedAttempts.map((attempt) => ({
+    ...attempt,
+    sourceExamId: attempt.examId,
+    examId: canonicalExamId(attempt.examId),
+    examTitle: examsById.get(canonicalExamId(attempt.examId))?.title ?? attempt.examTitle,
+  }));
+  const reportRows = storedReports.map((report) => ({
+    ...report,
+    sourceExamId: report.examId,
+    examId: canonicalExamId(report.examId),
+    examTitle: examsById.get(canonicalExamId(report.examId))?.title ?? report.examTitle,
+  }));
 
   const finishedAttemptIds = attemptRows
     .filter((attempt) => attempt.finishedAt)
@@ -490,13 +507,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         const examAttempts = selectedUserAttempts.filter(
           (attempt) => attempt.examId === exam.id
         );
+        const completedRounds = new Map(examAttempts.filter((attempt) => attempt.finishedAt)
+          .toReversed().map((attempt, index) => [attempt.id, index + 1]));
         return {
           examId: exam.id,
           examTitle: exam.title,
           examRound: examIndex + 1,
-          attempts: examAttempts.map((attempt, attemptIndex) => ({
+          attempts: examAttempts.map((attempt) => ({
             ...attempt,
-            attemptRound: examAttempts.length - attemptIndex,
+            attemptRound: completedRounds.get(attempt.id),
           })),
         };
       })
@@ -519,6 +538,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     if (reportStatusFilter !== "all" && report.status !== reportStatusFilter) return false;
     if (reportReasonFilter !== "all" && !report.reasons.includes(reportReasonFilter)) return false;
     if (reportSubjectFilter !== "all" && report.subject !== reportSubjectFilter) return false;
+    if (firstParam(params.reportExam) && report.examId !== canonicalExamId(Number(firstParam(params.reportExam)))) return false;
+    if (firstParam(params.reportNumber) && report.number !== Number(firstParam(params.reportNumber))) return false;
     return true;
   });
 
@@ -603,15 +624,23 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           />
           {questionRows
             .filter((row) => questionNumber === "all" || String((row.number - 1) % 20 + 1) === questionNumber)
-            .map((row) => (
-              <AdminQuestionView key={row.id} examId={questionExam} question={row} />
-            ))}
+            .map((row) => {
+              const reports = reportRows.filter((report) => report.examId === questionExam && report.subject === row.subject && report.number === row.number);
+              return (
+                <div key={row.id} className="space-y-2">
+                  <AdminQuestionView examId={questionExam} question={row} />
+                  {reports.length > 0 && <Link className="inline-block text-sm font-semibold text-brand underline" href={`/admin?${new URLSearchParams({ tab: "reports", reportExam: String(questionExam), reportSubject: row.subject, reportNumber: String(row.number) })}`}>관련 신고 {reports.length}건</Link>}
+                </div>
+              );
+            })}
         </section>
       ) : activeTab === "reports" ? (
         <section className="space-y-3">
           <div><h2 className="text-xl font-black text-ink">문항 신고</h2><p className="mt-1 text-sm text-ink-3">신고 내용을 펼쳐 확인하고 처리 상태를 변경합니다.</p></div>
           <form className="chart-card flex flex-wrap items-end gap-3 p-4" method="get">
             <input type="hidden" name="tab" value="reports" />
+            {firstParam(params.reportExam) && <input type="hidden" name="reportExam" value={firstParam(params.reportExam)} />}
+            {firstParam(params.reportNumber) && <input type="hidden" name="reportNumber" value={firstParam(params.reportNumber)} />}
             <label className="grid min-w-36 gap-1.5 text-xs font-bold text-zinc-500">
               처리 상태
               <select name="reportStatus" defaultValue={reportStatusFilter} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 outline-none focus:border-zinc-400">
@@ -638,19 +667,21 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <details key={report.id} className="chart-card overflow-hidden" open={report.status === "pending"}>
               <summary className="flex cursor-pointer items-center gap-3 px-5 py-4 text-sm">
                 <span className={`rounded-full px-2 py-1 text-xs font-bold ${report.status === "pending" ? "bg-amber-50 text-amber-700" : report.status === "resolved" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{report.status === "pending" ? "대기중" : report.status === "resolved" ? "처리" : "반려"}</span>
-                <b>{report.examTitle} · {report.subject} {report.number}번</b>
+                <b>{report.examTitle}, {report.subject} {(report.number - 1) % 20 + 1}번</b>
                 <span className="text-zinc-500">{report.reasons.join(", ")}</span>
                 <span className="ml-auto text-xs text-zinc-400">{formatDate(report.createdAt)}</span>
               </summary>
               <div className="flex flex-col gap-4 border-t border-hairline bg-zinc-50/60 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-sm leading-6 text-zinc-700">{report.detail || "추가 설명 없음"}</p>
+                  <Link className="mt-2 inline-block text-sm font-semibold text-brand underline" href={`/admin?${new URLSearchParams({ tab: "questions", exam: String(report.examId), subject: report.subject, number: String((report.number - 1) % 20 + 1) })}`}>문항 보기</Link>
+                  {report.sourceExamId !== report.examId && <p className="mt-1 text-xs text-zinc-500">이전 등록 문항에서 접수한 신고</p>}
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
                     <span>이름 <b className="text-zinc-700">{report.reporterName}</b></span>
                     <span>아이디 <b className="text-zinc-700">{report.reporterNickname}</b></span>
                     <span>캠퍼스 <b className="text-zinc-700">{campusLabel(report.reporterCampus)}</b></span>
                     <span>반 <b className="text-zinc-700">{report.reporterClassNumber == null ? "미지정" : `${report.reporterClassNumber}반`}</b></span>
-                    <span>문항 ID <b className="text-zinc-700">{report.questionId}</b></span>
+                    <span>접수 당시 문항 ID <b className="text-zinc-700">{report.questionId}</b></span>
                   </div>
                 </div>
                 <form action={updateQuestionReportStatus} className="flex shrink-0 justify-end gap-2">
@@ -1137,7 +1168,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                     {examRow.examTitle}
                                   </p>
                                   <p className="mt-0.5 text-[11px] text-ink-3">
-                                    {examRow.examRound}회차
+                                    {examRow.examRound}세트
                                   </p>
                                 </td>
                                 <td className="min-w-0 p-0">
@@ -1147,11 +1178,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                         {examRow.attempts.map((attempt) => (
                                           <div
                                             key={attempt.id}
+                                            data-attempt-id={attempt.id}
+                                            data-attempt-round={attempt.attemptRound}
                                             className="w-[148px] shrink-0 px-2 py-1.5"
                                           >
                                             <div className="flex items-center justify-between gap-1.5">
                                               <p className="text-[11px] font-semibold text-ink">
-                                                {attempt.attemptRound}회 응시
+                                                {attempt.attemptRound ? `${attempt.attemptRound}회 응시` : "미완료 응시"}
                                               </p>
                                               <AttemptDeleteForm
                                                 attemptId={attempt.id}
@@ -1166,6 +1199,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                             <p className="whitespace-nowrap text-[10px] text-ink-3">
                                               {formatCompactDate(attempt.startedAt)} · {formatMinutes(attempt.duration)}
                                             </p>
+                                            {attempt.sourceExamId !== attempt.examId && <p className="text-[10px] text-ink-3">이전 등록 기록</p>}
                                           </div>
                                         ))}
                                       </div>

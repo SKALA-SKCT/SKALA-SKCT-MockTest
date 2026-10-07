@@ -38,15 +38,24 @@ async function main() {
     const onlyHidden = await create(userIds[1], 10, '2026-01-01T00:00:00Z', 2);
     const hiddenFirst = await create(userIds[2], 10, '2026-01-01T00:00:00Z', 0);
     const publicSecond = await create(userIds[2], 13, '2026-01-02T00:00:00Z', 1);
+    await pool.query('update users set is_admin=true where id=$1', [userIds[0]]);
+    await pool.query("insert into attempts(user_id,exam_id,started_at) values($1,10,'2025-12-31T00:00:00Z')", [userIds[0]]);
+    for (const examId of [10, 13]) await pool.query("insert into question_reports(question_id,reporter_id,reasons,detail) values($1,$2,'[\"정답 오류\"]',$3)", [questionIds.get(examId)![0], userIds[0], `${tag}-report-${examId}`]);
     const cookie = async (id: number) => 'skct_session=' + await new SignJWT({ uid: id }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime('1h').sign(new TextEncoder().encode(secret));
     const stored = async () => (await pool.query('select a.*,r.snapshot,r.total_score from attempts a left join attempt_results r on r.attempt_id=a.id where a.user_id=any($1) order by a.id', [userIds])).rows;
     const before = await stored();
+    const related = async () => ({
+      questions: (await pool.query('select * from questions where exam_id in (10,13) order by id')).rows,
+      responses: (await pool.query('select * from responses where attempt_id in (select id from attempts where user_id=any($1)) order by id', [userIds])).rows,
+      reports: (await pool.query('select * from question_reports where reporter_id=any($1) order by id', [userIds])).rows,
+    });
+    const relatedBefore = await related();
     for (const [userId, expected] of [[userIds[0], [[first, 1], [second, 2], [third, 0]]], [userIds[1], [[onlyHidden, 2]]], [userIds[2], [[hiddenFirst, 0], [publicSecond, 1]]]] as const) {
       for (const [i, [attemptId, score]] of expected.entries()) {
         const response = await fetch(`${appUrl}/exam/13/result?round=${i + 1}`, { headers: { cookie: await cookie(userId) } });
         const html = (await response.text()).replaceAll('\\"', '"');
         assert.equal(response.status, 200);
-        assert.ok(html.includes(`"attemptId":${attemptId},"examTitle":"${tag}-current","round":${i + 1},"score":${score}`), `응시 ${attemptId} 차수와 점수`);
+        assert.ok(html.includes(`"attemptId":${attemptId},"examTitle":"${tag}-current","round":${i + 1},"score":${score}`), `응시 ${attemptId} 차수와 점수: ${html.match(/"attemptId":\d+,"examTitle":"[^"]+","round":\d+,"score":\d+/)?.[0]}`);
         assert.ok(html.includes('"elapsedSeconds":11'));
         if (score) assert.ok(html.includes('"myChoice":2'));
         const n = i === 0 ? 3 : i === 1 ? 2 : 1;
@@ -56,8 +65,25 @@ async function main() {
       assert.ok(dashboard.includes('/exam/13/result'));
       assert.ok(!dashboard.includes('/exam/10/result'));
     }
+    const admin = async (query: string) => {
+      const response = await fetch(`${appUrl}/admin?${query}`, { headers: { cookie: await cookie(userIds[0]) } });
+      assert.equal(response.status, 200);
+      return (await response.text()).replaceAll('\\"', '"');
+    };
+    const members = await admin(`tab=users&userId=${userIds[0]}`);
+    assert.ok(members.includes(`${tag}-current`) && !members.includes(`${tag}-archived`));
+    for (const [i, id] of [first, second, third].entries()) assert.ok(members.includes(`data-attempt-id="${id}" data-attempt-round="${i + 1}"`));
+    assert.ok(members.includes('미완료 응시') && members.includes('이전 등록 기록'));
+    const reports = await admin('tab=reports&reportExam=13&reportNumber=1&reportSubject=언어이해');
+    assert.ok(reports.includes(`${tag}-report-10`) && reports.includes(`${tag}-report-13`));
+    assert.ok(!reports.includes(`${tag}-archived`));
+    assert.ok(reports.includes('tab=questions&amp;exam=13'));
+    const questionPage = await admin('tab=questions&exam=10&number=1');
+    assert.ok(questionPage.includes(`${tag}-current`) && !questionPage.includes(`${tag}-archived`));
+    assert.match(questionPage, /관련 신고 (?:<!-- -->)?2/);
     assert.deepEqual(await stored(), before);
-    console.log('숨긴 기록만 응시, 공개 기록 선응시, 숨긴 기록 선응시, 실제 시각 정렬, 참여 인원, 답안 복원과 원본 보존 통과');
+    assert.deepEqual(await related(), relatedBefore);
+    console.log('응시 시각순 통합, 관리자 차수와 미완료 구분, 문항과 신고 연결, 답안과 신고 원본 보존 통과');
   } finally {
     if (createdExams) await pool.query('delete from exams where id in (10,13)');
     if (userIds.length) await pool.query('delete from users where id=any($1)', [userIds]);
