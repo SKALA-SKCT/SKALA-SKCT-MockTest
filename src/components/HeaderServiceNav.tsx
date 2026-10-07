@@ -32,6 +32,12 @@ export default function HeaderServiceNav({
       >
         유형별 문제 연습
       </a>
+      <a
+        href="https://ai-tutor.skala-skct.com"
+        className="text-ink transition-colors hover:text-brand"
+      >
+        AI 튜터
+      </a>
       <a href={communityUrl} className="text-ink transition-colors hover:text-brand">게시판</a>
     </div>
   );
