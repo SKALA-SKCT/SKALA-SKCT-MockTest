@@ -26,7 +26,7 @@ export default function ExamStartButton({
   const [open, setOpen] = useState(false);
   const totalMinutes = subjects.length * sectionMinutes;
   const startExam = () => {
-    window.location.assign(`/exam/${examId}/take?restart=1`);
+    window.location.assign(`/exam/${examId}/take`);
   };
 
   return (

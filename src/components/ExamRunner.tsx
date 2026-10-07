@@ -98,13 +98,11 @@ export default function ExamRunner({
   const flushingRef = useRef<Promise<boolean> | null>(null);
   const busyRef = useRef(false);
   const [recoveryReady, setRecoveryReady] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
   const backupKey = `mocktest-answers:${examId}:${attemptId}`;
   const persistPending = useCallback(() => {
     window.sessionStorage.setItem(backupKey, JSON.stringify(Object.fromEntries(
       [...pendingSavesRef.current].map(([id, answer]) => [id, answer.choice])
     )));
-    setPendingCount(pendingSavesRef.current.size);
   }, [backupKey]);
   const flushAnswers = useCallback((): Promise<boolean> => {
     if (flushingRef.current) return flushingRef.current;
@@ -186,7 +184,6 @@ export default function ExamRunner({
         setAnswers((previous) => ({ ...previous, ...Object.fromEntries(
           [...pendingSavesRef.current].map(([id, answer]) => [id, answer.choice])
         ) }));
-        setPendingCount(pendingSavesRef.current.size);
         setRecoveryReady(true);
         void flushAnswers();
       } catch {
@@ -692,9 +689,6 @@ export default function ExamRunner({
               </span>
             </p>
           </div>
-          {pendingCount > 0 && (
-            <p role="status" className="mb-3 text-xs text-zinc-500">{pendingCount}개 답안 저장 대기 중</p>
-          )}
           {notice && (
             <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700">
               {notice}
