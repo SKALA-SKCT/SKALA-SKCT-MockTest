@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/session";
+import { canonicalExamId } from "@/db/linkareer-catalog";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { attempts, attemptResults, exams } from "@/db/schema";
@@ -137,18 +138,19 @@ export async function POST(request: Request) {
 
   if (input.attemptId) {
     const [ownedResult] = await db
-      .select({ aiAnalysis: attemptResults.aiAnalysis })
+      .select({ aiAnalysis: attemptResults.aiAnalysis, examId: attempts.examId })
       .from(attemptResults)
       .innerJoin(attempts, eq(attempts.id, attemptResults.attemptId))
-      .innerJoin(exams, eq(exams.id, attempts.examId))
       .where(
         and(
           eq(attemptResults.attemptId, input.attemptId),
-          eq(attempts.userId, user.id),
-          eq(exams.published, true)
+          eq(attempts.userId, user.id)
         )
       );
     if (!ownedResult) return NextResponse.json({ error: "결과를 찾을 수 없습니다." }, { status: 404 });
+    const [exam] = await db.select({ published: exams.published }).from(exams)
+      .where(eq(exams.id, canonicalExamId(ownedResult.examId)));
+    if (!exam?.published) return NextResponse.json({ error: "결과를 찾을 수 없습니다." }, { status: 404 });
     if (ownedResult.aiAnalysis) {
       return NextResponse.json(ownedResult.aiAnalysis);
     }

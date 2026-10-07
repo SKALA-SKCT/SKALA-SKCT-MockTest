@@ -1,3 +1,4 @@
+import { canonicalExamId, examHistoryIds } from "@/db/linkareer-catalog";
 import { median } from "@/lib/statistics";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -89,7 +90,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
     getExamSubjectTotals(),
   ]);
 
-  const publishedExamIds = examList.map((exam) => exam.id);
+  const publishedExamIds = examList.flatMap((exam) => examHistoryIds(exam.id));
 
   // 통계는 유저·시험별 첫 '완료' 응시 1개만 사용해 재응시 점수가 대시보드에 섞이지 않게 한다.
   // 총점·과목별 점수는 채점 시 저장한 스냅샷(attempt_results)에 이미 들어 있으므로
@@ -100,6 +101,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
           id: attempts.id,
           userId: attempts.userId,
           examId: attempts.examId,
+          startedAt: attempts.startedAt,
           finishedAt: attempts.finishedAt,
           totalScore: attemptResults.totalScore,
           subjectScores: sql<
@@ -113,10 +115,11 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
             isNotNull(attempts.finishedAt),
             inArray(attempts.examId, publishedExamIds)
           )
-        )
+        ).orderBy(asc(attempts.startedAt), asc(attempts.id))
     : [];
+  for (const row of finishedRows) row.examId = canonicalExamId(row.examId);
   const attemptsByUserExam = new Map<string, typeof finishedRows>();
-  for (const a of [...finishedRows].sort((a, b) => a.id - b.id)) {
+  for (const a of finishedRows) {
     const key = `${a.userId}:${a.examId}`;
     const items = attemptsByUserExam.get(key) ?? [];
     items.push(a);

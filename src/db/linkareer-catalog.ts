@@ -120,3 +120,13 @@ export const LINKAREER_CATALOG = [
     "archived": false
   }
 ] as const;
+
+export function canonicalExamId(examId: number): number {
+  const source = LINKAREER_CATALOG.find((entry) => entry.round === examId);
+  if (!source?.archived) return examId;
+  return LINKAREER_CATALOG.find((entry) => entry.sourceId === source.sourceId && !entry.archived)?.round ?? examId;
+}
+
+export function examHistoryIds(examId: number): number[] {
+  return [examId, ...LINKAREER_CATALOG.filter((entry) => entry.archived && canonicalExamId(entry.round) === examId).map((entry) => entry.round)];
+}

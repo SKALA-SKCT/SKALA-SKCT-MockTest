@@ -1,3 +1,4 @@
+import { examHistoryIds } from "@/db/linkareer-catalog";
 import { median } from "@/lib/statistics";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
@@ -77,6 +78,7 @@ export default async function ResultPage({
   const examId = Number(id);
   if (!Number.isInteger(examId)) notFound();
 
+  const historyIds = examHistoryIds(examId);
   const user = await requireUser();
   const [exam, myAttempts] = await Promise.all([
     getResultExam(examId),
@@ -86,11 +88,11 @@ export default async function ResultPage({
       .where(
         and(
           eq(attempts.userId, user.id),
-          eq(attempts.examId, examId),
+          inArray(attempts.examId, historyIds),
           isNotNull(attempts.finishedAt)
         )
       )
-      .orderBy(asc(attempts.id)),
+      .orderBy(asc(attempts.startedAt), asc(attempts.id)),
   ]);
   if (!exam?.published) notFound();
   const requestedRound = Number(round ?? "");
@@ -111,8 +113,9 @@ export default async function ResultPage({
   }
   const mySnapshot = myResult.snapshot;
 
-  const [qs, finishedRows] = await Promise.all([
+  const [qs, sourceQuestions, finishedRows] = await Promise.all([
     getResultQuestions(examId),
+    getResultQuestions(myAttempt.examId),
     db
       .select({
         attemptId: attempts.id,
@@ -121,8 +124,8 @@ export default async function ResultPage({
       })
       .from(attempts)
       .innerJoin(users, eq(users.id, attempts.userId))
-      .where(and(eq(attempts.examId, examId), isNotNull(attempts.finishedAt)))
-      .orderBy(asc(attempts.id)),
+      .where(and(inArray(attempts.examId, historyIds), isNotNull(attempts.finishedAt)))
+      .orderBy(asc(attempts.startedAt), asc(attempts.id)),
   ]);
 
   const examSubjects = SUBJECTS.filter((s) => qs.some((q) => q.subject === s));
@@ -168,34 +171,40 @@ export default async function ResultPage({
       .groupBy(responses.attemptId, questions.subject),
     db
       .select({
-        questionId: responses.questionId,
+        questionNumber: questions.number,
+        subject: questions.subject,
         correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
       })
       .from(responses)
+      .innerJoin(questions, eq(questions.id, responses.questionId))
       .where(inArray(responses.attemptId, attemptIds))
-      .groupBy(responses.questionId),
+      .groupBy(questions.subject, questions.number),
     db
       .select({
-        questionId: responses.questionId,
+        questionNumber: questions.number,
+        subject: questions.subject,
         correct: sql<number>`count(*) filter (where ${responses.isCorrect})::int`,
       })
       .from(responses)
+      .innerJoin(questions, eq(questions.id, responses.questionId))
       .where(inArray(responses.attemptId, analysisAttemptIds))
-      .groupBy(responses.questionId),
+      .groupBy(questions.subject, questions.number),
     db
       .select({
-        questionId: responses.questionId,
+        questionNumber: questions.number,
+        subject: questions.subject,
         choice: responses.choice,
         count: sql<number>`count(*)::int`,
       })
       .from(responses)
+      .innerJoin(questions, eq(questions.id, responses.questionId))
       .where(
         and(
           inArray(responses.attemptId, analysisAttemptIds),
           isNotNull(responses.choice)
         )
       )
-      .groupBy(responses.questionId, responses.choice),
+      .groupBy(questions.subject, questions.number, responses.choice),
   ]);
 
   const scoreByAttempt = new Map<number, { total: number; bySubject: Map<string, number> }>();
@@ -242,24 +251,25 @@ export default async function ResultPage({
   });
   // 문항별 전체 정답률 (무응답/미기록은 오답 처리: 분모 = 완료 인원)
   const correctCountByQ = new Map(
-    qAccuracyRows.map((r) => [r.questionId, r.correct])
+    qAccuracyRows.map((r) => [`${r.subject}:${r.questionNumber}`, r.correct])
   );
 
   const analysisCorrectCountByQ = new Map(
-    analysisAccuracyRows.map((r) => [r.questionId, r.correct])
+    analysisAccuracyRows.map((r) => [`${r.subject}:${r.questionNumber}`, r.correct])
   );
 
-  const analysisChoiceCountsByQ = new Map<number, number[]>();
+  const analysisChoiceCountsByQ = new Map<string, number[]>();
   for (const row of analysisChoiceRows) {
     if (row.choice == null) continue;
-    const counts = analysisChoiceCountsByQ.get(row.questionId) ?? [0, 0, 0, 0, 0];
+    const counts = analysisChoiceCountsByQ.get(`${row.subject}:${row.questionNumber}`) ?? [0, 0, 0, 0, 0];
     counts[row.choice - 1] = row.count;
-    analysisChoiceCountsByQ.set(row.questionId, counts);
+    analysisChoiceCountsByQ.set(`${row.subject}:${row.questionNumber}`, counts);
   }
 
   // 내 응답은 완료 시점에 저장한 스냅샷을 사용한다.
+  const sourceNumbers = new Map(sourceQuestions.map((question) => [question.id, `${question.subject}:${question.number}`]));
   const mySnapshotByQ = new Map(
-    mySnapshot.questions.map((question) => [question.questionId, question])
+    mySnapshot.questions.map((question) => [sourceNumbers.get(question.questionId), question])
   );
 
   // 레이더 데이터: 과목별 정답률(%) 나 vs 전체 평균
@@ -291,17 +301,17 @@ export default async function ResultPage({
     .sort((a, b) => b.total - a.total);
 
   const reviewQuestions: ReviewQuestion[] = qs.map((q) => {
-    const snapshotQuestion = mySnapshotByQ.get(q.id);
+    const snapshotQuestion = mySnapshotByQ.get(`${q.subject}:${q.number}`);
     const myChoice = snapshotQuestion?.choice ?? null;
     const elapsedSeconds = snapshotQuestion?.elapsedSeconds ?? 0;
     const groupAccuracy = n
-      ? Math.round(((correctCountByQ.get(q.id) ?? 0) / n) * 100)
+      ? Math.round(((correctCountByQ.get(`${q.subject}:${q.number}`) ?? 0) / n) * 100)
       : 0;
     const peerWrongRate = analysisCount
       ? 100 -
-        Math.round(((analysisCorrectCountByQ.get(q.id) ?? 0) / analysisCount) * 100)
+        Math.round(((analysisCorrectCountByQ.get(`${q.subject}:${q.number}`) ?? 0) / analysisCount) * 100)
       : null;
-    const analysisChoiceCounts = analysisChoiceCountsByQ.get(q.id) ?? [0, 0, 0, 0, 0];
+    const analysisChoiceCounts = analysisChoiceCountsByQ.get(`${q.subject}:${q.number}`) ?? [0, 0, 0, 0, 0];
     return {
       id: q.id,
       subject: q.subject,
