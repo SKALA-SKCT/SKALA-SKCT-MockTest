@@ -92,7 +92,7 @@ export default async function ResultPage({
       )
       .orderBy(asc(attempts.id)),
   ]);
-  if (!exam) notFound();
+  if (!exam?.published) notFound();
   const requestedRound = Number(round ?? "");
   const selectedRound =
     Number.isInteger(requestedRound) &&

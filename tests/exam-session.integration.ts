@@ -50,15 +50,31 @@ async function main() {
     assert.match(await reconnect.text(), /응시 중인 데이터가 있습니다. 이어서 하시겠습니까\?/);
     assert.equal((await pool.query('select choice from responses where attempt_id=$1', [attemptId])).rows[0].choice, 2);
     await pool.query('update exams set published=false where id=$1', [exam.id]);
-    await take('?restart=1');
-    assert.equal((await pool.query('select id from attempts where user_id=$1 and exam_id=$2', [user.id, exam.id])).rows[0].id, attemptId);
-    const denied = await fetch(`${appUrl}/exam/${exam.id}/take`, { headers: { cookie: await cookie(other.id) }, redirect: 'manual' });
-    const deniedHtml = await denied.text();
-    assert.ok(denied.status === 307 || /NEXT_REDIRECT|http-equiv="refresh"/.test(deniedHtml));
-    assert.ok(!deniedHtml.includes('검증 문항입니다.'));
-    assert.equal((await pool.query('select id from attempts where user_id=$1 and exam_id=$2', [other.id, exam.id])).rows.length, 0);
+    const preserved = async () => ({
+      attempts: (await pool.query('select * from attempts where exam_id=$1 order by id', [exam.id])).rows,
+      responses: (await pool.query('select * from responses where attempt_id=$1 order by id', [attemptId])).rows,
+      results: (await pool.query('select * from attempt_results where attempt_id=$1', [attemptId])).rows,
+    });
+    const before = await preserved();
+    const assertBlockedPage = async (path: string, token = session) => {
+      const response = await fetch(`${appUrl}${path}`, { headers: { cookie: token }, redirect: 'manual' });
+      const html = await response.text();
+      assert.ok(response.status === 404 || html.includes('NEXT_HTTP_ERROR_FALLBACK;404'));
+      assert.ok(!html.includes('검증 문항입니다.'));
+    };
+    for (const query of ['', '?restart=1', `?resume=${attemptId}`]) {
+      await assertBlockedPage(`/exam/${exam.id}/take${query}`);
+    }
+    await assertBlockedPage(`/exam/${exam.id}/take`, await cookie(other.id));
+    await assertBlockedPage(`/exam/${exam.id}/result`);
+    for (const action of ['startSection', 'finishSection', 'startQuestion', 'saveAnswer', 'abandon']) {
+      const denied = await send({ ...body, action, questionId: question.id, choice: 1 });
+      assert.deepEqual(await denied.json(), { ok: false });
+    }
+    assert.deepEqual(await preserved(), before);
     const dashboard = await fetch(appUrl, { headers: { cookie: session } });
-    assert.match(await dashboard.text(), /이어서 하기/);
+    assert.ok(!(await dashboard.text()).includes(`/exam/${exam.id}/`));
+    await pool.query('update exams set published=true where id=$1', [exam.id]);
     await take(`?resume=${attemptId}`);
     records = (await pool.query('select * from attempts where user_id=$1 and exam_id=$2', [user.id, exam.id])).rows;
     assert.equal(records.length, 1);
@@ -66,9 +82,15 @@ async function main() {
     assert.deepEqual(records[0].section_state, state);
     assert.equal((await pool.query('select choice from responses where attempt_id=$1', [attemptId])).rows[0].choice, 2);
     assert.equal((await (await send({ ...body, action: 'finishSection' })).json()).finished, true);
-    const archivedResult = await fetch(`${appUrl}/exam/${exam.id}/result`, { headers: { cookie: session } });
-    assert.equal(archivedResult.status, 200);
-    assert.ok(!(await archivedResult.text()).includes('재응시'));
+    await pool.query('update exams set published=false where id=$1', [exam.id]);
+    const completed = await preserved();
+    await assertBlockedPage(`/exam/${exam.id}/result`);
+    const analysis = await fetch(`${appUrl}/api/ai/result-analysis`, {
+      method: 'POST', headers: { cookie: session, 'content-type': 'application/json' },
+      body: JSON.stringify({ attemptId, subjects: [] }),
+    });
+    assert.equal(analysis.status, 404);
+    assert.deepEqual(await preserved(), completed);
     await pool.query('update exams set published=true where id=$1', [exam.id]);
     assert.equal((await pool.query('select total_score from attempt_results where attempt_id=$1', [attemptId])).rows[0].total_score, 1);
     assert.equal((await (await send({ ...body, action: 'finishSection' })).json()).finished, true);

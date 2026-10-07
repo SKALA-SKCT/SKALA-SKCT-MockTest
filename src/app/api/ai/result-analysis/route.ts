@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/session";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { attempts, attemptResults } from "@/db/schema";
+import { attempts, attemptResults, exams } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -140,13 +140,16 @@ export async function POST(request: Request) {
       .select({ aiAnalysis: attemptResults.aiAnalysis })
       .from(attemptResults)
       .innerJoin(attempts, eq(attempts.id, attemptResults.attemptId))
+      .innerJoin(exams, eq(exams.id, attempts.examId))
       .where(
         and(
           eq(attemptResults.attemptId, input.attemptId),
-          eq(attempts.userId, user.id)
+          eq(attempts.userId, user.id),
+          eq(exams.published, true)
         )
       );
-    if (ownedResult?.aiAnalysis) {
+    if (!ownedResult) return NextResponse.json({ error: "결과를 찾을 수 없습니다." }, { status: 404 });
+    if (ownedResult.aiAnalysis) {
       return NextResponse.json(ownedResult.aiAnalysis);
     }
   }

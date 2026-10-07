@@ -2,7 +2,7 @@
 
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { questionNotes, questions } from "@/db/schema";
+import { questionNotes, questions, exams } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { ensureQuestionNotesSchema } from "@/db/ensure-question-notes";
 import { NOTE_DRAWING_MAX, NOTE_DRAWING_PREFIX, NOTE_TEXT_MAX, type QuestionNote } from "@/lib/question-note";
@@ -14,7 +14,9 @@ export async function loadQuestionNote(questionId: number): Promise<QuestionNote
   const [row] = await db
     .select({ text: questionNotes.text, drawing: questionNotes.drawing })
     .from(questionNotes)
-    .where(and(eq(questionNotes.userId, user.id), eq(questionNotes.questionId, questionId)));
+    .innerJoin(questions, eq(questions.id, questionNotes.questionId))
+    .innerJoin(exams, eq(exams.id, questions.examId))
+    .where(and(eq(exams.published, true), eq(questionNotes.userId, user.id), eq(questionNotes.questionId, questionId)));
   return row ?? null;
 }
 
@@ -28,14 +30,16 @@ export async function saveQuestionNote(input: { questionId: number; text: string
     return { ok: false, error: "그림이 너무 커서 저장하지 못했습니다. 일부를 지우고 다시 시도해주세요." };
   }
 
+  const [question] = await db.select({ id: questions.id }).from(questions)
+    .innerJoin(exams, eq(exams.id, questions.examId))
+    .where(and(eq(questions.id, input.questionId), eq(exams.published, true)));
+  if (!question) return { ok: false, error: "문항을 찾을 수 없습니다." };
+
   const owner = and(eq(questionNotes.userId, user.id), eq(questionNotes.questionId, input.questionId));
   if (!text.trim() && !drawing) {
     await db.delete(questionNotes).where(owner);
     return { ok: true };
   }
-
-  const [question] = await db.select({ id: questions.id }).from(questions).where(eq(questions.id, input.questionId));
-  if (!question) return { ok: false, error: "문항을 찾을 수 없습니다." };
 
   await db
     .insert(questionNotes)
