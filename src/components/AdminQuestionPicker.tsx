@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -21,7 +22,7 @@ function Picker({ label, value, options, onSelect }: {
     <label className="grid min-w-36 gap-1.5 text-xs font-bold text-zinc-500">
       {label}
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 outline-none focus:border-zinc-400">
+        <DropdownMenuTrigger type="button" aria-label={label} className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 outline-none focus:border-zinc-400">
           {current?.label}
           <span aria-hidden className="text-zinc-400">▾</span>
         </DropdownMenuTrigger>
@@ -78,4 +79,17 @@ export function AdminQuestionPicker({ exam, subject, number, exams, subjects, nu
       />
     </div>
   );
+}
+
+export function AdminReportFilter({ name, label, value, options }: {
+  name: string;
+  label: string;
+  value: string;
+  options: Option[];
+}) {
+  const [selected, setSelected] = useState(value);
+  return <>
+    <input type="hidden" name={name} value={selected} />
+    <Picker label={label} value={selected} options={options} onSelect={setSelected} />
+  </>;
 }

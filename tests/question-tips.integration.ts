@@ -57,12 +57,24 @@ async function main() {
     assert.equal(reports[0].detail, "조건이 잘못되었어요.");
     fetched = (await send("loadQuestionTips", [question.id], reader.id)).result.tips[0];
     assert.equal(fetched.reported, true);
-    const adminResponse = await fetch(`${url}/admin?tab=reports`, { headers: { cookie: await cookie(outsider.id) } });
+    const { rows: extraTips } = await pool.query("insert into question_tips(question_id,user_id,text,created_at) values($1,$2,'이전 풀이팁',now()-interval '1 day'),($1,$2,'최신 풀이팁 본문',now()+interval '1 second') returning id", [question.id, author.id]);
+    const adminResponse = await fetch(`${url}/admin?tab=tips`, { headers: { cookie: await cookie(outsider.id) } });
     const adminHtml = await adminResponse.text();
+    assert.ok(adminHtml.includes("최신 풀이팁"));
+    assert.ok(adminHtml.indexOf("최신 풀이팁 본문") < adminHtml.indexOf("실제 저장 검증"));
+    assert.ok(adminHtml.indexOf("실제 저장 검증") < adminHtml.indexOf("이전 풀이팁"));
+    assert.ok(adminHtml.includes('aria-label="처리 상태"'));
+    assert.ok(!adminHtml.includes('<select name="reportStatus"'));
+    const filteredHtml = await (await fetch(`${url}/admin?tab=tips&reportStatus=resolved`, { headers: { cookie: await cookie(outsider.id) } })).text();
+    assert.ok(!filteredHtml.includes("조건이 잘못되었어요."));
+    assert.ok(filteredHtml.includes("최신 풀이팁 본문"));
+    await pool.query("delete from question_tips where id=any($1)", [extraTips.map((row) => row.id)]);
     assert.ok(adminHtml.includes("풀이팁 작성자:"));
+    const questionReportsHtml = await (await fetch(`${url}/admin?tab=reports`, { headers: { cookie: await cookie(outsider.id) } })).text();
+    assert.ok(!questionReportsHtml.includes("조건이 잘못되었어요."));
     assert.ok(adminHtml.includes("조건이 잘못되었어요."));
     assert.ok(!adminHtml.includes("<script>텍스트</script>"));
-    const deniedAdmin = await fetch(`${url}/admin?tab=reports`, { headers: { cookie: await cookie(reader.id) }, redirect: "manual" });
+    const deniedAdmin = await fetch(`${url}/admin?tab=tips`, { headers: { cookie: await cookie(reader.id) }, redirect: "manual" });
     const deniedHtml = await deniedAdmin.text();
     assert.ok((deniedAdmin.status >= 300 && deniedAdmin.status < 400) || deniedHtml.includes("NEXT_REDIRECT"));
     assert.ok(!deniedHtml.includes("풀이팁 작성자:"));
@@ -74,6 +86,9 @@ async function main() {
     const savedReport = (await pool.query("select * from question_reports where id=$1", [reports[0].id])).rows[0];
     assert.equal(savedReport.tip_id, null);
     assert.equal(savedReport.tip_text, tip.text);
+    const deletedTipHtml = await (await fetch(`${url}/admin?tab=tips`, { headers: { cookie: await cookie(outsider.id) } })).text();
+    assert.ok(deletedTipHtml.includes("삭제된 글"));
+    assert.ok(deletedTipHtml.includes("조건이 잘못되었어요."));
     console.log("댓글 저장과 재조회, 권한, 중복 좋아요와 취소, 신고 상세 내용과 관리자 표시, 삭제 후 신고 보존 통과");
   } finally {
     await pool.query("delete from exams where id=$1", [exam.id]);
