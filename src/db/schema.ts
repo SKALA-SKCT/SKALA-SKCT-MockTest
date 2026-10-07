@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   index,
   pgEnum,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 export const SUBJECTS = [
@@ -166,6 +167,9 @@ export const questionReports = pgTable(
     reporterId: integer("reporter_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    tipId: integer("tip_id").references((): AnyPgColumn => questionTips.id, { onDelete: "set null" }),
+    tipText: text("tip_text"),
+    tipAuthor: text("tip_author"),
     reasons: jsonb("reasons").$type<string[]>().notNull(),
     detail: text("detail"),
     status: reportStatus("status").notNull().default("pending"),
@@ -180,6 +184,7 @@ export const questionReports = pgTable(
   (t) => [
     index("idx_question_reports_status").on(t.status, t.createdAt),
     index("idx_question_reports_question").on(t.questionId),
+    uniqueIndex("uq_question_tip_report").on(t.tipId, t.reporterId),
   ]
 ).enableRLS();
 
@@ -247,3 +252,16 @@ export const attemptResults = pgTable(
     index("idx_attempt_results_updated").on(t.updatedAt),
   ]
 ).enableRLS();
+
+export const questionTips = pgTable("question_tips", {
+  id: serial("id").primaryKey(),
+  questionId: integer("question_id").notNull().references(() => questions.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  text: text("text").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("idx_question_tips_question").on(t.questionId, t.createdAt), index("idx_question_tips_user").on(t.userId)]).enableRLS();
+
+export const questionTipLikes = pgTable("question_tip_likes", {
+  tipId: integer("tip_id").notNull().references(() => questionTips.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+}, (t) => [uniqueIndex("uq_question_tip_like").on(t.tipId, t.userId), index("idx_question_tip_likes_user").on(t.userId)]).enableRLS();
