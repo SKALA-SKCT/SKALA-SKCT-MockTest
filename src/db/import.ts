@@ -10,6 +10,7 @@
  *   { number: 1~100, subject: "언어이해"|"자료해석"|"창의수리"|"언어추리"|"수열추리",
  *     body: string, choices: string[], answer: 1~N, explanation?: string, imageUrl?: string }
  */
+import { LINKAREER_CATALOG } from "./linkareer-catalog";
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
@@ -67,7 +68,8 @@ function loadManifest(): Map<number, RoundManifestItem> {
       .filter((item): item is RoundManifestItem =>
         Number.isInteger(item?.round) && typeof item?.title === "string"
       )
-      .map((item) => [item.round, item])
+      .filter((item) => !LINKAREER_CATALOG.find((entry) => entry.round === item.round)?.archived)
+      .map((item) => [item.round, { ...item, title: LINKAREER_CATALOG.find((entry) => entry.round === item.round)?.title ?? item.title }])
   );
 }
 

@@ -42,7 +42,7 @@ export async function startAttempt(examId: number, resumeAttemptId?: number) {
   if (!isValidId(examId) || (resumeAttemptId !== undefined && !isValidId(resumeAttemptId))) throw new Error("잘못된 시험입니다.");
   const user = await requireUser();
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
-  if (!exam || !exam.published) throw new Error("존재하지 않거나 비공개 시험입니다.");
+  if (!exam) throw new Error("존재하지 않는 시험입니다.");
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(${user.id}, ${examId})`);
     const [existing] = await tx.select().from(attempts).where(and(
@@ -52,6 +52,7 @@ export async function startAttempt(examId: number, resumeAttemptId?: number) {
       if (existing?.id !== resumeAttemptId) throw new Error("이어서 할 응시가 없습니다.");
       return { attemptId: existing.id };
     }
+    if (!exam.published) throw new Error("신규 응시가 종료된 시험입니다.");
     await tx.delete(attempts).where(and(
       eq(attempts.userId, user.id), eq(attempts.examId, examId), isNull(attempts.finishedAt)
     ));

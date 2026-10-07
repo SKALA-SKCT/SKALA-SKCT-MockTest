@@ -90,6 +90,14 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
   ]);
 
   const publishedExamIds = examList.map((exam) => exam.id);
+  const archivedAttempts = await db.select({
+    id: exams.id,
+    title: exams.title,
+    finished: sql<boolean>`bool_or(${attempts.finishedAt} is not null)`,
+    unfinished: sql<boolean>`bool_or(${attempts.finishedAt} is null)`,
+  }).from(exams).innerJoin(attempts, eq(attempts.examId, exams.id))
+    .where(and(eq(exams.published, false), eq(attempts.userId, user.id)))
+    .groupBy(exams.id, exams.title).orderBy(asc(exams.id));
 
   // 통계는 유저·시험별 첫 '완료' 응시 1개만 사용해 재응시 점수가 대시보드에 섞이지 않게 한다.
   // 총점·과목별 점수는 채점 시 저장한 스냅샷(attempt_results)에 이미 들어 있으므로
@@ -271,7 +279,7 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
   }
 
   // 모의고사 세트 목록: 생성 순서 또는 제목의 회차 번호로 매핑
-  const ROUNDS = 17;
+  const ROUNDS = examList.length;
   const examByRound = new Map<number, (typeof examList)[number]>();
   for (const [index, e] of examList.entries()) {
     const m = e.title.match(/^(\d+)회차/);
@@ -562,6 +570,13 @@ export default async function Dashboard({ searchParams }: DashboardProps) {
                     준비 중
                   </span>
                 )}
+              </li>
+            ))}
+            {archivedAttempts.map((exam) => (
+              <li key={`archived-${exam.id}`} className="flex shrink-0 flex-wrap items-center gap-2 py-2 text-xs">
+                <span className="min-w-0 flex-1 text-ink-3">{exam.title.replace(/^SK\s+/i, "")}</span>
+                {exam.finished && <Link href={`/exam/${exam.id}/result`} className="underline">이전 결과</Link>}
+                {exam.unfinished && <Link href={`/exam/${exam.id}/take`} className="underline">이어서 하기</Link>}
               </li>
             ))}
           </ul>
