@@ -22,7 +22,8 @@ import AttemptDeleteForm from "@/components/AttemptDeleteForm";
 import { AdminQuestionPicker } from "@/components/AdminQuestionPicker";
 import AdminQuestionView from "@/components/AdminQuestionView";
 import { updateQuestionReportStatus } from "@/lib/actions/admin";
-import { ensureQuestionReportsSchema } from "@/db/ensure-question-reports";
+import { ensureQuestionTipsSchema } from "@/db/ensure-question-tips";
+import { TIP_REPORT_REASONS } from "@/lib/question-tip";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +101,7 @@ function normalizeTab(value: string | undefined) {
   return value === "users" || value === "analytics" || value === "reports" || value === "questions" ? value : "stats";
 }
 
-const REPORT_REASONS = ["문제 내용 오류", "정답 오류", "해설 오류", "이미지·표시 오류", "기타"];
+const REPORT_REASONS = ["문제 내용 오류", "정답 오류", "해설 오류", "이미지·표시 오류", "기타", ...TIP_REPORT_REASONS.filter((reason) => reason !== "기타")];
 
 function campusLabel(value: string | null) {
   return value ?? "미지정";
@@ -113,7 +114,7 @@ function classLabel(campus: string | null, classNumber: number | null) {
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const currentAdmin = await requireAdmin();
-  await ensureQuestionReportsSchema();
+  await ensureQuestionTipsSchema();
   const params = await searchParams;
   const activeTab = normalizeTab(firstParam(params.tab));
   const userQuery = (firstParam(params.q) ?? "").trim();
@@ -183,6 +184,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       .groupBy(questions.examId, questions.subject),
     db.select({
       id: questionReports.id,
+      tipId: questionReports.tipId,
+      tipText: questionReports.tipText,
+      tipAuthor: questionReports.tipAuthor,
       reasons: questionReports.reasons,
       detail: questionReports.detail,
       status: questionReports.status,
@@ -636,7 +640,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </section>
       ) : activeTab === "reports" ? (
         <section className="space-y-3">
-          <div><h2 className="text-xl font-black text-ink">문항 신고</h2><p className="mt-1 text-sm text-ink-3">신고 내용을 펼쳐 확인하고 처리 상태를 변경합니다.</p></div>
+          <div><h2 className="text-xl font-black text-ink">문항과 풀이팁 신고</h2><p className="mt-1 text-sm text-ink-3">신고 내용을 펼쳐 확인하고 처리 상태를 변경합니다.</p></div>
           <form className="chart-card flex flex-wrap items-end gap-3 p-4" method="get">
             <input type="hidden" name="tab" value="reports" />
             {firstParam(params.reportExam) && <input type="hidden" name="reportExam" value={firstParam(params.reportExam)} />}
@@ -667,13 +671,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <details key={report.id} className="chart-card overflow-hidden" open={report.status === "pending"}>
               <summary className="flex cursor-pointer items-center gap-3 px-5 py-4 text-sm">
                 <span className={`rounded-full px-2 py-1 text-xs font-bold ${report.status === "pending" ? "bg-amber-50 text-amber-700" : report.status === "resolved" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{report.status === "pending" ? "대기중" : report.status === "resolved" ? "처리" : "반려"}</span>
-                <b>{report.examTitle}, {report.subject} {(report.number - 1) % 20 + 1}번</b>
+                <b>{report.tipText != null ? "풀이팁 신고, " : ""}{report.examTitle}, {report.subject} {(report.number - 1) % 20 + 1}번</b>
                 <span className="text-zinc-500">{report.reasons.join(", ")}</span>
                 <span className="ml-auto text-xs text-zinc-400">{formatDate(report.createdAt)}</span>
               </summary>
               <div className="flex flex-col gap-4 border-t border-hairline bg-zinc-50/60 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-sm leading-6 text-zinc-700">{report.detail || "추가 설명 없음"}</p>
+                  {report.tipText != null && <div className="mb-3 rounded-lg border border-hairline bg-surface p-3"><p className="text-xs font-semibold text-ink-2">풀이팁 작성자: {report.tipAuthor}{report.tipId == null && " (삭제된 글)"}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink [overflow-wrap:anywhere]">{report.tipText}</p></div>}
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-700 [overflow-wrap:anywhere]">{report.detail || "추가 설명 없음"}</p>
                   <Link className="mt-2 inline-block text-sm font-semibold text-brand underline" href={`/admin?${new URLSearchParams({ tab: "questions", exam: String(report.examId), subject: report.subject, number: String((report.number - 1) % 20 + 1) })}`}>문항 보기</Link>
                   {report.sourceExamId !== report.examId && <p className="mt-1 text-xs text-zinc-500">이전 등록 문항에서 접수한 신고</p>}
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">

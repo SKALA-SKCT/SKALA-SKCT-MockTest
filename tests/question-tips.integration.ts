@@ -1,0 +1,84 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { Pool } from "pg";
+import { SignJWT } from "jose";
+
+async function main() {
+  const url = process.env.TIPS_TEST_APP_URL ?? "";
+  const databaseUrl = process.env.TIPS_TEST_DATABASE_URL ?? "";
+  const secret = process.env.TIPS_TEST_SESSION_SECRET ?? "";
+  if (new URL(url).hostname !== "127.0.0.1" || new URL(databaseUrl).hostname !== "127.0.0.1" || secret.length < 32) throw new Error("분리된 로컬 앱, DB와 검증용 세션 키가 필요합니다.");
+  const pool = new Pool({ connectionString: databaseUrl });
+  const manifest = JSON.parse(readFileSync(".next/server/server-reference-manifest.json", "utf8"));
+  const ids = Object.fromEntries(Object.entries(manifest.node).map(([id, value]) => [(value as { exportedName: string }).exportedName, id]));
+  const tag = `tips-${Date.now()}`;
+  const { rows: [author] } = await pool.query("insert into users(nickname,name,pin_hash) values($1,'작성자','test') returning id", [tag]);
+  const { rows: [reader] } = await pool.query("insert into users(nickname,name,pin_hash) values($1,'독자','test') returning id", [tag + '-reader']);
+  const { rows: [outsider] } = await pool.query("insert into users(nickname,name,pin_hash,is_admin) values($1,'관리자','test',true) returning id", [tag + '-admin']);
+  const { rows: [exam] } = await pool.query("insert into exams(title,published) values($1,true) returning id", [tag]);
+  const cookie = async (id: number) => 'skct_session=' + await new SignJWT({ uid: id }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime('1h').sign(new TextEncoder().encode(secret));
+  const send = async (name: string, args: unknown[], userId: number | null = author.id) => {
+    const response = await fetch(`${url}/exam/${exam.id}/result`, { method: "POST", redirect: "manual", headers: { "Next-Action": ids[name], "Content-Type": "text/plain;charset=UTF-8", origin: url, ...(userId == null ? {} : { cookie: await cookie(userId) }) }, body: JSON.stringify(args) });
+    const text = await response.text();
+    const line = text.split("\n").find((line) => /^\d+:\{"ok":/.test(line));
+    if (!line) return { response, text, result: null };
+    return { response, text, result: JSON.parse(line.slice(line.indexOf(":") + 1)) };
+  };
+  try {
+    const { rows: [question] } = await pool.query("insert into questions(exam_id,subject,number,body,choices,answer) values($1,'언어이해',1,'검증 문항','[\"보기\"]',1) returning id", [exam.id]);
+    await pool.query("insert into attempts(user_id,exam_id,finished_at) values($1,$3,now()),($2,$3,now())", [author.id, reader.id, exam.id]);
+    assert.equal((await send("createQuestionTip", [question.id, "익명 글"], null)).result, null);
+    assert.equal((await send("createQuestionTip", [question.id, "접근 불가"], outsider.id)).result.ok, false);
+    for (const text of ["   ", "x".repeat(1001), null]) assert.equal((await send("createQuestionTip", [question.id, text])).result.ok, false);
+    const created = await send("createQuestionTip", [question.id, "실제 저장 검증 <script>텍스트</script>"]);
+    assert.equal(created.result?.ok, true, created.text);
+    const loaded = (await send("loadQuestionTips", [question.id])).result;
+    assert.equal(loaded.tips.length, 1);
+    const tip = loaded.tips[0];
+    assert.equal(tip.name, "작성자");
+    assert.equal(tip.mine, true);
+    assert.ok(Number.isFinite(Date.parse(tip.createdAt)));
+    assert.equal((await send("deleteQuestionTip", [Number(tip.id)], reader.id)).result.ok, false);
+    assert.equal((await send("likeQuestionTip", [Number(tip.id), true], outsider.id)).result.ok, false);
+    await Promise.all([send("likeQuestionTip", [Number(tip.id), true], reader.id), send("likeQuestionTip", [Number(tip.id), true], reader.id)]);
+    let fetched = (await send("loadQuestionTips", [question.id], reader.id)).result.tips[0];
+    assert.equal(fetched.likes, 1);
+    assert.equal(fetched.liked, true);
+    assert.equal(fetched.mine, false);
+    assert.equal((await send("likeQuestionTip", [Number(tip.id), false], reader.id)).result.ok, true);
+    assert.equal((await send("loadQuestionTips", [question.id], reader.id)).result.tips[0].likes, 0);
+    assert.equal((await send("reportQuestionTip", [Number(tip.id), "기타", "자기 글 신고"])).result.ok, false);
+    assert.equal((await send("reportQuestionTip", [Number(tip.id), "잘못된 사유", "상세"], reader.id)).result.ok, false);
+    const reportArgs = [Number(tip.id), "잘못된 풀이 정보", "조건이 잘못되었어요."];
+    assert.equal((await send("reportQuestionTip", reportArgs, reader.id)).result.ok, true);
+    assert.equal((await send("reportQuestionTip", reportArgs, reader.id)).result.ok, true);
+    const reports = (await pool.query("select * from question_reports where tip_id=$1", [tip.id])).rows;
+    assert.equal(reports.length, 1);
+    assert.equal(reports[0].detail, "조건이 잘못되었어요.");
+    fetched = (await send("loadQuestionTips", [question.id], reader.id)).result.tips[0];
+    assert.equal(fetched.reported, true);
+    const adminResponse = await fetch(`${url}/admin?tab=reports`, { headers: { cookie: await cookie(outsider.id) } });
+    const adminHtml = await adminResponse.text();
+    assert.ok(adminHtml.includes("풀이팁 작성자:"));
+    assert.ok(adminHtml.includes("조건이 잘못되었어요."));
+    assert.ok(!adminHtml.includes("<script>텍스트</script>"));
+    const deniedAdmin = await fetch(`${url}/admin?tab=reports`, { headers: { cookie: await cookie(reader.id) }, redirect: "manual" });
+    const deniedHtml = await deniedAdmin.text();
+    assert.ok((deniedAdmin.status >= 300 && deniedAdmin.status < 400) || deniedHtml.includes("NEXT_REDIRECT"));
+    assert.ok(!deniedHtml.includes("풀이팁 작성자:"));
+    await pool.query("update exams set published=false where id=$1", [exam.id]);
+    assert.equal((await send("loadQuestionTips", [question.id])).result.ok, false);
+    await pool.query("update exams set published=true where id=$1", [exam.id]);
+    assert.equal((await send("deleteQuestionTip", [Number(tip.id)])).result.ok, true);
+    assert.equal((await send("loadQuestionTips", [question.id])).result.tips.length, 0);
+    const savedReport = (await pool.query("select * from question_reports where id=$1", [reports[0].id])).rows[0];
+    assert.equal(savedReport.tip_id, null);
+    assert.equal(savedReport.tip_text, tip.text);
+    console.log("댓글 저장과 재조회, 권한, 중복 좋아요와 취소, 신고 상세 내용과 관리자 표시, 삭제 후 신고 보존 통과");
+  } finally {
+    await pool.query("delete from exams where id=$1", [exam.id]);
+    await pool.query("delete from users where id=any($1)", [[author.id, reader.id, outsider.id]]);
+    await pool.end();
+  }
+}
+main().catch((error) => { console.error(error); process.exitCode = 1; });

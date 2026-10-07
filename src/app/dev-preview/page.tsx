@@ -4,11 +4,20 @@ import AdminCharts from "@/components/AdminCharts";
 import DashboardTrendChart from "@/components/DashboardTrendChart";
 import SubjectRadar from "@/components/SubjectRadar";
 import ScoreDistributionChart from "@/components/ScoreDistributionChart";
+import ResultTipsPreview from "@/components/ResultTipsPreview";
+import type { ReviewQuestion } from "@/components/ResultReview";
 import { median } from "@/lib/statistics";
 
 export default async function PreviewPage({ searchParams }: { searchParams: Promise<{ view?: string; attempt?: string; points?: string }> }) {
   if (process.env.NODE_ENV !== "development") notFound();
   const { view = "dashboard", attempt = "1", points } = await searchParams;
+  if (view === "tips") {
+    const questions: ReviewQuestion[] = [
+      { id: 100001, subject: "언어추리", number: 1, body: "다음 조건을 바탕으로 반드시 참인 것은?\n\nA, B, C 세 사람이 서로 다른 요일에 발표한다. A는 B보다 먼저 발표한다. C는 월요일에 발표하지 않는다.", imageUrl: null, choices: ["A는 B보다 먼저 발표한다.", "B는 월요일에 발표한다.", "C는 A보다 먼저 발표한다.", "A는 마지막에 발표한다.", "B와 C는 같은 날 발표한다."], answer: 1, explanation: "조건에서 A가 B보다 먼저 발표한다고 주어졌으므로 첫 번째 보기는 반드시 참이다.", myChoice: 3, isCorrect: false, elapsedSeconds: 74, groupAccuracy: 68, peerWrongRate: 32, choiceRates: [68, 5, 17, 6, 4] },
+      { id: 100002, subject: "자료해석", number: 21, body: "매출이 200에서 250으로 증가했다. 증가율은?", imageUrl: null, choices: ["10%", "15%", "20%", "25%", "30%"], answer: 4, explanation: "증가한 값 50을 기존 값 200으로 나누면 증가율은 25%이다.", myChoice: 4, isCorrect: true, elapsedSeconds: 35, groupAccuracy: 80, peerWrongRate: 20, choiceRates: [2, 3, 10, 80, 5] },
+    ];
+    return <div className="space-y-5"><div><p className="text-xs font-semibold text-brand">실전 모의고사 결과</p><h1 className="mt-1 text-2xl font-bold">문항별 리뷰</h1><p className="mt-2 text-sm text-ink-2">풀이팁 UI 로컬 미리보기입니다. 실제 서버 저장과 관리자 연동은 연결 전입니다.</p></div><ResultTipsPreview questions={questions} /></div>;
+  }
   const scores = [18, 31, 42, 49, 55, 61, 65, 68, 72, 75, 78, 82, 88];
   const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
   const middle = median(scores);

@@ -201,7 +201,7 @@ export default function ResultReviewNote({
 
   return (
     <div className="chart-card flex h-full flex-col overflow-hidden p-0">
-      <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-3">
+      <div className="flex items-center gap-2 px-4 py-3">
         <p className="text-sm font-black text-zinc-900">문항 노트</p>
         <span className="ml-auto text-[11px] font-medium text-brand" aria-live="polite">
           {error}
