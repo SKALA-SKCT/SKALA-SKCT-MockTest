@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ReviewSelect } from "@/components/ui/dropdown-menu";
 import type { ReviewQuestion } from "@/components/ResultReview";
 import { loadQuestionNote, saveQuestionNote } from "@/lib/actions/notes";
 import { NOTE_TEXT_MAX } from "@/lib/question-note";
@@ -17,25 +18,6 @@ function isCanvasBlank(canvas: HTMLCanvasElement) {
   if (!ctx) return true;
   const pixels = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
   return !pixels.some((pixel) => pixel !== 0);
-}
-
-// 대시보드 "응시 차수" 드롭다운과 같은 모양을 쓴다.
-function NoteSelect({ label, value, onChange, children }: { label: string; value: string | number; onChange: (value: string) => void; children: React.ReactNode }) {
-  return (
-    <span className="relative block">
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-lg border border-hairline bg-white py-1.5 pl-3 pr-9 text-xs font-semibold text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-      >
-        {children}
-      </select>
-      <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-ink-3">
-        <path d="m6 8 4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </span>
-  );
 }
 
 export default function ResultReviewNote({
@@ -223,16 +205,8 @@ export default function ResultReviewNote({
       </div>
 
       <div className="grid grid-cols-2 gap-2 border-b border-zinc-100 px-3 py-2">
-        <NoteSelect label="영역" value={subject} onChange={(value) => selectQuestion(value, 0)}>
-          {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
-        </NoteSelect>
-        <NoteSelect label="문제 번호" value={localIndex} onChange={(value) => selectQuestion(subject, Number(value))}>
-          {subjectQuestions.map((q, index) => (
-            <option key={q.id} value={index}>
-              {index + 1}번
-            </option>
-          ))}
-        </NoteSelect>
+        <ReviewSelect label="영역" value={subject} options={subjects.map((value) => ({ value, label: value }))} onSelect={(value) => selectQuestion(value, 0)} />
+        <ReviewSelect label="문제 번호" value={String(localIndex)} options={subjectQuestions.map((question, index) => ({ value: String(index), label: `${index + 1}번` }))} onSelect={(value) => selectQuestion(subject, Number(value))} />
       </div>
 
       <div className="flex h-10 shrink-0 items-center gap-1 border-b border-zinc-100 px-2">

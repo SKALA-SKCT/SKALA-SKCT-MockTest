@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { ReviewSelect } from "@/components/ui/dropdown-menu";
 import { loadQuestionTips, createQuestionTip, likeQuestionTip, deleteQuestionTip, reportQuestionTip } from "@/lib/actions/tips";
 import { TIP_REPORT_REASONS, type QuestionTip } from "@/lib/question-tip";
 import type { ReviewQuestion } from "@/components/ResultReview";
@@ -9,13 +9,6 @@ import type { ReviewQuestion } from "@/components/ResultReview";
 type Tip = QuestionTip;
 type Report = { tip: Tip; reason: string; detail: string; createdAt: string };
 
-function TipSelect({ label, value, options, onSelect, disabled }: { disabled?: boolean; label: string; value: string; options: { value: string; label: string }[]; onSelect: (value: string) => void }) {
-  return <DropdownMenu><DropdownMenuTrigger asChild><button type="button" aria-label={label} disabled={disabled} className="flex w-full items-center justify-between gap-2 rounded-lg border border-hairline bg-surface py-1.5 pl-3 pr-3 text-xs font-semibold text-ink outline-none hover:bg-page focus-visible:ring-2 focus-visible:ring-brand/20">
-    {options.find((option) => option.value === value)?.label ?? "선택"}<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="size-4 text-ink-3"><path d="m6 8 4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-  </button></DropdownMenuTrigger><DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] rounded-xl border-hairline bg-surface p-1 shadow-[0_14px_32px_rgba(0,0,0,0.14)]">
-    {options.map((option) => <DropdownMenuItem key={option.value} onSelect={() => onSelect(option.value)} className={`flex items-center justify-between rounded-lg py-2 text-xs data-[highlighted]:bg-page ${value === option.value ? "font-semibold text-brand" : "text-ink-2"}`}>{option.label}{value === option.value && <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="size-4"><path d="m4 10 4 4 8-8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</DropdownMenuItem>)}
-  </DropdownMenuContent></DropdownMenu>;
-}
 
 export default function ResultReviewTips({ questions, onSelectQuestion, preview = false }: { preview?: boolean; questions: ReviewQuestion[]; onSelectQuestion: (question: ReviewQuestion) => void }) {
   const [questionId, setQuestionId] = useState(questions[0]?.id);
@@ -83,13 +76,13 @@ export default function ResultReviewTips({ questions, onSelectQuestion, preview 
     <header className="flex shrink-0 items-center justify-between px-4 py-3">
       <h3 className="text-sm font-bold">풀이팁</h3>
       <div className="group relative" onKeyDown={(event) => event.key === "Escape" && setHelp(false)}>
-        <button type="button" aria-label="풀이팁 사용 안내" aria-expanded={help} aria-describedby="tips-help" onClick={() => setHelp(!help)} className="flex size-7 items-center justify-center rounded-full text-sm font-bold focus-visible:outline-2 focus-visible:outline-brand"><span className="flex size-7 items-center justify-center rounded-full border border-hairline">?</span></button>
-        <div id="tips-help" role="tooltip" className={`absolute right-0 top-9 z-20 w-72 rounded-xl border border-hairline bg-surface p-3 text-xs leading-5 shadow-lg ${help ? "" : "hidden group-hover:block group-focus-within:block"}`}>이 문항의 풀이팁을 서로 공유할 수 있어요.</div>
+        <button type="button" aria-label="풀이팁 사용 안내" aria-expanded={help} aria-describedby="tips-help" onClick={() => setHelp(!help)} className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 text-xs font-black text-zinc-500 transition hover:border-brand hover:text-brand">?</button>
+        <div id="tips-help" role="tooltip" className={`pointer-events-none absolute right-0 top-9 z-10 w-72 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs leading-5 text-zinc-500 shadow-xl transition ${help ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"}`}>이 문항의 풀이팁을 서로 공유할 수 있어요.</div>
       </div>
     </header>
     <div className="grid shrink-0 grid-cols-2 gap-2 border-b border-hairline px-3 py-2">
-      <TipSelect disabled={pending} label="풀이팁 과목" value={subject ?? ""} options={subjects.map((value) => ({ value, label: value }))} onSelect={(value) => { const question = questions.find((q) => q.subject === value); if (question) selectQuestion(question); }} />
-      <TipSelect disabled={pending} label="풀이팁 문항" value={String(questionId)} options={questions.filter((q) => q.subject === subject).map((q, index) => ({ value: String(q.id), label: `${index + 1}번` }))} onSelect={(value) => { const question = questions.find((q) => q.id === Number(value)); if (question) selectQuestion(question); }} />
+      <ReviewSelect disabled={pending} label="풀이팁 과목" value={subject ?? ""} options={subjects.map((value) => ({ value, label: value }))} onSelect={(value) => { const question = questions.find((q) => q.subject === value); if (question) selectQuestion(question); }} />
+      <ReviewSelect disabled={pending} label="풀이팁 문항" value={String(questionId)} options={questions.filter((q) => q.subject === subject).map((q, index) => ({ value: String(q.id), label: `${index + 1}번` }))} onSelect={(value) => { const question = questions.find((q) => q.id === Number(value)); if (question) selectQuestion(question); }} />
     </div>
     <div className="flex shrink-0 items-center justify-between px-4 pt-2"><p className="text-xs font-semibold">풀이팁 <span className="ml-1 text-brand">{visible.length}</span></p><div className="flex gap-1">{[["latest", "최신순"], ["likes", "좋아요순"]].map(([value, label]) => <button key={value} type="button" aria-pressed={sort === value} onClick={() => setSort(value)} className={`${button} ${sort === value ? "font-bold text-ink underline decoration-brand decoration-2 underline-offset-8" : "text-ink-2"}`}>{label}</button>)}</div></div>
     <div className={`min-h-0 flex-1 overflow-y-auto px-5 ${!loading && !loadError && visible.length === 0 ? "flex items-center justify-center" : ""}`}>
