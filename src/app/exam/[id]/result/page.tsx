@@ -387,13 +387,13 @@ export default async function ResultPage({
         </Link>
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{exam.title}</h1>
-          <ExamStartButton
+          {exam.published && <ExamStartButton
             examId={examId}
             title={exam.title}
             label="재응시"
             subjects={subjectInfo}
             sectionMinutes={SECTION_MINUTES}
-          />
+          />}
         </div>
         <ResultRoundTabs
           examId={examId}

@@ -21,10 +21,17 @@ export default async function TakePage({
 
   const user = await requireUser();
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
-  if (!exam || !exam.published) notFound();
+  if (!exam) notFound();
 
   const query = await searchParams;
-  const resumeAttemptId = query.resume === undefined ? undefined : Number(query.resume);
+  let resumeAttemptId = query.resume === undefined ? undefined : Number(query.resume);
+  if (!exam.published) {
+    const [unfinished] = await db.select({ id: attempts.id }).from(attempts)
+      .where(and(eq(attempts.userId, user.id), eq(attempts.examId, examId), isNull(attempts.finishedAt)))
+      .orderBy(desc(attempts.id)).limit(1);
+    if (!unfinished) redirect("/");
+    resumeAttemptId = unfinished.id;
+  }
   if (query.restart !== "1" && resumeAttemptId === undefined) {
     const [unfinished] = await db.select({ id: attempts.id }).from(attempts)
       .where(and(eq(attempts.userId, user.id), eq(attempts.examId, examId), isNull(attempts.finishedAt)))
@@ -46,7 +53,7 @@ export default async function TakePage({
 
   let attemptId: number;
   try {
-    ({ attemptId } = await startAttempt(examId, query.restart === "1" ? undefined : resumeAttemptId));
+    ({ attemptId } = await startAttempt(examId, exam.published && query.restart === "1" ? undefined : resumeAttemptId));
   } catch {
     redirect(`/exam/${examId}/take`);
   }

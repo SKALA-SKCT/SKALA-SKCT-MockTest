@@ -49,6 +49,16 @@ async function main() {
     const reconnect = await fetch(`${appUrl}/exam/${exam.id}/take`, { headers: { cookie: session } });
     assert.match(await reconnect.text(), /응시 중인 데이터가 있습니다. 이어서 하시겠습니까\?/);
     assert.equal((await pool.query('select choice from responses where attempt_id=$1', [attemptId])).rows[0].choice, 2);
+    await pool.query('update exams set published=false where id=$1', [exam.id]);
+    await take('?restart=1');
+    assert.equal((await pool.query('select id from attempts where user_id=$1 and exam_id=$2', [user.id, exam.id])).rows[0].id, attemptId);
+    const denied = await fetch(`${appUrl}/exam/${exam.id}/take`, { headers: { cookie: await cookie(other.id) }, redirect: 'manual' });
+    const deniedHtml = await denied.text();
+    assert.ok(denied.status === 307 || /NEXT_REDIRECT|http-equiv="refresh"/.test(deniedHtml));
+    assert.ok(!deniedHtml.includes('검증 문항입니다.'));
+    assert.equal((await pool.query('select id from attempts where user_id=$1 and exam_id=$2', [other.id, exam.id])).rows.length, 0);
+    const dashboard = await fetch(appUrl, { headers: { cookie: session } });
+    assert.match(await dashboard.text(), /이어서 하기/);
     await take(`?resume=${attemptId}`);
     records = (await pool.query('select * from attempts where user_id=$1 and exam_id=$2', [user.id, exam.id])).rows;
     assert.equal(records.length, 1);
@@ -56,6 +66,10 @@ async function main() {
     assert.deepEqual(records[0].section_state, state);
     assert.equal((await pool.query('select choice from responses where attempt_id=$1', [attemptId])).rows[0].choice, 2);
     assert.equal((await (await send({ ...body, action: 'finishSection' })).json()).finished, true);
+    const archivedResult = await fetch(`${appUrl}/exam/${exam.id}/result`, { headers: { cookie: session } });
+    assert.equal(archivedResult.status, 200);
+    assert.ok(!(await archivedResult.text()).includes('재응시'));
+    await pool.query('update exams set published=true where id=$1', [exam.id]);
     assert.equal((await pool.query('select total_score from attempt_results where attempt_id=$1', [attemptId])).rows[0].total_score, 1);
     assert.equal((await (await send({ ...body, action: 'finishSection' })).json()).finished, true);
     await take();
