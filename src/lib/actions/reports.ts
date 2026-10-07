@@ -3,7 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { questionReports, questions } from "@/db/schema";
+import { questionReports, questions, exams } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { ensureQuestionReportsSchema } from "@/db/ensure-question-reports";
 
@@ -31,7 +31,8 @@ export async function submitQuestionReport(input: {
   const [question] = await db
     .select({ id: questions.id })
     .from(questions)
-    .where(and(eq(questions.id, input.questionId), eq(questions.examId, input.examId)));
+    .innerJoin(exams, eq(exams.id, questions.examId))
+    .where(and(eq(exams.published, true), eq(questions.id, input.questionId), eq(questions.examId, input.examId)));
   if (!question) return { ok: false, error: "문항을 찾을 수 없습니다." };
 
   await db.insert(questionReports).values({

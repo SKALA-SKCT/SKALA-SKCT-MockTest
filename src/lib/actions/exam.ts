@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, sql, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, sql, isNotNull, isNull, getTableColumns } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attempts,
@@ -29,9 +29,10 @@ function isSubject(value: string): value is Subject {
 async function getMyAttempt(userId: number, examId: number, attemptId?: number) {
   if (attemptId !== undefined && !isValidId(attemptId)) return null;
   const [attempt] = await db
-    .select()
+    .select(getTableColumns(attempts))
     .from(attempts)
-    .where(and(eq(attempts.userId, userId), eq(attempts.examId, examId), ...(attemptId === undefined ? [] : [eq(attempts.id, attemptId)])))
+    .innerJoin(exams, eq(exams.id, attempts.examId))
+    .where(and(eq(exams.published, true), eq(attempts.userId, userId), eq(attempts.examId, examId), ...(attemptId === undefined ? [] : [eq(attempts.id, attemptId)])))
     .orderBy(desc(attempts.id))
     .limit(1);
   return attempt ?? null;
@@ -42,7 +43,7 @@ export async function startAttempt(examId: number, resumeAttemptId?: number) {
   if (!isValidId(examId) || (resumeAttemptId !== undefined && !isValidId(resumeAttemptId))) throw new Error("잘못된 시험입니다.");
   const user = await requireUser();
   const [exam] = await db.select().from(exams).where(eq(exams.id, examId));
-  if (!exam) throw new Error("존재하지 않는 시험입니다.");
+  if (!exam?.published) throw new Error("존재하지 않는 시험입니다.");
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(${user.id}, ${examId})`);
     const [existing] = await tx.select().from(attempts).where(and(
@@ -52,7 +53,6 @@ export async function startAttempt(examId: number, resumeAttemptId?: number) {
       if (existing?.id !== resumeAttemptId) throw new Error("이어서 할 응시가 없습니다.");
       return { attemptId: existing.id };
     }
-    if (!exam.published) throw new Error("신규 응시가 종료된 시험입니다.");
     await tx.delete(attempts).where(and(
       eq(attempts.userId, user.id), eq(attempts.examId, examId), isNull(attempts.finishedAt)
     ));
@@ -259,7 +259,8 @@ export async function getExamSubjects(examId: number): Promise<Subject[]> {
   const rows = await db
     .selectDistinct({ subject: questions.subject })
     .from(questions)
-    .where(eq(questions.examId, examId));
+    .innerJoin(exams, eq(exams.id, questions.examId))
+    .where(and(eq(questions.examId, examId), eq(exams.published, true)));
   const set = new Set(rows.map((r) => r.subject));
   return SUBJECTS.filter((s) => set.has(s));
 }
