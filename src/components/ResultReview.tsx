@@ -275,10 +275,10 @@ export function QuestionCard({
   );
 }
 
-function matchesReviewFilter(q: ReviewQuestion, filter: ReviewFilter) {
+export function matchesReviewFilter(q: ReviewQuestion, filter: ReviewFilter) {
   return (
     filter === "all" ||
-    (filter === "wrong" && !q.isCorrect) ||
+    (filter === "wrong" && !q.isCorrect && q.myChoice != null) ||
     (filter === "correct" && q.isCorrect) ||
     (filter === "easy-mistake" && !q.isCorrect && q.myChoice != null && q.groupAccuracy >= 70) ||
     (filter === "unanswered" && q.myChoice == null)
@@ -337,8 +337,8 @@ export default function ResultReview({
     return map;
   }, [questions, subjects]);
 
-  const wrongCount = questions.filter((q) => !q.isCorrect).length;
-  const correctCount = questions.length - wrongCount;
+  const wrongCount = questions.filter((q) => matchesReviewFilter(q, "wrong")).length;
+  const correctCount = questions.filter((q) => q.isCorrect).length;
   const easyMistakeCount = questions.filter(
     (q) => !q.isCorrect && q.myChoice != null && q.groupAccuracy >= 70
   ).length;
