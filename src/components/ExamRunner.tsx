@@ -289,6 +289,7 @@ export default function ExamRunner({
       if (busyRef.current || !recoveryReady) return;
       busyRef.current = true;
       setBusy(true);
+      setConfirmRequest(null);
       try {
         if (!await flushAnswers()) return;
         const res = await finishSection(examId, subject, attemptId);
@@ -604,6 +605,11 @@ export default function ExamRunner({
   };
 
   const advanceQuestion = () => {
+    if (
+      busyRef.current || !recoveryReady ||
+      restoredSubjectRef.current !== currentSubject ||
+      (endsAtMs && Date.now() >= endsAtMs)
+    ) return;
     if (isLast) {
       moveToNextSubject();
       return;
